@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-obsidian text-slate-100 antialiased;
+  }
+
+  ::selection {
+    @apply bg-cyan-accent/30 text-white;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply border border-white/10 bg-white/5 backdrop-blur-xl;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-cyan-accent to-blue-400 bg-clip-text text-transparent;
+  }
+}
