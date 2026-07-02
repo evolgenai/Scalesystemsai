@@ -1,3 +1,4 @@
+import AgentTerminal from '@/components/AgentTerminal';
 import type { Metadata } from "next";
 import Link from "next/link";
 import Hero from "@/components/Hero";
@@ -79,6 +80,7 @@ export default function HomePage() {
   return (
     <main>
       <Hero />
+      <AgentTerminal />
 
       <section
         className="border-y border-white/5 bg-black/20 px-4 py-12 sm:px-6 lg:px-8"
