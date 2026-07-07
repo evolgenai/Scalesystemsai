@@ -2,70 +2,17 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Bot,
-  Settings2,
-  Target,
-  Workflow,
-  Headphones,
-  type LucideIcon,
-} from "lucide-react";
+import { Bot, Settings2 } from "lucide-react";
+import { AGENTS } from "./agentConfig";
+import type { AgentConfig } from "./agentConfig";
+import type { AgentId, AgentStates } from "./types";
 
-type AgentStatus = "deployed" | "paused";
-
-type Agent = {
-  id: string;
-  name: string;
-  shortName: string;
-  tagline: string;
-  icon: LucideIcon;
-  iconColor: string;
-  uptime: string;
-  health: "healthy" | "degraded" | "offline";
-  tasksToday: number;
-  initialStatus: AgentStatus;
+type AgentWorkforceGridProps = {
+  agentStates: AgentStates;
+  onAgentToggle: (agentId: AgentId, active: boolean) => void;
 };
 
-const AGENTS: Agent[] = [
-  {
-    id: "lead-sentinel",
-    name: "Lead Qualification Sentinel",
-    shortName: "Lead Sentinel",
-    tagline: "Autonomous inbound revenue pipeline optimizer",
-    icon: Target,
-    iconColor: "text-cyan-accent",
-    uptime: "99.97%",
-    health: "healthy",
-    tasksToday: 847,
-    initialStatus: "deployed",
-  },
-  {
-    id: "ops-orchestrator",
-    name: "Enterprise Systems Orchestrator",
-    shortName: "Systems Orchestrator",
-    tagline: "Cross-platform data sync & workflow automation",
-    icon: Workflow,
-    iconColor: "text-purple-400",
-    uptime: "99.91%",
-    health: "healthy",
-    tasksToday: 312,
-    initialStatus: "deployed",
-  },
-  {
-    id: "support-specialist",
-    name: "24/7 Technical Support Specialist",
-    shortName: "Support Specialist",
-    tagline: "Context-aware L1 & L2 autonomous issue resolver",
-    icon: Headphones,
-    iconColor: "text-emerald-400",
-    uptime: "99.84%",
-    health: "degraded",
-    tasksToday: 156,
-    initialStatus: "paused",
-  },
-];
-
-function healthStyles(health: Agent["health"], active: boolean) {
+function healthStyles(health: AgentConfig["health"], active: boolean) {
   if (!active) {
     return {
       dot: "bg-slate-500",
@@ -133,8 +80,15 @@ function AgentToggle({
   );
 }
 
-function AgentCard({ agent }: { agent: Agent }) {
-  const [active, setActive] = useState(agent.initialStatus === "deployed");
+function AgentCard({
+  agent,
+  active,
+  onToggle,
+}: {
+  agent: AgentConfig;
+  active: boolean;
+  onToggle: (active: boolean) => void;
+}) {
   const [configOpen, setConfigOpen] = useState(false);
   const Icon = agent.icon;
   const health = healthStyles(agent.health, active);
@@ -176,7 +130,7 @@ function AgentCard({ agent }: { agent: Agent }) {
           </div>
           <AgentToggle
             active={active}
-            onChange={setActive}
+            onChange={onToggle}
             agentName={agent.name}
           />
         </div>
@@ -259,10 +213,11 @@ function AgentCard({ agent }: { agent: Agent }) {
   );
 }
 
-export default function AgentWorkforceGrid() {
-  const deployedCount = AGENTS.filter(
-    (a) => a.initialStatus === "deployed"
-  ).length;
+export default function AgentWorkforceGrid({
+  agentStates,
+  onAgentToggle,
+}: AgentWorkforceGridProps) {
+  const activeCount = Object.values(agentStates).filter(Boolean).length;
 
   return (
     <section className="space-y-4">
@@ -277,13 +232,18 @@ export default function AgentWorkforceGrid() {
         </div>
         <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-slate-muted sm:flex">
           <Bot className="h-3.5 w-3.5 text-cyan-accent" aria-hidden />
-          {deployedCount} of {AGENTS.length} agents active
+          {activeCount} of {AGENTS.length} agents active
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         {AGENTS.map((agent) => (
-          <AgentCard key={agent.id} agent={agent} />
+          <AgentCard
+            key={agent.id}
+            agent={agent}
+            active={agentStates[agent.id]}
+            onToggle={(active) => onAgentToggle(agent.id, active)}
+          />
         ))}
       </div>
     </section>

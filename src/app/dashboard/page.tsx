@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -12,8 +13,58 @@ import MetricsOverview from "@/components/dashboard/MetricsOverview";
 import AgentWorkforceGrid from "@/components/dashboard/AgentWorkforceGrid";
 import LiveIntegrationFeed from "@/components/dashboard/LiveIntegrationFeed";
 import ApiKeyPortal from "@/components/dashboard/ApiKeyPortal";
+import { AGENTS, INITIAL_AGENT_STATES } from "@/components/dashboard/agentConfig";
+import type { AgentId, AgentStates, FeedEntry } from "@/components/dashboard/types";
+
+function formatFeedTimestamp(date = new Date()) {
+  return date.toLocaleTimeString("en-US", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
+
+function buildAgentToggleLog(agentName: string, active: boolean): FeedEntry {
+  const message = active
+    ? `Initializing LangGraph cluster for ${agentName}...`
+    : `Terminating inference loops for ${agentName} - State: PAUSED`;
+
+  return {
+    id: `system-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    agent: "SYSTEM_NODE",
+    message,
+    timestamp: formatFeedTimestamp(),
+    tone: active ? "system" : "amber",
+  };
+}
 
 export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false);
+  const [agentStates, setAgentStates] = useState<AgentStates>(INITIAL_AGENT_STATES);
+  const [feedEntries, setFeedEntries] = useState<FeedEntry[]>([]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const appendFeedEntry = useCallback((entry: FeedEntry) => {
+    setFeedEntries((prev) => [...prev.slice(-24), entry]);
+  }, []);
+
+  const handleAgentToggle = useCallback(
+    (agentId: AgentId, active: boolean) => {
+      const agent = AGENTS.find((a) => a.id === agentId);
+      if (!agent) return;
+
+      setAgentStates((prev) => ({ ...prev, [agentId]: active }));
+      appendFeedEntry(buildAgentToggleLog(agent.name, active));
+    },
+    [appendFeedEntry]
+  );
+
+  const activeAgentCount = Object.values(agentStates).filter(Boolean).length;
+
   return (
     <main className="relative min-h-screen bg-obsidian text-white">
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
@@ -73,7 +124,9 @@ export default function DashboardPage() {
           <div className="mt-6 flex flex-wrap items-center gap-4 rounded-xl border border-white/5 bg-black/20 px-4 py-3">
             <div className="flex items-center gap-2 text-xs text-slate-muted">
               <CircleDot className="h-3.5 w-3.5 text-emerald-400 animate-pulse" aria-hidden />
-              All systems operational
+              {activeAgentCount > 0
+                ? `${activeAgentCount} agent${activeAgentCount === 1 ? "" : "s"} operational`
+                : "All agents paused"}
             </div>
             <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
             <span className="text-xs text-slate-dim">
@@ -82,8 +135,8 @@ export default function DashboardPage() {
             </span>
             <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
             <span className="text-xs text-slate-dim">
-              Last sync:{" "}
-              <span className="font-mono text-cyan-accent">2s ago</span>
+              Events logged:{" "}
+              <span className="font-mono text-cyan-accent">{feedEntries.length}</span>
             </span>
           </div>
         </motion.header>
@@ -96,11 +149,19 @@ export default function DashboardPage() {
             <MetricsOverview />
           </section>
 
-          <AgentWorkforceGrid />
+          <AgentWorkforceGrid
+            agentStates={agentStates}
+            onAgentToggle={handleAgentToggle}
+          />
 
           <div className="grid gap-10 xl:grid-cols-5">
             <div className="xl:col-span-3">
-              <LiveIntegrationFeed />
+              <LiveIntegrationFeed
+                mounted={mounted}
+                entries={feedEntries}
+                onAppendEntry={appendFeedEntry}
+                agentStates={agentStates}
+              />
             </div>
             <div className="xl:col-span-2">
               <ApiKeyPortal />
