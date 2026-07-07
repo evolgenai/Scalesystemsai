@@ -16,7 +16,11 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
-const siteUrl = "https://scalesystems.ai";
+const siteUrl = "https://scalesystemsai.vercel.app";
+
+const siteTitle = "ScaleSystems | Enterprise Agentic AI Automation Agency";
+const siteDescription =
+  "Scale and automate your business workflows with custom, cloud-hosted autonomous AI employees. Deploy production-grade AI agents for lead generation, system operations, and 24/7 technical support.";
 
 export const viewport: Viewport = {
   themeColor: "#09090b",
@@ -28,44 +32,45 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "ScaleSystems | Agentic AI Employees & Business Automation Studio",
+    default: siteTitle,
     template: "%s | ScaleSystems",
   },
-  description:
-    "ScaleSystems builds autonomous AI employees that eliminate administrative overhead, automate CRM workflows, and scale operations 24/7. Agentic AI automation agency for enterprise teams.",
+  description: siteDescription,
   keywords: [
-    "AI Automation Agency",
-    "Agentic AI Employees",
-    "ScaleSystems Business Automation",
-    "AI employee",
-    "multi-agent frameworks",
-    "SaaS automation",
-    "enterprise workflow optimization",
+    "AI Employees",
+    "Agentic Automation",
+    "ScaleSystems",
+    "Corporate Workflow AI",
+    "Custom Autonomous Agents",
   ],
-  authors: [{ name: "ScaleSystems" }],
+  applicationName: "ScaleSystems",
+  authors: [{ name: "ScaleSystems", url: siteUrl }],
   creator: "ScaleSystems",
+  publisher: "ScaleSystems",
+  category: "technology",
+  alternates: {
+    canonical: siteUrl,
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
     url: siteUrl,
     siteName: "ScaleSystems",
-    title: "ScaleSystems | Hire an AI Employee for $0/Hour",
-    description:
-      "Deploy autonomous AI agents that qualify leads, sync data across legacy tools, and run customer operations around the clock.",
+    title: siteTitle,
+    description: siteDescription,
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "ScaleSystems — Agentic AI Employee & Automation Studio",
+        alt: "ScaleSystems — Enterprise Agentic AI Automation Agency",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "ScaleSystems | Agentic AI Employees",
-    description:
-      "Custom multi-agent frameworks and enterprise automation. Hire an AI employee that never sleeps.",
+    title: siteTitle,
+    description: siteDescription,
     images: ["/og-image.png"],
   },
   robots: {
@@ -86,12 +91,12 @@ const organizationJsonLd = {
   "@type": "ProfessionalService",
   name: "ScaleSystems",
   url: siteUrl,
-  description:
-    "Agentic AI Employee & Automation Studio specializing in custom multi-agent frameworks and enterprise workflow optimization.",
+  description: siteDescription,
   serviceType: [
-    "AI Automation Agency",
-    "Agentic AI Employees",
-    "Business Process Automation",
+    "AI Employees",
+    "Agentic Automation",
+    "Corporate Workflow AI",
+    "Custom Autonomous Agents",
   ],
 };
 
