@@ -1,6 +1,6 @@
 import AgentTerminal from '@/components/AgentTerminal';
-import type { Metadata } from "next";
-import Link from "next/link";
+import ROISavingsCalculator from "@/components/ROISavingsCalculator";
+import type { Metadata } from "next";import Link from "next/link";
 import Hero from "@/components/Hero";
 import {
   Bot,
@@ -130,11 +130,12 @@ export default function HomePage() {
         </div>
       </section>
 
+      <ROISavingsCalculator />
+
       <section
         className="px-4 py-20 sm:px-6 lg:px-8"
         aria-labelledby="cta-heading"
-      >
-        <div className="glass mx-auto max-w-4xl rounded-3xl p-10 text-center sm:p-14">
+      >        <div className="glass mx-auto max-w-4xl rounded-3xl p-10 text-center sm:p-14">
           <Bot className="mx-auto h-12 w-12 text-cyan-accent" aria-hidden />
           <h2
             id="cta-heading"

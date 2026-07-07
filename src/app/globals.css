@@ -24,4 +24,25 @@
   .text-gradient {
     @apply bg-gradient-to-r from-cyan-accent to-blue-400 bg-clip-text text-transparent;
   }
+
+  .roi-range::-webkit-slider-thumb {
+    appearance: none;
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: #00f2fe;
+    cursor: pointer;
+    border: 2px solid #09090b;
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.5);
+  }
+
+  .roi-range::-moz-range-thumb {
+    height: 18px;
+    width: 18px;
+    border-radius: 50%;
+    background: #00f2fe;
+    cursor: pointer;
+    border: 2px solid #09090b;
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.5);
+  }
 }
