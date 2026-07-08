@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "skills": {
+    "claimable-postgres": {
+      "source": "neon.com",
+      "sourceType": "well-known",
+      "computedHash": "d0263a96eccc2fc5e169b29050efdeabe081810e074792cb7b386449258099b0"
+    },
+    "neon": {
+      "source": "neon.com",
+      "sourceType": "well-known",
+      "computedHash": "20399e67201067c1d759eecec4baa97d9fc98390524370dbf625c43f7c35429f"
+    },
+    "neon-ai-gateway": {
+      "source": "neon.com",
+      "sourceType": "well-known",
+      "computedHash": "d294b4bc7c56a854ae15f4119775bca5754b01d862fcc034bd01fc968d109b49"
+    },
+    "neon-functions": {
+      "source": "neon.com",
+      "sourceType": "well-known",
+      "computedHash": "1ebf6e67550109bf6e01425717c15c7e8d04aa64db218f5085280c3dd36d90b2"
+    },
+    "neon-object-storage": {
+      "source": "neon.com",
+      "sourceType": "well-known",
+      "computedHash": "421d87db515648c3d7e9043eb2785e5fcaf1f2cc18c1247f1c3aaf02b7bc5f31"
+    },
+    "neon-postgres": {
+      "source": "neon.com",
+      "sourceType": "well-known",
+      "computedHash": "800cc5890f74962e4e0dc15584cc17ea6f4c49f73dda35704f9630981abc3e5d"
+    },
+    "neon-postgres-agent-platforms": {
+      "source": "neon.com",
+      "sourceType": "well-known",
+      "computedHash": "96fde0d1b3284632184f6babf636c2a143aec6ff4e40354633853b7b83e898fc"
+    },
+    "neon-postgres-branches": {
+      "source": "neon.com",
+      "sourceType": "well-known",
+      "computedHash": "1148b2aa240350469b168f0e860d4f5440f62ee408a6dfdb5e1d11f0bd2c138a"
+    },
+    "neon-postgres-egress-optimizer": {
+      "source": "neon.com",
+      "sourceType": "well-known",
+      "computedHash": "618b5bc5c65ff143adb028ef3bb4f49d800e6b524339cf63327d86df264cbf1a"
+    },
+    "stripe-best-practices": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "7ff3b3441a1b1396584f85c3c7304ca4c28f2af5622a1932a046c86739063fd3"
+    },
+    "stripe-directory": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "58d8c458beaa92877ed2f0a622af65a0a91e2804efcc4188ac87a35780015361"
+    },
+    "stripe-projects": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "c084f4044a8d267c096e8391935e5547004a9ab003eaf34ee606041d2485f6c3"
+    },
+    "upgrade-stripe": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "46bb3c16878f93b953ed901b950686d64f04f90c67400bf31e1a0d7790d889df"
+    }
+  }
+}

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getPrisma } from "@/lib/prisma";
+import { checkAgentAccess, recordAgentRun } from "@/lib/quotaGuard";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -9,6 +11,7 @@ type AgentType =
 
 type AgentRunRequest = {
   clientApiKey?: string;
+  userId?: string;
   agentType?: string;
   payloadData?: Record<string, unknown>;
 };
@@ -278,7 +281,7 @@ export async function POST(
       );
     }
 
-    const { clientApiKey, agentType, payloadData } = body;
+    const { clientApiKey, userId, agentType, payloadData } = body;
 
     if (!clientApiKey || clientApiKey.trim() === "") {
       return jsonError(
@@ -286,6 +289,23 @@ export async function POST(
         "UNAUTHORIZED",
         401
       );
+    }
+
+    if (!userId || userId.trim() === "") {
+      return jsonError(
+        "A valid userId is required for quota enforcement.",
+        "MISSING_USER_ID",
+        400
+      );
+    }
+
+    const user = await getPrisma().user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      return jsonError("User account not found.", "USER_NOT_FOUND", 404);
     }
 
     if (!agentType || !VALID_AGENT_TYPES.has(agentType)) {
@@ -300,6 +320,17 @@ export async function POST(
       agentType as AgentType,
       payloadData
     );
+
+    const quotaCheck = await checkAgentAccess(userId, {
+      agentType,
+      tokensRequired: pipelineResult.computeTokensSpent,
+    });
+
+    if (!quotaCheck.allowed) {
+      return jsonError(quotaCheck.error, quotaCheck.code, 403);
+    }
+
+    await recordAgentRun(userId, agentType, pipelineResult.computeTokensSpent);
 
     const response: AgentRunResponse = {
       ...pipelineResult,
