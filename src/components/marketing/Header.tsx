@@ -71,7 +71,7 @@ export default function Header() {
           </svg>
         </label>
 
-        <div className="absolute inset-x-0 top-full hidden border-b border-white/10 bg-zinc-950/95 backdrop-blur-md peer-checked:block md:hidden">
+        <div className="absolute inset-x-0 top-full hidden border-b border-white/10 bg-zinc-950/95 backdrop-blur-md max-md:peer-checked:block">
           <ul className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-4 sm:px-6">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
