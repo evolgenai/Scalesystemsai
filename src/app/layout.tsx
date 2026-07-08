@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import Header from "@/components/marketing/Header";
+import Footer from "@/components/marketing/Footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -114,7 +114,7 @@ export default function RootLayout({
             __html: JSON.stringify(organizationJsonLd),
           }}
         />
-        <Navbar />
+        <Header />
         {children}
         <Footer />
       </body>
