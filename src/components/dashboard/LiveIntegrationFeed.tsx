@@ -12,8 +12,7 @@ type LiveIntegrationFeedProps = {
   entries: FeedEntry[];
   onAppendEntry: (entry: FeedEntry) => void;
   agentStates: AgentStates;
-  userId?: string;
-  clientApiKey?: string;
+  isAuthenticated?: boolean;
 };
 
 const CLOCK_PLACEHOLDER = "--:--:--";
@@ -105,8 +104,7 @@ export default function LiveIntegrationFeed({
   entries,
   onAppendEntry,
   agentStates,
-  userId,
-  clientApiKey,
+  isAuthenticated = false,
 }: LiveIntegrationFeedProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [serverTime, setServerTime] = useState(CLOCK_PLACEHOLDER);
@@ -122,7 +120,7 @@ export default function LiveIntegrationFeed({
   }, [mounted]);
 
   useEffect(() => {
-    if (!mounted || !userId || !clientApiKey) return;
+    if (!mounted || !isAuthenticated) return;
 
     const activeAgents = AGENTS.filter((agent) => agentStates[agent.id]);
     if (activeAgents.length === 0) return;
@@ -132,11 +130,7 @@ export default function LiveIntegrationFeed({
       const agent = activeAgents[index % activeAgents.length];
       index += 1;
 
-      const result = await executeAgentRun({
-        userId,
-        clientApiKey,
-        agentId: agent.id,
-      });
+      const result = await executeAgentRun({ agentId: agent.id });
 
       if (!result.success) {
         onAppendEntry({
@@ -159,14 +153,14 @@ export default function LiveIntegrationFeed({
     }, 8000);
 
     return () => clearInterval(interval);
-  }, [mounted, agentStates, onAppendEntry, userId, clientApiKey]);
+  }, [mounted, agentStates, onAppendEntry, isAuthenticated]);
 
   useEffect(() => {
     if (!mounted) return;
 
     let index = 0;
     const interval = setInterval(() => {
-      if (userId && clientApiKey) return;
+      if (isAuthenticated) return;
 
       const activePool = FEED_POOL.filter((template) => {
         const agentId = FEED_NAME_TO_ID[template.agent];
@@ -186,7 +180,7 @@ export default function LiveIntegrationFeed({
     }, 2200);
 
     return () => clearInterval(interval);
-  }, [mounted, agentStates, onAppendEntry, userId, clientApiKey]);
+  }, [mounted, agentStates, onAppendEntry, isAuthenticated]);
 
   useEffect(() => {
     if (scrollRef.current) {

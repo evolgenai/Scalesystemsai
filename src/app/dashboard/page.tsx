@@ -15,8 +15,6 @@ import { AGENTS, INITIAL_AGENT_STATES } from "@/components/dashboard/agentConfig
 import type { AgentId, AgentStates, FeedEntry } from "@/components/dashboard/types";
 import { executeAgentRun } from "@/lib/agentRuntimeClient";
 
-const RUNTIME_API_KEY = "ss-runtime-dev-key";
-
 const MetricsOverview = dynamic(
   () => import("@/components/dashboard/MetricsOverview"),
   { loading: () => <div className="h-36 animate-pulse rounded-2xl bg-white/5" /> }
@@ -84,11 +82,7 @@ export default function DashboardPage() {
       if (!agent) return;
 
       if (active && session?.user?.id) {
-        const result = await executeAgentRun({
-          userId: session.user.id,
-          clientApiKey: RUNTIME_API_KEY,
-          agentId,
-        });
+        const result = await executeAgentRun({ agentId });
 
         if (!result.success) {
           appendFeedEntry({
@@ -224,8 +218,7 @@ export default function DashboardPage() {
                 entries={feedEntries}
                 onAppendEntry={appendFeedEntry}
                 agentStates={agentStates}
-                userId={session?.user?.id}
-                clientApiKey={RUNTIME_API_KEY}
+                isAuthenticated={Boolean(session?.user?.id)}
               />
             </div>
             <div className="xl:col-span-2">

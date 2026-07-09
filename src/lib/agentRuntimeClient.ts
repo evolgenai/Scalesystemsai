@@ -31,8 +31,6 @@ export function resolveAgentApiType(agentId: AgentId): string {
 }
 
 export async function executeAgentRun(params: {
-  userId: string;
-  clientApiKey: string;
   agentId: AgentId;
   payloadData?: Record<string, unknown>;
 }): Promise<AgentRuntimeResult> {
@@ -40,9 +38,8 @@ export async function executeAgentRun(params: {
     const response = await fetch("/api/agent", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
       body: JSON.stringify({
-        userId: params.userId,
-        clientApiKey: params.clientApiKey,
         agentType: resolveAgentApiType(params.agentId),
         payloadData: params.payloadData,
       }),

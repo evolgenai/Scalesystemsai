@@ -21,7 +21,9 @@
     "bvnk:setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-bvnk.ps1",
     "bvnk:configure": "powershell -ExecutionPolicy Bypass -File scripts/configure-bvnk-env.ps1",
     "bvnk:verify": "node scripts/verify-bvnk.mjs",
-    "integrations:verify": "node scripts/verify-integrations.mjs"
+    "integrations:verify": "node scripts/verify-integrations.mjs",
+    "env:integration-key": "node scripts/ensure-integration-key.mjs",
+    "test:e2e": "node scripts/test-e2e.mjs"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",

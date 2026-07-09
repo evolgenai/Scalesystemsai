@@ -6,6 +6,15 @@ export type QuotaCheckResult =
   | { allowed: true }
   | { allowed: false; error: string; code: string };
 
+export const QUOTA_VIOLATION_CODES = new Set([
+  "TOKEN_QUOTA_EXCEEDED",
+  "AGENT_LIMIT_EXCEEDED",
+]);
+
+export function isQuotaViolation(code: string): boolean {
+  return QUOTA_VIOLATION_CODES.has(code);
+}
+
 type CheckAgentAccessOptions = {
   tokensRequired?: number;
   agentType?: string;
