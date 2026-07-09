@@ -1,4 +1,3 @@
-import type { PlanTier } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import { TIER_LIMITS } from "@/lib/plans";
 

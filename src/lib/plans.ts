@@ -38,6 +38,18 @@ export const TIER_LIMITS: Record<PlanTier, TierLimits> = {
   },
 };
 
+/** Public pricing page amounts — must stay aligned with Stripe price IDs. */
+export const PLAN_MONTHLY_USD: Record<PlanTier, number | null> = {
+  FREE: 0,
+  STARTER: 49,
+  PREMIUM: 149,
+  ENTERPRISE: null,
+};
+
+export const PAID_CHECKOUT_TIERS = ["STARTER", "PREMIUM"] as const satisfies readonly PlanTier[];
+
+export type PaidCheckoutTier = (typeof PAID_CHECKOUT_TIERS)[number];
+
 export function isPaidPlan(plan: PlanTier): boolean {
   return plan === "PREMIUM" || plan === "ENTERPRISE" || plan === "STARTER";
 }
@@ -54,4 +66,55 @@ export function parsePlanTier(value: string | null | undefined): PlanTier {
 
 export function formatPlanLabel(plan: PlanTier): string {
   return TIER_LIMITS[plan].label;
+}
+
+export function formatMonthlyPrice(plan: PlanTier): string {
+  const amount = PLAN_MONTHLY_USD[plan];
+  if (amount === null) return "Custom";
+  return amount === 0 ? "$0" : `$${amount}`;
+}
+
+export function resolveStripePriceIdForPlan(plan: PaidCheckoutTier): string | null {
+  const envKey =
+    plan === "STARTER" ? "STRIPE_STARTER_PRICE_ID" : "STRIPE_PREMIUM_PRICE_ID";
+  const priceId = process.env[envKey]?.trim();
+
+  if (!priceId || priceId.includes("placeholder")) {
+    return null;
+  }
+
+  return priceId;
+}
+
+export function resolvePlanFromStripePriceId(
+  priceId: string | null | undefined
+): PlanTier | null {
+  const normalized = priceId?.trim();
+  if (!normalized) return null;
+
+  const starterId = process.env.STRIPE_STARTER_PRICE_ID?.trim();
+  const premiumId = process.env.STRIPE_PREMIUM_PRICE_ID?.trim();
+
+  if (starterId && normalized === starterId) return "STARTER";
+  if (premiumId && normalized === premiumId) return "PREMIUM";
+
+  return null;
+}
+
+export function resolvePlanFromPaymentAmount(amountUsd: number): PlanTier | null {
+  if (amountUsd >= PLAN_MONTHLY_USD.PREMIUM!) return "PREMIUM";
+  if (amountUsd >= PLAN_MONTHLY_USD.STARTER!) return "STARTER";
+  return null;
+}
+
+export function agentLimitLabel(plan: PlanTier): string {
+  const limit = TIER_LIMITS[plan].maxActiveAgents;
+  return limit === null ? "Unlimited active agent deployments" : `${limit} active agent deployment${limit === 1 ? "" : "s"}`;
+}
+
+export function tokenQuotaLabel(plan: PlanTier): string {
+  const quota = TIER_LIMITS[plan].monthlyTokenQuota;
+  return quota === null
+    ? "Unlimited token pools"
+    : `${quota.toLocaleString()} tokens/mo runtime limit`;
 }

@@ -13,7 +13,7 @@ export type BvnkPayInRequest = {
   };
   metadata?: {
     userId: string;
-    plan: "PREMIUM";
+    plan: string;
     service: string;
   };
 };
@@ -30,6 +30,7 @@ export type BvnkWebhookPayload = {
   event?: string;
   status?: string;
   reference?: string;
+  amount?: number;
   metadata?: {
     userId?: string;
     plan?: string;
@@ -37,6 +38,10 @@ export type BvnkWebhookPayload = {
   data?: {
     status?: string;
     reference?: string;
+    amount?: number;
+    payInDetails?: {
+      amount?: number;
+    };
     metadata?: {
       userId?: string;
       plan?: string;

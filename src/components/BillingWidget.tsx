@@ -17,12 +17,17 @@ import {
 } from "@/app/actions/stripe";
 import { prepareCryptoPaymentIntent } from "@/app/actions/crypto";
 import type { FiatCurrency } from "@/types/bvnk";
-import { formatPlanLabel, isPaidPlan, type PlanTier } from "@/lib/plans";
+import {
+  formatPlanLabel,
+  isPaidPlan,
+  PLAN_MONTHLY_USD,
+  type PaidCheckoutTier,
+  type PlanTier,
+} from "@/lib/plans";
 
 export type BillingWidgetProps = {
   userId: string;
   currentPlan: PlanTier | string;
-  premiumAmount?: number;
   cryptoCurrency?: FiatCurrency;
   hasStripeCustomer?: boolean;
 };
@@ -45,11 +50,11 @@ function normalizePlan(plan: PlanTier | string): PlanTier {
 export default function BillingWidget({
   userId,
   currentPlan,
-  premiumAmount = 49,
   cryptoCurrency = "USD",
   hasStripeCustomer = false,
 }: BillingWidgetProps) {
   const [rail, setRail] = useState<PaymentRail>("card");
+  const [checkoutPlan, setCheckoutPlan] = useState<PaidCheckoutTier>("STARTER");
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -60,7 +65,7 @@ export default function BillingWidget({
   function handleCardCheckout() {
     setError("");
     startTransition(async () => {
-      const result = await createCheckoutSession(userId);
+      const result = await createCheckoutSession(userId, checkoutPlan);
 
       if (!result.success) {
         setError(result.error);
@@ -87,9 +92,10 @@ export default function BillingWidget({
 
   function handleCryptoCheckout() {
     setError("");
+    const amount = PLAN_MONTHLY_USD[checkoutPlan] ?? 49;
     startTransition(async () => {
       const result = await prepareCryptoPaymentIntent(
-        premiumAmount,
+        amount,
         userId,
         cryptoCurrency
       );
@@ -166,6 +172,30 @@ export default function BillingWidget({
         )}
 
         {!paid && (
+          <div className="mb-5">
+            <p className="mb-2 text-xs font-medium text-slate-muted">
+              Select upgrade tier
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {(["STARTER", "PREMIUM"] as const).map((tier) => (
+                <button
+                  key={tier}
+                  type="button"
+                  onClick={() => setCheckoutPlan(tier)}
+                  className={`rounded-lg border px-3 py-2 text-xs font-semibold transition-colors ${
+                    checkoutPlan === tier
+                      ? "border-cyan-accent/50 bg-cyan-accent/10 text-cyan-accent"
+                      : "border-white/10 text-slate-muted hover:text-white"
+                  }`}
+                >
+                  {formatPlanLabel(tier)} · ${PLAN_MONTHLY_USD[tier]}/mo
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!paid && (
           <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/20 p-1">
             <button
               type="button"
@@ -208,14 +238,14 @@ export default function BillingWidget({
                   <Zap className="mt-0.5 h-4 w-4 shrink-0 text-cyan-accent" aria-hidden />
                   <div>
                     <p className="text-sm font-medium text-white">
-                      Upgrade to Premium
+                      Upgrade to {formatPlanLabel(checkoutPlan)}
                     </p>
                     <p className="mt-1 text-xs text-slate-muted">
-                      Uses live{" "}
-                      <span className="font-mono text-cyan-accent/80">
-                        STRIPE_PREMIUM_PRICE_ID
-                      </span>{" "}
-                      from your environment.
+                      ${PLAN_MONTHLY_USD[checkoutPlan]}/mo via Stripe (
+                      {checkoutPlan === "STARTER"
+                        ? "STRIPE_STARTER_PRICE_ID"
+                        : "STRIPE_PREMIUM_PRICE_ID"}
+                      ).
                     </p>
                   </div>
                 </div>
@@ -256,8 +286,9 @@ export default function BillingWidget({
                       BVNK Stablecoin Checkout
                     </p>
                     <p className="mt-1 text-xs text-slate-muted">
-                      Pay {premiumAmount} {cryptoCurrency} via BVNK hosted
-                      checkout. Webhook sync upgrades your plan automatically.
+                      Pay ${PLAN_MONTHLY_USD[checkoutPlan]} {cryptoCurrency} via
+                      BVNK hosted checkout. Webhook sync upgrades your plan
+                      automatically.
                     </p>
                   </div>
                 </div>

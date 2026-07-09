@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import Header from "@/components/marketing/Header";
+import Footer from "@/components/marketing/Footer";
 import Providers from "@/components/Providers";
 
 const inter = Inter({
@@ -116,7 +116,7 @@ export default function RootLayout({
           }}
         />
         <Providers>
-          <Navbar />
+          <Header />
           {children}
           <Footer />
         </Providers>

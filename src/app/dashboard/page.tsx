@@ -205,7 +205,6 @@ export default function DashboardPage() {
             <BillingWidget
               userId={session.user.id}
               currentPlan={session.user.plan ?? "FREE"}
-              premiumAmount={49}
               cryptoCurrency="USD"
               hasStripeCustomer={Boolean(session.user.stripeCustomerId)}
             />

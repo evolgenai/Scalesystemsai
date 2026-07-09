@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPrisma } from "@/lib/prisma";
 import { verifyBvnkWebhookSignature } from "@/lib/bvnkWebhook";
-import type { PlanTier } from "@prisma/client";
+import { parsePlanTier, resolvePlanFromPaymentAmount } from "@/lib/plans";
 import type { BvnkWebhookPayload } from "@/types/bvnk";
 
 export const runtime = "nodejs";
@@ -104,14 +104,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
+    const metadataPlan = payload.metadata?.plan ?? payload.data?.metadata?.plan;
+    const amount =
+      payload.amount ??
+      payload.data?.amount ??
+      payload.data?.payInDetails?.amount;
+    const resolvedPlan =
+      parsePlanTier(metadataPlan) !== "FREE"
+        ? parsePlanTier(metadataPlan)
+        : typeof amount === "number"
+          ? resolvePlanFromPaymentAmount(amount) ?? "STARTER"
+          : "STARTER";
+
     await prisma.user.update({
       where: { id: userId },
-      data: { plan: "PREMIUM" satisfies PlanTier },
+      data: { plan: resolvedPlan },
     });
 
-    console.info("[BVNK Webhook] Upgraded user to PREMIUM.", {
+    console.info("[BVNK Webhook] Upgraded user plan.", {
       userId,
       previousPlan: user.plan,
+      nextPlan: resolvedPlan,
     });
 
     return NextResponse.json({ received: true, upgraded: true }, { status: 200 });

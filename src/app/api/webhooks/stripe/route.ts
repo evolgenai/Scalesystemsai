@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 import type { PlanTier } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
-import { parsePlanTier } from "@/lib/plans";
+import { parsePlanTier, resolvePlanFromStripePriceId } from "@/lib/plans";
 
 export const runtime = "nodejs";
 
@@ -73,11 +73,17 @@ function resolvePlanFromSubscription(
     return parsePlanTier(metadataPlan);
   }
 
+  const priceId = subscription.items.data[0]?.price?.id ?? null;
+  const fromPrice = resolvePlanFromStripePriceId(priceId);
+  if (fromPrice) {
+    return fromPrice;
+  }
+
   if (
     subscription.status === "active" ||
     subscription.status === "trialing"
   ) {
-    return "PREMIUM";
+    return "STARTER";
   }
 
   return "FREE";

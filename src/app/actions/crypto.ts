@@ -5,6 +5,7 @@ import {
   buildBvnkAuthorizationHeader,
   getBvnkHawkCredentials,
 } from "@/lib/bvnkAuth";
+import { resolvePlanFromPaymentAmount } from "@/lib/plans";
 import type {
   BvnkPayInRequest,
   BvnkPayInResponse,
@@ -66,6 +67,7 @@ export async function prepareCryptoPaymentIntent(
     const baseUrl = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
     const referenceId = `ss-bvnk-${userId.slice(0, 8)}-${Date.now()}`;
     const endpoint = `${BVNK_API_BASE}/api/v1/pay/summary`;
+    const targetPlan = resolvePlanFromPaymentAmount(amount) ?? "STARTER";
 
     const payload: BvnkPayInRequest = {
       walletId,
@@ -80,8 +82,8 @@ export async function prepareCryptoPaymentIntent(
       },
       metadata: {
         userId,
-        plan: "PREMIUM",
-        service: "ScaleSystems Premium",
+        plan: targetPlan,
+        service: `ScaleSystems ${targetPlan}`,
       },
     };
 
