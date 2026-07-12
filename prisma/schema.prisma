@@ -6,12 +6,62 @@ datasource db {
   provider = "postgresql"
 }
 
+enum AgentInstanceStatus {
+  ACTIVE
+  PAUSED
+}
+
+enum AgentExecutionStatus {
+  SUCCESS
+  FAILED
+}
+
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
-  password  String
-  plan      String   @default("FREE")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String             @id @default(cuid())
+  name             String?
+  email            String             @unique
+  password         String
+  plan             String             @default("FREE")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  agentInstances   AgentInstance[]
+  tokenUsageLedgers TokenUsageLedger[]
+}
+
+model AgentInstance {
+  id            String              @id @default(cuid())
+  userId        String
+  name          String
+  templateType  String
+  status        AgentInstanceStatus @default(ACTIVE)
+  createdAt     DateTime            @default(now())
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  executionLogs AgentExecutionLog[]
+
+  @@index([userId])
+}
+
+model AgentExecutionLog {
+  id             String               @id @default(cuid())
+  agentId        String
+  status         AgentExecutionStatus
+  eventMessage   String
+  tokensConsumed Int
+  timestamp      DateTime             @default(now())
+  agent          AgentInstance        @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([agentId])
+  @@index([timestamp])
+}
+
+model TokenUsageLedger {
+  id                   String @id @default(cuid())
+  userId               String
+  monthYearString      String
+  tokensUsed           Int
+  tokenLimitAllocation Int
+  user                 User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, monthYearString])
+  @@index([userId])
 }
