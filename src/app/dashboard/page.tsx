@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -9,12 +11,33 @@ import {
   Server,
   CircleDot,
 } from "lucide-react";
-import MetricsOverview from "@/components/dashboard/MetricsOverview";
-import AgentWorkforceGrid from "@/components/dashboard/AgentWorkforceGrid";
-import LiveIntegrationFeed from "@/components/dashboard/LiveIntegrationFeed";
-import ApiKeyPortal from "@/components/dashboard/ApiKeyPortal";
 import { AGENTS, INITIAL_AGENT_STATES } from "@/components/dashboard/agentConfig";
 import type { AgentId, AgentStates, FeedEntry } from "@/components/dashboard/types";
+import { executeAgentRun } from "@/lib/agentRuntimeClient";
+
+const MetricsOverview = dynamic(
+  () => import("@/components/dashboard/MetricsOverview"),
+  { loading: () => <div className="h-36 animate-pulse rounded-2xl bg-white/5" /> }
+);
+
+const AgentWorkforceGrid = dynamic(
+  () => import("@/components/dashboard/AgentWorkforceGrid"),
+  { loading: () => <div className="h-64 animate-pulse rounded-2xl bg-white/5" /> }
+);
+
+const LiveIntegrationFeed = dynamic(
+  () => import("@/components/dashboard/LiveIntegrationFeed"),
+  { loading: () => <div className="h-80 animate-pulse rounded-2xl bg-white/5" /> }
+);
+
+const ApiKeyPortal = dynamic(
+  () => import("@/components/dashboard/ApiKeyPortal"),
+  { loading: () => <div className="h-80 animate-pulse rounded-2xl bg-white/5" /> }
+);
+
+const BillingWidget = dynamic(() => import("@/components/BillingWidget"), {
+  loading: () => <div className="h-56 animate-pulse rounded-2xl bg-white/5" />,
+});
 
 function formatFeedTimestamp(date = new Date()) {
   return date.toLocaleTimeString("en-US", {
@@ -40,6 +63,7 @@ function buildAgentToggleLog(agentName: string, active: boolean): FeedEntry {
 }
 
 export default function DashboardPage() {
+  const { data: session } = useSession();
   const [mounted, setMounted] = useState(false);
   const [agentStates, setAgentStates] = useState<AgentStates>(INITIAL_AGENT_STATES);
   const [feedEntries, setFeedEntries] = useState<FeedEntry[]>([]);
@@ -53,14 +77,37 @@ export default function DashboardPage() {
   }, []);
 
   const handleAgentToggle = useCallback(
-    (agentId: AgentId, active: boolean) => {
+    async (agentId: AgentId, active: boolean) => {
       const agent = AGENTS.find((a) => a.id === agentId);
       if (!agent) return;
+
+      if (active && session?.user?.id) {
+        const result = await executeAgentRun({ agentId });
+
+        if (!result.success) {
+          appendFeedEntry({
+            id: `quota-${Date.now()}`,
+            agent: "SYSTEM_NODE",
+            message: `Agent deploy blocked: ${result.error}`,
+            timestamp: formatFeedTimestamp(),
+            tone: "system",
+          });
+          return;
+        }
+
+        appendFeedEntry({
+          id: `run-${result.runId}`,
+          agent: agent.feedName,
+          message: result.workflow.summary,
+          timestamp: formatFeedTimestamp(),
+          tone: agent.id === "lead-sentinel" ? "cyan" : agent.id === "ops-orchestrator" ? "purple" : "emerald",
+        });
+      }
 
       setAgentStates((prev) => ({ ...prev, [agentId]: active }));
       appendFeedEntry(buildAgentToggleLog(agent.name, active));
     },
-    [appendFeedEntry]
+    [appendFeedEntry, session?.user?.id]
   );
 
   const activeAgentCount = Object.values(agentStates).filter(Boolean).length;
@@ -154,6 +201,15 @@ export default function DashboardPage() {
             onAgentToggle={handleAgentToggle}
           />
 
+          {session?.user?.id && (
+            <BillingWidget
+              userId={session.user.id}
+              currentPlan={session.user.plan ?? "FREE"}
+              cryptoCurrency="USD"
+              hasStripeCustomer={Boolean(session.user.stripeCustomerId)}
+            />
+          )}
+
           <div className="grid gap-10 xl:grid-cols-5">
             <div className="xl:col-span-3">
               <LiveIntegrationFeed
@@ -161,6 +217,7 @@ export default function DashboardPage() {
                 entries={feedEntries}
                 onAppendEntry={appendFeedEntry}
                 agentStates={agentStates}
+                isAuthenticated={Boolean(session?.user?.id)}
               />
             </div>
             <div className="xl:col-span-2">

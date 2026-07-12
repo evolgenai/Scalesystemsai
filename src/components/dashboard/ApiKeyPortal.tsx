@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   KeyRound,
@@ -13,8 +13,13 @@ import {
   Database,
   Mail,
   MessageSquare,
+  Brain,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import {
+  getConfiguredIntegrations,
+  saveIntegrationCredentials,
+} from "@/app/actions/integrations";
 
 type IntegrationField = {
   id: string;
@@ -25,13 +30,6 @@ type IntegrationField = {
 };
 
 const INTEGRATIONS: IntegrationField[] = [
-  {
-    id: "slack",
-    label: "Slack Webhook URL",
-    placeholder: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXX",
-    icon: MessageSquare,
-    description: "Routes agent alerts and escalation triggers to your workspace",
-  },
   {
     id: "hubspot",
     label: "HubSpot API Key",
@@ -47,6 +45,20 @@ const INTEGRATIONS: IntegrationField[] = [
     description: "Powers bidirectional record sync for Systems Orchestrator",
   },
   {
+    id: "openai",
+    label: "OpenAI API Key",
+    placeholder: "sk-proj-xxxxxxxxxxxxxxxxxxxxxxxx",
+    icon: Brain,
+    description: "Powers inference for the 24/7 Technical Support Specialist",
+  },
+  {
+    id: "slack",
+    label: "Slack Webhook URL",
+    placeholder: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXX",
+    icon: MessageSquare,
+    description: "Routes agent alerts and escalation triggers to your workspace",
+  },
+  {
     id: "sendgrid",
     label: "SendGrid API Key",
     placeholder: "SG.xxxxxxxxxxxxxxxxxxxx",
@@ -55,21 +67,38 @@ const INTEGRATIONS: IntegrationField[] = [
   },
 ];
 
-type SaveState = "idle" | "saving" | "saved";
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 export default function ApiKeyPortal() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [visible, setVisible] = useState<Record<string, boolean>>({});
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [configuredProviders, setConfiguredProviders] = useState<string[]>([]);
+
+  useEffect(() => {
+    void getConfiguredIntegrations().then(setConfiguredProviders);
+  }, []);
 
   const handleSave = async () => {
     setSaveState("saving");
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    setErrorMessage(null);
+
+    const result = await saveIntegrationCredentials(values);
+
+    if (!result.success) {
+      setSaveState("error");
+      setErrorMessage(result.error);
+      return;
+    }
+
+    setConfiguredProviders(result.configured);
     setSaveState("saved");
     setTimeout(() => setSaveState("idle"), 3000);
   };
 
-  const configuredCount = Object.values(values).filter((v) => v.trim()).length;
+  const pendingCount = Object.values(values).filter((v) => v.trim()).length;
+  const configuredCount = new Set([...configuredProviders, ...Object.keys(values).filter((k) => values[k]?.trim())]).size;
 
   return (
     <section className="space-y-4">
@@ -84,7 +113,7 @@ export default function ApiKeyPortal() {
         </div>
         <div className="inline-flex items-center gap-2 rounded-full border border-cyan-accent/20 bg-cyan-accent/5 px-3 py-1.5 text-xs text-cyan-accent">
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-          AES-256 encrypted at rest
+          AES-256-GCM encrypted at rest
         </div>
       </div>
 
@@ -98,6 +127,7 @@ export default function ApiKeyPortal() {
           </div>
           <p className="mt-1 text-xs text-slate-dim">
             {configuredCount} of {INTEGRATIONS.length} services configured
+            {pendingCount > 0 ? ` · ${pendingCount} pending save` : ""}
           </p>
         </div>
 
@@ -105,6 +135,7 @@ export default function ApiKeyPortal() {
           {INTEGRATIONS.map((field, index) => {
             const Icon = field.icon;
             const isVisible = visible[field.id] ?? false;
+            const isStored = configuredProviders.includes(field.id);
 
             return (
               <motion.div
@@ -124,6 +155,11 @@ export default function ApiKeyPortal() {
                       className="text-sm font-medium text-white"
                     >
                       {field.label}
+                      {isStored && !values[field.id] ? (
+                        <span className="ml-2 text-xs font-normal text-emerald-400">
+                          stored
+                        </span>
+                      ) : null}
                     </label>
                     <p className="text-xs text-slate-dim">{field.description}</p>
                   </div>
@@ -139,7 +175,11 @@ export default function ApiKeyPortal() {
                         [field.id]: e.target.value,
                       }))
                     }
-                    placeholder={field.placeholder}
+                    placeholder={
+                      isStored && !values[field.id]
+                        ? "••••••••••••••••••••"
+                        : field.placeholder
+                    }
                     autoComplete="off"
                     spellCheck={false}
                     className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 pr-12 font-mono text-xs text-white placeholder:text-slate-dim/60 transition-colors focus:border-cyan-accent/40 focus:outline-none focus:ring-1 focus:ring-cyan-accent/20 sm:text-sm"
@@ -169,7 +209,7 @@ export default function ApiKeyPortal() {
 
         <div className="flex flex-col gap-3 border-t border-white/10 bg-black/20 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-slate-dim">
-            Credentials are stored locally for this demo session only.
+            Credentials are encrypted and stored in your Neon user profile.
           </p>
           <button
             type="button"
@@ -180,7 +220,7 @@ export default function ApiKeyPortal() {
             {saveState === "saving" ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Saving...
+                Encrypting...
               </>
             ) : saveState === "saved" ? (
               <>
@@ -205,9 +245,19 @@ export default function ApiKeyPortal() {
               className="overflow-hidden border-t border-emerald-500/20 bg-emerald-500/5"
             >
               <p className="px-5 py-3 text-xs text-emerald-400">
-                Cloud runtime connection established. All deployed agents will
-                use updated credentials on next heartbeat cycle.
+                Credentials encrypted and persisted. Deployed agents will use
+                updated keys on the next run.
               </p>
+            </motion.div>
+          )}
+          {saveState === "error" && errorMessage && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden border-t border-rose-500/20 bg-rose-500/5"
+            >
+              <p className="px-5 py-3 text-xs text-rose-400">{errorMessage}</p>
             </motion.div>
           )}
         </AnimatePresence>
