@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -8,60 +8,149 @@ import {
   UserCircle,
   Server,
   CircleDot,
+  Terminal,
+  Radio,
 } from "lucide-react";
 import MetricsOverview from "@/components/dashboard/MetricsOverview";
 import AgentWorkforceGrid from "@/components/dashboard/AgentWorkforceGrid";
-import LiveIntegrationFeed from "@/components/dashboard/LiveIntegrationFeed";
 import ApiKeyPortal from "@/components/dashboard/ApiKeyPortal";
+import ApiKeyManagementPanel from "@/components/dashboard/ApiKeyManagementPanel";
+import QuotaManager from "@/components/dashboard/QuotaManager";
+import AgentCommandController from "@/components/dashboard/AgentCommandController";
+import AgentInteractiveChat from "@/components/dashboard/AgentInteractiveChat";
+import FleetController from "@/components/dashboard/FleetController";
+import type { EngineTelemetryStatus } from "@/lib/agents/orchestratorEvents";
 import { AGENTS, INITIAL_AGENT_STATES } from "@/components/dashboard/agentConfig";
-import type { AgentId, AgentStates, FeedEntry } from "@/components/dashboard/types";
+import type { AgentId, AgentStates } from "@/components/dashboard/types";
 
-function formatFeedTimestamp(date = new Date()) {
-  return date.toLocaleTimeString("en-US", {
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-}
+const QUOTA_REFUSED_MESSAGE =
+  "🛑 [CRITICAL] Connection Refused: HTTP 429 — System Quota Exhausted.";
 
-function buildAgentToggleLog(agentName: string, active: boolean): FeedEntry {
-  const message = active
-    ? `Initializing LangGraph cluster for ${agentName}...`
-    : `Terminating inference loops for ${agentName} - State: PAUSED`;
-
-  return {
-    id: `system-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-    agent: "SYSTEM_NODE",
-    message,
-    timestamp: formatFeedTimestamp(),
-    tone: active ? "system" : "amber",
-  };
+function parseStreamPayload(raw: string): {
+  text: string;
+  engineStatus?: EngineTelemetryStatus;
+} {
+  try {
+    const payload = JSON.parse(raw) as {
+      message?: string;
+      narrative?: string;
+      engineStatus?: EngineTelemetryStatus;
+    };
+    const text =
+      typeof payload.narrative === "string" && payload.narrative.trim()
+        ? payload.narrative
+        : typeof payload.message === "string" && payload.message.trim()
+          ? payload.message
+          : raw;
+    return { text, engineStatus: payload.engineStatus };
+  } catch {
+    return { text: raw };
+  }
 }
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [agentStates, setAgentStates] = useState<AgentStates>(INITIAL_AGENT_STATES);
-  const [feedEntries, setFeedEntries] = useState<FeedEntry[]>([]);
+  const [events, setEvents] = useState<string[]>([]);
+  const [quotaExhausted, setQuotaExhausted] = useState(false);
+  const [streamBlocked, setStreamBlocked] = useState(false);
+  const [engineStatus, setEngineStatus] = useState<EngineTelemetryStatus>("IDLE");
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const terminalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
+    void fetch("/api/v1/user/profile")
+      .then((response) => response.json())
+      .then((data: { isSuperAdmin?: boolean }) =>
+        setIsSuperAdmin(data.isSuperAdmin === true)
+      )
+      .catch(() => setIsSuperAdmin(false));
   }, []);
 
-  const appendFeedEntry = useCallback((entry: FeedEntry) => {
-    setFeedEntries((prev) => [...prev.slice(-24), entry]);
+  useEffect(() => {
+    if (!mounted) return;
+
+    let eventSource: EventSource | null = null;
+    let cancelled = false;
+
+    const streamUrl = quotaExhausted
+      ? "/api/v1/agents/stream?quotaExceeded=1"
+      : "/api/v1/agents/stream";
+
+    const connectStream = async () => {
+      if (quotaExhausted && !isSuperAdmin) {
+        const response = await fetch(streamUrl);
+
+        if (cancelled) return;
+
+        if (response.status === 429) {
+          setStreamBlocked(true);
+          setEvents((prev) => {
+            if (prev.includes(QUOTA_REFUSED_MESSAGE)) return prev;
+            return [...prev.slice(-49), QUOTA_REFUSED_MESSAGE];
+          });
+          return;
+        }
+      }
+
+      if (cancelled) return;
+
+      setStreamBlocked(false);
+      eventSource = new EventSource(streamUrl);
+
+      eventSource.onmessage = (event) => {
+        const { text, engineStatus: status } = parseStreamPayload(event.data);
+        if (status) setEngineStatus(status);
+        setEvents((prev) => [...prev.slice(-49), text]);
+      };
+
+      eventSource.onerror = () => {
+        if (quotaExhausted && !isSuperAdmin) {
+          setStreamBlocked(true);
+          setEvents((prev) => {
+            if (prev.includes(QUOTA_REFUSED_MESSAGE)) return prev;
+            return [...prev.slice(-49), QUOTA_REFUSED_MESSAGE];
+          });
+          eventSource?.close();
+          return;
+        }
+
+        setEvents((prev) => [
+          ...prev.slice(-49),
+          `${new Date().toLocaleTimeString("en-US", { hour12: false })} [SYSTEM_NODE] Stream reconnecting...`,
+        ]);
+      };
+    };
+
+    void connectStream();
+
+    return () => {
+      cancelled = true;
+      eventSource?.close();
+    };
+  }, [mounted, quotaExhausted, isSuperAdmin]);
+
+  useEffect(() => {
+    if (terminalRef.current) {
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    }
+  }, [events]);
+
+  const handleAgentToggle = useCallback((agentId: AgentId, active: boolean) => {
+    const agent = AGENTS.find((a) => a.id === agentId);
+    if (!agent) return;
+
+    setAgentStates((prev) => ({ ...prev, [agentId]: active }));
+    setEvents((prev) => [
+      ...prev.slice(-49),
+      `${new Date().toLocaleTimeString("en-US", { hour12: false })} [SYSTEM_NODE] ${
+        active
+          ? `Initializing LangGraph cluster for ${agent.name}...`
+          : `Terminating inference loops for ${agent.name} — State: PAUSED`
+      }`,
+    ]);
   }, []);
-
-  const handleAgentToggle = useCallback(
-    (agentId: AgentId, active: boolean) => {
-      const agent = AGENTS.find((a) => a.id === agentId);
-      if (!agent) return;
-
-      setAgentStates((prev) => ({ ...prev, [agentId]: active }));
-      appendFeedEntry(buildAgentToggleLog(agent.name, active));
-    },
-    [appendFeedEntry]
-  );
 
   const activeAgentCount = Object.values(agentStates).filter(Boolean).length;
 
@@ -89,9 +178,8 @@ export default function DashboardPage() {
                 Workforce <span className="text-gradient">Command Center</span>
               </h1>
               <p className="max-w-2xl text-sm text-slate-muted sm:text-base">
-                Monitor your rented ScaleSystems AI employees, track live
-                execution streams, and manage cloud runtime integrations from a
-                single enterprise control plane.
+                Monitor your rented ScaleSystems AI employees and live SSE execution
+                streams from a single enterprise control plane.
               </p>
             </div>
 
@@ -123,20 +211,15 @@ export default function DashboardPage() {
 
           <div className="mt-6 flex flex-wrap items-center gap-4 rounded-xl border border-white/5 bg-black/20 px-4 py-3">
             <div className="flex items-center gap-2 text-xs text-slate-muted">
-              <CircleDot className="h-3.5 w-3.5 text-emerald-400 animate-pulse" aria-hidden />
+              <CircleDot className="h-3.5 w-3.5 animate-pulse text-emerald-400" aria-hidden />
               {activeAgentCount > 0
                 ? `${activeAgentCount} agent${activeAgentCount === 1 ? "" : "s"} operational`
                 : "All agents paused"}
             </div>
             <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
             <span className="text-xs text-slate-dim">
-              Billing cycle resets in{" "}
-              <span className="font-mono text-slate-muted">12d 4h</span>
-            </span>
-            <span className="hidden h-4 w-px bg-white/10 sm:block" aria-hidden />
-            <span className="text-xs text-slate-dim">
-              Events logged:{" "}
-              <span className="font-mono text-cyan-accent">{feedEntries.length}</span>
+              SSE events:{" "}
+              <span className="font-mono text-cyan-accent">{events.length}</span>
             </span>
           </div>
         </motion.header>
@@ -154,19 +237,120 @@ export default function DashboardPage() {
             onAgentToggle={handleAgentToggle}
           />
 
-          <div className="grid gap-10 xl:grid-cols-5">
-            <div className="xl:col-span-3">
-              <LiveIntegrationFeed
-                mounted={mounted}
-                entries={feedEntries}
-                onAppendEntry={appendFeedEntry}
-                agentStates={agentStates}
-              />
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-display text-xl font-semibold text-white">
+                  Live Agent Terminal
+                </h2>
+                <p className="mt-1 text-sm text-slate-muted">
+                  Real-time SSE stream from{" "}
+                  <span className="font-mono text-cyan-accent/80">
+                    /api/v1/agents/stream
+                  </span>
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5">
+                <Radio
+                  className={`h-3 w-3 ${streamBlocked ? "text-amber-400" : "animate-pulse text-emerald-400"}`}
+                  aria-hidden
+                />
+                <span
+                  className={`text-[11px] font-medium ${streamBlocked ? "text-amber-400" : "text-emerald-400"}`}
+                >
+                  {streamBlocked ? "Blocked" : "Live"}
+                </span>
+              </div>
             </div>
-            <div className="xl:col-span-2">
-              <ApiKeyPortal />
+
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#050507] shadow-[0_0_30px_rgba(0,242,254,0.04)]">
+              <div className="flex items-center gap-2 border-b border-white/10 bg-[#0d0d11] px-4 py-3">
+                <Terminal className="h-4 w-4 text-cyan-accent" aria-hidden />
+                <span className="font-mono text-xs text-slate-muted">
+                  runtime-sse-worker-stream
+                </span>
+              </div>
+
+              <div
+                ref={terminalRef}
+                className="h-64 overflow-y-auto p-4 font-mono text-xs sm:h-72 sm:text-sm"
+              >
+                {!mounted || events.length === 0 ? (
+                  <p className="animate-pulse text-slate-dim">
+                    {mounted
+                      ? "Awaiting SSE worker heartbeat..."
+                      : "Loading console node..."}
+                  </p>
+                ) : (
+                  events.map((line, index) => {
+                    const isLatest = index === events.length - 1;
+                    const isQuotaAlert = line === QUOTA_REFUSED_MESSAGE;
+                    return (
+                      <div
+                        key={`${line}-${index}`}
+                        className="mb-2 flex items-start gap-2 leading-relaxed"
+                      >
+                        {isLatest ? (
+                          <span
+                            className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                              isQuotaAlert
+                                ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]"
+                                : "bg-cyan-accent shadow-[0_0_8px_rgba(0,242,254,0.9)]"
+                            }`}
+                            aria-hidden
+                          />
+                        ) : (
+                          <span className="mt-1.5 h-2 w-2 shrink-0" aria-hidden />
+                        )}
+                        <span
+                          className={
+                            isQuotaAlert
+                              ? "font-semibold text-amber-400"
+                              : isLatest
+                                ? "text-cyan-accent"
+                                : "text-slate-300"
+                          }
+                        >
+                          {line}
+                        </span>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
-          </div>
+          </section>
+
+          <QuotaManager
+            quotaExhausted={quotaExhausted}
+            onQuotaExhaustedChange={setQuotaExhausted}
+          />
+
+          <FleetController
+            isSuperAdmin={isSuperAdmin}
+            onDeployLog={(message) =>
+              setEvents((prev) => [...prev.slice(-49), message])
+            }
+          />
+
+          <AgentCommandController
+            engineStatus={engineStatus}
+            onEngineStatusChange={setEngineStatus}
+            quotaExhausted={quotaExhausted}
+            onLaunchLog={(message) =>
+              setEvents((prev) => [...prev.slice(-49), message])
+            }
+          />
+
+          <AgentInteractiveChat
+            engineStatus={engineStatus}
+            onEngineStatusChange={setEngineStatus}
+            quotaExhausted={quotaExhausted}
+            telemetryEvents={events}
+          />
+
+          <ApiKeyManagementPanel />
+          <ApiKeyPortal />
         </div>
       </div>
     </main>

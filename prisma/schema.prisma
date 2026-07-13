@@ -1,17 +1,152 @@
 generator client {
+
   provider = "prisma-client-js"
+
 }
+
+
 
 datasource db {
+
   provider = "postgresql"
+
 }
 
-model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
-  password  String
-  plan      String   @default("FREE")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+
+enum AgentStatus {
+
+  IDLE
+
+  PLANNING
+
+  EXECUTING
+
+  REFLECTING
+
+  ACTIVE
+
+  PAUSED
+
+  ERROR
+
 }
+
+
+
+enum UserRole {
+
+  USER
+
+  SUPER_ADMIN
+
+}
+
+
+
+enum SubscriptionTier {
+
+  STARTER_5
+
+  GROWTH_10
+
+  PRO_20
+
+  SCALE_50
+
+  ENTERPRISE_100
+
+  OVERLORD_500
+
+}
+
+
+
+model User {
+
+  id           String           @id @default(cuid())
+
+  name         String?
+
+  email        String           @unique
+
+  password     String
+
+  role         UserRole         @default(USER)
+
+  tier         SubscriptionTier @default(STARTER_5)
+
+  maxAgents    Int              @default(5)
+
+  plan         String           @default("FREE")
+
+  agents       Agent[]
+
+  subscription Subscription?
+
+  createdAt    DateTime         @default(now())
+
+  updatedAt    DateTime         @updatedAt
+
+}
+
+
+
+model Subscription {
+
+  id        String           @id @default(cuid())
+
+  userId    String           @unique
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tier      SubscriptionTier
+
+  maxAgents Int
+
+  status    String           @default("active")
+
+  createdAt DateTime         @default(now())
+
+  updatedAt DateTime         @updatedAt
+
+}
+
+
+
+model Agent {
+
+  id          String      @id @default(cuid())
+
+  name        String
+
+  status      AgentStatus @default(IDLE)
+
+  objective   String
+
+  currentTask String?
+
+  memoryBank  Json        @default("[]")
+
+  ownerId     String?
+
+  owner       User?       @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime    @default(now())
+
+  updatedAt   DateTime    @updatedAt
+
+
+
+  @@index([ownerId])
+
+}
+
+model SystemSnapshot {
+  id                String   @id @default(uuid())
+  branch            String
+  lastCommit        String
+  activeAgentsCount Int
+  timestamp         DateTime @default(now())
+}
+

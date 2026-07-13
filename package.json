@@ -7,7 +7,9 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "snapshot": "node ./scripts/system-snapshot.js",
+    "close-session": "npm run snapshot && git add . && git commit -m \"Dev Session Sync\" --allow-empty && git push origin development"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
