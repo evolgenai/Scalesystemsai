@@ -4,15 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Radio, Terminal, Clock } from "lucide-react";
 import { AGENTS } from "./agentConfig";
-import type { AgentId, AgentStates, FeedEntry, FeedTone } from "./types";
-import { executeAgentRun } from "@/lib/agentRuntimeClient";
+import type { AgentStates, FeedEntry, FeedTone } from "./types";
 
 type LiveIntegrationFeedProps = {
   mounted: boolean;
   entries: FeedEntry[];
   onAppendEntry: (entry: FeedEntry) => void;
   agentStates: AgentStates;
-  isAuthenticated?: boolean;
 };
 
 const CLOCK_PLACEHOLDER = "--:--:--";
@@ -80,13 +78,7 @@ const TONE_CLASSES: Record<FeedTone, string> = {
 
 const FEED_NAME_TO_ID = Object.fromEntries(
   AGENTS.map((a) => [a.feedName, a.id])
-) as Record<string, AgentId>;
-
-const AGENT_TONE: Record<AgentId, FeedTone> = {
-  "lead-sentinel": "cyan",
-  "ops-orchestrator": "purple",
-  "support-specialist": "emerald",
-};
+) as Record<string, keyof AgentStates>;
 
 function formatTime(date: Date) {
   return date.toLocaleTimeString("en-US", {
@@ -104,7 +96,6 @@ export default function LiveIntegrationFeed({
   entries,
   onAppendEntry,
   agentStates,
-  isAuthenticated = false,
 }: LiveIntegrationFeedProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [serverTime, setServerTime] = useState(CLOCK_PLACEHOLDER);
@@ -120,48 +111,10 @@ export default function LiveIntegrationFeed({
   }, [mounted]);
 
   useEffect(() => {
-    if (!mounted || !isAuthenticated) return;
-
-    const activeAgents = AGENTS.filter((agent) => agentStates[agent.id]);
-    if (activeAgents.length === 0) return;
-
-    let index = 0;
-    const interval = setInterval(async () => {
-      const agent = activeAgents[index % activeAgents.length];
-      index += 1;
-
-      const result = await executeAgentRun({ agentId: agent.id });
-
-      if (!result.success) {
-        onAppendEntry({
-          id: `feed-quota-${++feedCounter}`,
-          agent: "SYSTEM_NODE",
-          message: `Quota guard: ${result.error}`,
-          timestamp: formatTime(new Date()),
-          tone: "system",
-        });
-        return;
-      }
-
-      onAppendEntry({
-        id: `feed-${++feedCounter}`,
-        agent: agent.feedName,
-        message: `${result.workflow.summary} (${result.computeTokensSpent.toLocaleString()} tokens)`,
-        timestamp: formatTime(new Date()),
-        tone: AGENT_TONE[agent.id],
-      });
-    }, 8000);
-
-    return () => clearInterval(interval);
-  }, [mounted, agentStates, onAppendEntry, isAuthenticated]);
-
-  useEffect(() => {
     if (!mounted) return;
 
     let index = 0;
     const interval = setInterval(() => {
-      if (isAuthenticated) return;
-
       const activePool = FEED_POOL.filter((template) => {
         const agentId = FEED_NAME_TO_ID[template.agent];
         return agentId ? agentStates[agentId] : false;
@@ -180,7 +133,7 @@ export default function LiveIntegrationFeed({
     }, 2200);
 
     return () => clearInterval(interval);
-  }, [mounted, agentStates, onAppendEntry, isAuthenticated]);
+  }, [mounted, agentStates, onAppendEntry]);
 
   useEffect(() => {
     if (scrollRef.current) {

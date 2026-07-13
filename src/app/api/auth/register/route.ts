@@ -1,86 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
-import bcrypt from "bcryptjs";
-import { z } from "zod";
-import { getPrisma } from "@/lib/prisma";
 
-const registerSchema = z.object({
-  email: z.email("Invalid email address."),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters."),
-  name: z.string().min(1, "Name cannot be empty.").optional(),
-});
+// Stub endpoint for future user registration. This is intentionally a
+// placeholder so the module compiles cleanly; it does not yet persist users.
 
-type RegisterInput = z.infer<typeof registerSchema>;
+type RegisterRequest = {
+  name?: string;
+  email?: string;
+  password?: string;
+};
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse> {
+  let body: RegisterRequest;
+
   try {
-    let body: unknown;
-
-    try {
-      body = await request.json();
-    } catch {
-      return NextResponse.json(
-        { error: "Invalid JSON payload." },
-        { status: 400 }
-      );
-    }
-
-    const parsed = registerSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error: "Validation failed.",
-          details: parsed.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
-    }
-
-    const { email, password, name }: RegisterInput = parsed.data;
-    const prisma = getPrisma();
-
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Email already registered." },
-        { status: 400 }
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name: name ?? null,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        plan: true,
-        createdAt: true,
-      },
-    });
-
+    body = await request.json();
+  } catch {
     return NextResponse.json(
-      {
-        success: true,
-        user,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("[Auth Register]", error);
-    return NextResponse.json(
-      { error: "Internal server error." },
-      { status: 500 }
+      { success: false, error: "Invalid JSON payload." },
+      { status: 400 }
     );
   }
+
+  const { email, password } = body;
+
+  if (!email || !password) {
+    return NextResponse.json(
+      { success: false, error: "Both email and password are required." },
+      { status: 400 }
+    );
+  }
+
+  return NextResponse.json(
+    {
+      success: false,
+      error: "User registration is not implemented yet.",
+      code: "NOT_IMPLEMENTED",
+    },
+    { status: 501 }
+  );
+}
+
+export async function GET(): Promise<NextResponse> {
+  return NextResponse.json(
+    {
+      success: false,
+      error: "Method not allowed. This endpoint only accepts POST requests.",
+      code: "METHOD_NOT_ALLOWED",
+    },
+    { status: 405 }
+  );
 }

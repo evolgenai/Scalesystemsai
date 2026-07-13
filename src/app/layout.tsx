@@ -1,9 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/marketing/Header";
-import Footer from "@/components/marketing/Footer";
-import Providers from "@/components/Providers";
+import Sidebar from "@/components/navigation/Sidebar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -115,11 +113,10 @@ export default function RootLayout({
             __html: JSON.stringify(organizationJsonLd),
           }}
         />
-        <Providers>
-          <Header />
-          {children}
-          <Footer />
-        </Providers>
+        <div className="flex min-h-screen bg-obsidian text-white">
+          <Sidebar />
+          <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
+        </div>
       </body>
     </html>
   );

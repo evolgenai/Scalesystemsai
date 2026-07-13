@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
-import dynamic from "next/dynamic";
-import Link from "next/link";
+import AgentTerminal from '@/components/AgentTerminal';
+import ROISavingsCalculator from "@/components/ROISavingsCalculator";
+import type { Metadata } from "next";import Link from "next/link";
+import Hero from "@/components/Hero";
 import {
   Bot,
   Layers,
@@ -10,27 +11,6 @@ import {
   Clock,
   TrendingUp,
 } from "lucide-react";
-
-const Hero = dynamic(() => import("@/components/Hero"), {
-  loading: () => (
-    <div className="mx-auto h-[520px] max-w-7xl animate-pulse rounded-2xl bg-white/5" />
-  ),
-});
-
-const AgentTerminal = dynamic(() => import("@/components/AgentTerminal"), {
-  loading: () => (
-    <div className="mx-auto my-12 h-72 max-w-4xl animate-pulse rounded-xl bg-white/5" />
-  ),
-});
-
-const ROISavingsCalculator = dynamic(
-  () => import("@/components/ROISavingsCalculator"),
-  {
-    loading: () => (
-      <div className="mx-auto h-96 max-w-5xl animate-pulse rounded-3xl bg-white/5" />
-    ),
-  }
-);
 
 export const metadata: Metadata = {
   title: "Hire an AI Employee for $0/Hour | Agentic Business Automation",
@@ -155,8 +135,7 @@ export default function HomePage() {
       <section
         className="px-4 py-20 sm:px-6 lg:px-8"
         aria-labelledby="cta-heading"
-      >
-        <div className="glass mx-auto max-w-4xl rounded-3xl p-10 text-center sm:p-14">
+      >        <div className="glass mx-auto max-w-4xl rounded-3xl p-10 text-center sm:p-14">
           <Bot className="mx-auto h-12 w-12 text-cyan-accent" aria-hidden />
           <h2
             id="cta-heading"
@@ -169,26 +148,12 @@ export default function HomePage() {
             bottlenecks and scope a custom build sprint with clear deliverables
             and ROI targets.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link
-              href="/contact"
-              className="inline-flex rounded-lg bg-cyan-accent px-8 py-3.5 text-sm font-semibold text-obsidian shadow-glow-sm transition-shadow hover:shadow-glow"
-            >
-              Schedule a Consultation
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex rounded-lg border border-white/15 px-8 py-3.5 text-sm font-semibold text-white transition-colors hover:border-cyan-accent/40 hover:text-cyan-accent"
-            >
-              Create Account
-            </Link>
-            <Link
-              href="/dashboard"
-              className="inline-flex rounded-lg border border-cyan-accent/25 bg-cyan-accent/5 px-8 py-3.5 text-sm font-semibold text-cyan-accent transition-colors hover:border-cyan-accent/50"
-            >
-              Open Dashboard
-            </Link>
-          </div>
+          <Link
+            href="/contact"
+            className="mt-8 inline-flex rounded-lg bg-cyan-accent px-8 py-3.5 text-sm font-semibold text-obsidian shadow-glow-sm transition-shadow hover:shadow-glow"
+          >
+            Schedule a Consultation
+          </Link>
         </div>
       </section>
     </main>

@@ -53,14 +53,6 @@ export default function Hero() {
                 Explore AI Employees
               </motion.span>
             </Link>
-            <Link href="/dashboard">
-              <motion.span
-                whileHover={{ scale: 1.02 }}
-                className="inline-flex items-center justify-center rounded-lg border border-cyan-accent/25 bg-cyan-accent/5 px-6 py-3.5 text-sm font-semibold text-cyan-accent transition-colors hover:border-cyan-accent/50"
-              >
-                Client Dashboard
-              </motion.span>
-            </Link>
           </div>
         </motion.div>
 

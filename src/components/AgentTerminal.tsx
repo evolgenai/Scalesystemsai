@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Shield, Cpu, RefreshCw } from 'lucide-react';
+import { Terminal } from 'lucide-react';
 
 const AGENT_LOGS = [
   { system: 'SYSTEM', msg: 'Initializing ScaleSystems Agentic Nexus v4.6...', color: 'text-cyan-400' },
