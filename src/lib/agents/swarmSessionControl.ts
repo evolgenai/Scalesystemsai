@@ -1,4 +1,5 @@
 import { getPrisma } from "@/lib/prisma";
+import { withSecureTransaction } from "@/lib/db/secureTransaction";
 import {
   extractOrgIdFromRequest,
   resolveOrgContext,
@@ -34,6 +35,7 @@ export async function createLiveSwarmSession(input: {
   userId: string;
   orgId?: string | null;
   objective: string;
+  persona?: string | null;
 }): Promise<string | null> {
   if (!input.userId.trim()) return null;
   try {
@@ -46,6 +48,7 @@ export async function createLiveSwarmSession(input: {
         kernelLogs: "[]",
         status: "ACTIVE",
         interventionDirective: null,
+        persona: input.persona?.trim()?.slice(0, 64) || null,
       },
       select: { id: true },
     });
@@ -132,19 +135,20 @@ export async function getSwarmSessionLoopState(
 export async function consumeInterventionDirective(
   sessionId: string
 ): Promise<string | null> {
-  const prisma = getPrisma();
-  const row = await prisma.swarmSession.findUnique({
-    where: { id: sessionId },
-    select: { interventionDirective: true, status: true },
-  });
-  if (!row?.interventionDirective?.trim()) return null;
+  return withSecureTransaction(async (tx) => {
+    const row = await tx.swarmSession.findUnique({
+      where: { id: sessionId },
+      select: { interventionDirective: true },
+    });
+    if (!row?.interventionDirective?.trim()) return null;
 
-  await prisma.swarmSession.update({
-    where: { id: sessionId },
-    data: { interventionDirective: null },
+    const directive = row.interventionDirective.trim();
+    await tx.swarmSession.update({
+      where: { id: sessionId },
+      data: { interventionDirective: null },
+    });
+    return directive;
   });
-
-  return row.interventionDirective.trim();
 }
 
 export async function markPendingConsensus(
@@ -165,21 +169,21 @@ export async function markPendingConsensus(
 export async function consumeConsensusVote(
   sessionId: string
 ): Promise<"creator" | "critic" | null> {
-  const prisma = getPrisma();
-  const row = await prisma.swarmSession.findUnique({
-    where: { id: sessionId },
-    select: { consensusVote: true, status: true },
-  });
-  const vote = row?.consensusVote?.trim().toLowerCase();
-  if (vote !== "creator" && vote !== "critic") return null;
-  if (row?.status === "PENDING_CONSENSUS") return null;
+  return withSecureTransaction(async (tx) => {
+    const row = await tx.swarmSession.findUnique({
+      where: { id: sessionId },
+      select: { consensusVote: true, status: true },
+    });
+    const vote = row?.consensusVote?.trim().toLowerCase();
+    if (vote !== "creator" && vote !== "critic") return null;
+    if (row?.status === "PENDING_CONSENSUS") return null;
 
-  await prisma.swarmSession.update({
-    where: { id: sessionId },
-    data: { consensusVote: null },
+    await tx.swarmSession.update({
+      where: { id: sessionId },
+      data: { consensusVote: null },
+    });
+    return vote;
   });
-
-  return vote;
 }
 
 export async function appendSessionKernelNote(

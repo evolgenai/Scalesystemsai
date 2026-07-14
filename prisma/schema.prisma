@@ -74,6 +74,24 @@ enum OrgRole {
 
 
 
+enum SwarmSessionStatus {
+
+  ACTIVE
+
+  PAUSED
+
+  PENDING_CONSENSUS
+
+  COMPLETED
+
+  FAILED
+
+  TIMEOUT
+
+}
+
+
+
 model User {
 
   id           String           @id @default(cuid())
@@ -99,6 +117,12 @@ model User {
   memberships  OrgMembership[]
 
   workspaceMemories WorkspaceMemory[]
+
+  developerCredentials DeveloperCredential[]
+
+  apiKeys      ApiKey[]
+
+  workspacePersonas WorkspacePersona[]
 
   subscription Subscription?
 
@@ -175,8 +199,7 @@ model SwarmSession {
   objective              String
   resultMarkdown         String   @db.Text
   kernelLogs             String   @db.Text
-  /** ACTIVE | PAUSED | PENDING_CONSENSUS | COMPLETED | FAILED | TIMEOUT */
-  status                 String   @default("COMPLETED")
+  status                 SwarmSessionStatus @default(COMPLETED)
   /** Operator HITL directive; cleared after the stream loop consumes it. */
   interventionDirective  String?  @db.Text
   /** Human debate vote: creator | critic — cleared after the loop consumes it. */
@@ -213,6 +236,67 @@ model Organization {
   memberships OrgMembership[]
   sessions    SwarmSession[]
   memories    WorkspaceMemory[]
+  credentials DeveloperCredential[]
+  apiKeys     ApiKey[]
+  personas    WorkspacePersona[]
+}
+
+model DeveloperCredential {
+  id             String        @id @default(cuid())
+  userId         String
+  orgId          String?
+  provider       String
+  label          String?
+  secretCipher   String        @db.Text
+  secretIv       String
+  secretTag      String
+  keyFingerprint String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, orgId, provider, keyFingerprint])
+  @@index([userId])
+  @@index([orgId])
+  @@index([provider])
+}
+
+model ApiKey {
+  id         String        @id @default(cuid())
+  hashedKey  String        @unique
+  prefix     String
+  name       String
+  orgId      String?
+  userId     String
+  createdAt  DateTime      @default(now())
+  lastUsedAt DateTime?
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([hashedKey])
+  @@index([prefix])
+  @@index([userId, orgId])
+}
+
+model WorkspacePersona {
+  id           String        @id @default(cuid())
+  name         String
+  description  String        @db.Text
+  systemPrompt String        @db.Text
+  tools        String[]
+  orgId        String?
+  userId       String
+  createdAt    DateTime      @default(now())
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([userId, orgId])
+  @@index([createdAt])
 }
 
 model WorkspaceMemory {

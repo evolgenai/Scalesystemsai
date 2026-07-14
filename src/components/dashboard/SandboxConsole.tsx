@@ -6,6 +6,7 @@ import type {
   SandboxExecutionStatus,
   SandboxLanguage,
 } from "@/lib/agents/streamProtocol";
+import { sandboxStatusIndicatorClass } from "@/lib/agents/streamProtocol";
 
 export type SandboxConsoleProps = {
   status: SandboxExecutionStatus;
@@ -80,15 +81,7 @@ export default function SandboxConsole({
             <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
           ) : (
             <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                status === "success"
-                  ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
-                  : status === "error"
-                    ? "bg-rose-400"
-                    : status === "running"
-                      ? "animate-pulse bg-cyan-accent"
-                      : "bg-slate-500"
-              }`}
+              className={`h-1.5 w-1.5 rounded-full ${sandboxStatusIndicatorClass(status)}`}
               aria-hidden
             />
           )}
