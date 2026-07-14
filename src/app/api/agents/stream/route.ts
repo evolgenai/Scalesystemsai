@@ -500,7 +500,7 @@ export async function GET(request: Request) {
   const loop = searchParams.get("loop") === "1";
 
   // Persona payload — query string (SSE GET) with safe length caps.
-  let personaId =
+  const personaId =
     searchParams.get("personaId")?.trim() ||
     searchParams.get("personalityId")?.trim() ||
     searchParams.get("persona")?.trim() ||
@@ -509,7 +509,7 @@ export async function GET(request: Request) {
     searchParams.get("customSystemPrompt") ??
     searchParams.get("customPrompt") ??
     searchParams.get("systemInstruction");
-  let customSystemPrompt = customSystemPromptRaw?.trim()
+  const customSystemPrompt = customSystemPromptRaw?.trim()
     ? customSystemPromptRaw.trim().slice(0, 8000)
     : undefined;
 
