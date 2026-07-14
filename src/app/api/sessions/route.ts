@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { resolveRequestUser } from "@/lib/auth/requestUser";
 import { getPrisma } from "@/lib/prisma";
 import type { SwarmSessionDto } from "@/lib/agents/swarmSessionTypes";
+import {
+  resolveOrgContext,
+  swarmSessionListWhere,
+} from "@/lib/org/orgScope";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -23,9 +27,24 @@ export async function GET(request: Request) {
     );
   }
 
+  const orgIdHeader = request.headers.get("x-org-id")?.trim();
+  const orgSlugHeader = request.headers.get("x-org-slug")?.trim();
+  const org = await resolveOrgContext(request, profile.id);
+
+  if ((orgIdHeader || orgSlugHeader) && !org) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Organization not found or access denied.",
+        sessions: [] as SwarmSessionDto[],
+      },
+      { status: 403 }
+    );
+  }
+
   try {
     const rows = await getPrisma().swarmSession.findMany({
-      where: { userId: profile.id },
+      where: swarmSessionListWhere(profile.id, org),
       orderBy: { createdAt: "desc" },
       take: 50,
       select: {
