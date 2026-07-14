@@ -1,4 +1,14 @@
-import type { AgentStatus } from "@prisma/client";
+/** Mirrors Prisma `AgentStatus` without importing `@prisma/client` into client bundles. */
+export type AgentStatus =
+  | "IDLE"
+  | "PLANNING"
+  | "EXECUTING"
+  | "REFLECTING"
+  | "ACTIVE"
+  | "PAUSED"
+  | "ERROR";
+
+export type DebateRole = "creator" | "critic";
 
 /** Client-facing visualizer states for dashboard cards. */
 export type VisualizerStatus =
