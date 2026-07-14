@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/navigation/Sidebar";
+import TopAuthHeader from "@/components/navigation/TopAuthHeader";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -19,7 +21,7 @@ const siteUrl = "https://scalesystemsai.vercel.app";
 
 const siteTitle = "ScaleSystems | Enterprise Agentic AI Automation Agency";
 const siteDescription =
-  "Scale and automate your business workflows with custom, cloud-hosted autonomous AI employees. Deploy production-grade AI agents for lead generation, system operations, and 24/7 technical support.";
+  "ScaleSystems delivers cloud-hosted agentic workflows and multi-agent orchestration. Deploy AI swarm employees for lead generation, autonomous system operations, and 24/7 technical support.";
 
 export const viewport: Viewport = {
   themeColor: "#09090b",
@@ -36,11 +38,16 @@ export const metadata: Metadata = {
   },
   description: siteDescription,
   keywords: [
+    "agentic workflows",
+    "AI swarm",
+    "multi-agent orchestration",
     "AI Employees",
     "Agentic Automation",
     "ScaleSystems",
     "Corporate Workflow AI",
     "Custom Autonomous Agents",
+    "Gemini agents",
+    "enterprise AI automation",
   ],
   applicationName: "ScaleSystems",
   authors: [{ name: "ScaleSystems", url: siteUrl }],
@@ -92,9 +99,10 @@ const organizationJsonLd = {
   url: siteUrl,
   description: siteDescription,
   serviceType: [
+    "agentic workflows",
+    "AI swarm",
+    "multi-agent orchestration",
     "AI Employees",
-    "Agentic Automation",
-    "Corporate Workflow AI",
     "Custom Autonomous Agents",
   ],
 };
@@ -113,10 +121,17 @@ export default function RootLayout({
             __html: JSON.stringify(organizationJsonLd),
           }}
         />
-        <div className="flex min-h-screen bg-obsidian text-white">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
-        </div>
+        <AuthProvider>
+          <div className="flex min-h-screen bg-obsidian text-white">
+            <Sidebar />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <TopAuthHeader />
+              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                {children}
+              </main>
+            </div>
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

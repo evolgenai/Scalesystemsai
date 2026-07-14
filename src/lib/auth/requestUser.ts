@@ -1,6 +1,10 @@
 import type { SubscriptionTier, UserRole } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import { getMaxAgentsForTier, TIER_MATRIX } from "@/lib/billing/tiers";
+import {
+  normalizeCommercialPlan,
+  type CommercialPlan,
+} from "@/lib/billing/commercialPlans";
 
 export type RequestUserProfile = {
   id: string | null;
@@ -8,6 +12,7 @@ export type RequestUserProfile = {
   role: UserRole;
   tier: SubscriptionTier;
   maxAgents: number;
+  plan: CommercialPlan;
   isSuperAdmin: boolean;
 };
 
@@ -17,19 +22,24 @@ const DEFAULT_PROFILE: RequestUserProfile = {
   role: "USER",
   tier: "STARTER_5",
   maxAgents: 5,
+  plan: "FREE",
   isSuperAdmin: false,
 };
 
 function profileFromEnv(): RequestUserProfile | null {
   const role = process.env.DEV_USER_ROLE?.trim();
   const tier = process.env.DEV_USER_TIER?.trim() as SubscriptionTier | undefined;
+  const plan = process.env.DEV_USER_PLAN?.trim();
 
-  if (!role && !tier) return null;
+  if (!role && !tier && !plan) return null;
 
   const resolvedRole: UserRole =
     role === "SUPER_ADMIN" ? "SUPER_ADMIN" : "USER";
   const resolvedTier: SubscriptionTier =
     tier && tier in TIER_MATRIX ? tier : "STARTER_5";
+  const resolvedPlan = normalizeCommercialPlan(
+    plan ?? (resolvedRole === "SUPER_ADMIN" ? "ENTERPRISE" : "FREE")
+  );
 
   return {
     id: process.env.DEV_USER_ID?.trim() ?? null,
@@ -37,6 +47,7 @@ function profileFromEnv(): RequestUserProfile | null {
     role: resolvedRole,
     tier: resolvedTier,
     maxAgents: getMaxAgentsForTier(resolvedTier),
+    plan: resolvedPlan,
     isSuperAdmin: resolvedRole === "SUPER_ADMIN",
   };
 }
@@ -56,6 +67,9 @@ export async function resolveRequestUser(
       role: "SUPER_ADMIN",
       tier,
       maxAgents: getMaxAgentsForTier(tier),
+      plan: normalizeCommercialPlan(
+        request.headers.get("x-user-plan") ?? "ENTERPRISE"
+      ),
       isSuperAdmin: true,
     };
   }
@@ -64,12 +78,33 @@ export async function resolveRequestUser(
   if (envProfile) return envProfile;
 
   const userId = request.headers.get("x-user-id")?.trim();
-  if (userId) {
+  const userEmail = request.headers.get("x-user-email")?.trim()?.toLowerCase();
+
+  if (userId || userEmail) {
     try {
-      const user = await getPrisma().user.findUnique({
-        where: { id: userId },
-        select: { id: true, email: true, role: true, tier: true, maxAgents: true },
-      });
+      const user = userId
+        ? await getPrisma().user.findUnique({
+            where: { id: userId },
+            select: {
+              id: true,
+              email: true,
+              role: true,
+              tier: true,
+              maxAgents: true,
+              plan: true,
+            },
+          })
+        : await getPrisma().user.findUnique({
+            where: { email: userEmail! },
+            select: {
+              id: true,
+              email: true,
+              role: true,
+              tier: true,
+              maxAgents: true,
+              plan: true,
+            },
+          });
 
       if (user) {
         return {
@@ -78,6 +113,7 @@ export async function resolveRequestUser(
           role: user.role,
           tier: user.tier,
           maxAgents: user.maxAgents,
+          plan: normalizeCommercialPlan(user.plan),
           isSuperAdmin: user.role === "SUPER_ADMIN",
         };
       }

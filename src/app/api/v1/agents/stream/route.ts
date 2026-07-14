@@ -13,6 +13,7 @@ import {
   isQuotaBypassed,
   resolveRequestUser,
 } from "@/lib/auth/requestUser";
+import { evaluateStreamAccess } from "@/lib/auth/subscriptionGating";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -21,6 +22,17 @@ const QUOTA_EXCEEDED_BODY = {
   error: "Quota Exceeded",
   message:
     "Your active tier rate limits have been surpassed. Upgrade your billing profile.",
+};
+
+const PAYMENT_REQUIRED_BODY = {
+  error: "Payment Required",
+  code: "PAYMENT_REQUIRED",
+  message:
+    "Free plan stream quota exceeded. Upgrade to STARTER or PREMIUM to continue.",
+  upgrade: {
+    stripe: "/api/checkout/stripe",
+    bvnk: "/api/checkout/bvnk",
+  },
 };
 
 function isQuotaGateActive(request: Request): boolean {
@@ -35,6 +47,27 @@ async function shouldEnforceQuotaGate(request: Request): Promise<boolean> {
   if (!isQuotaGateActive(request)) return false;
   const profile = await resolveRequestUser(request);
   return !isQuotaBypassed(profile);
+}
+
+async function enforceSubscriptionGate(
+  request: Request
+): Promise<NextResponse | null> {
+  const profile = await resolveRequestUser(request);
+  const gate = evaluateStreamAccess(profile, {
+    consume: true,
+    forceExceeded: isQuotaGateActive(request),
+  });
+  if (gate.allowed) return null;
+  return NextResponse.json(
+    {
+      ...PAYMENT_REQUIRED_BODY,
+      plan: gate.plan,
+      used: gate.used,
+      limit: gate.limit,
+      message: gate.message,
+    },
+    { status: 402 }
+  );
 }
 
 function formatSseChunk(payload: {
@@ -74,6 +107,9 @@ function pushSseEvent(
 }
 
 export async function POST(request: Request) {
+  const subscriptionBlock = await enforceSubscriptionGate(request);
+  if (subscriptionBlock) return subscriptionBlock;
+
   if (await shouldEnforceQuotaGate(request)) {
     return NextResponse.json(QUOTA_EXCEEDED_BODY, { status: 429 });
   }
@@ -107,6 +143,9 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  const subscriptionBlock = await enforceSubscriptionGate(request);
+  if (subscriptionBlock) return subscriptionBlock;
+
   if (await shouldEnforceQuotaGate(request)) {
     return NextResponse.json(QUOTA_EXCEEDED_BODY, { status: 429 });
   }
