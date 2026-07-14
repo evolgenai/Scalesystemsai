@@ -59,7 +59,10 @@ export default function AgentPersonaSelector({
       <div className="relative">
         {locked ? (
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center p-4">
-            <div className="pointer-events-auto flex max-w-sm flex-col items-center gap-3 rounded-2xl border border-cyan-accent/35 bg-black/85 px-5 py-4 text-center shadow-[0_0_28px_rgba(0,242,254,0.18)] backdrop-blur-md">
+            <div
+              role="status"
+              className="pointer-events-auto flex max-w-sm flex-col items-center gap-3 rounded-2xl border border-cyan-accent/35 bg-black/85 px-5 py-4 text-center shadow-[0_0_28px_rgba(0,242,254,0.18)] backdrop-blur-md"
+            >
               <p className="text-[12px] font-medium leading-snug text-cyan-accent">
                 🔒 Sign in to unlock custom personalities
               </p>

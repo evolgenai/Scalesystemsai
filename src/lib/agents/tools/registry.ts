@@ -179,19 +179,47 @@ const TOOL_REGISTRY: Record<string, SystemTool> = {
   },
 };
 
+/** Session-scoped OpenAPI plugins compiled for the active swarm workspace. */
+let dynamicToolRegistry: Record<string, SystemTool> = {};
+
+export function mountDynamicTools(tools: SystemTool[]): void {
+  const next: Record<string, SystemTool> = {};
+  for (const tool of tools) {
+    if (TOOL_REGISTRY[tool.name]) {
+      // Never shadow built-in system tools.
+      next[`${tool.name}_plugin`] = {
+        ...tool,
+        name: `${tool.name}_plugin`,
+      };
+      continue;
+    }
+    next[tool.name] = tool;
+  }
+  dynamicToolRegistry = next;
+}
+
+export function clearDynamicTools(): void {
+  dynamicToolRegistry = {};
+}
+
 export function listRegisteredTools(): SystemTool[] {
-  return Object.values(TOOL_REGISTRY);
+  return [
+    ...Object.values(TOOL_REGISTRY),
+    ...Object.values(dynamicToolRegistry),
+  ];
 }
 
 export async function executeToolByName(
   name: string,
   params: Record<string, unknown> = {}
 ): Promise<string> {
-  const tool = TOOL_REGISTRY[name];
+  const tool = TOOL_REGISTRY[name] ?? dynamicToolRegistry[name];
 
   if (!tool) {
     throw new Error(
-      `Unknown system tool "${name}". Registered: ${Object.keys(TOOL_REGISTRY).join(", ")}`
+      `Unknown system tool "${name}". Registered: ${listRegisteredTools()
+        .map((entry) => entry.name)
+        .join(", ")}`
     );
   }
 

@@ -40,6 +40,11 @@ import {
   summarizeRunTakeaway,
 } from "@/lib/agents/memoryBank";
 import { runDirectCodeExecution } from "@/lib/agents/directCodeInterceptor";
+import { compileWorkspaceOpenApiTools } from "@/lib/agents/tools/dynamicOpenApiTool";
+import {
+  clearDynamicTools,
+  mountDynamicTools,
+} from "@/lib/agents/tools/registry";
 import { resolveBillingProfileForRequest } from "@/lib/org/orgScope";
 import { NextResponse } from "next/server";
 
@@ -729,6 +734,43 @@ export async function GET(request: Request) {
             );
           }
 
+          try {
+            clearDynamicTools();
+            const dynamicTools = await compileWorkspaceOpenApiTools(orgId);
+            mountDynamicTools(dynamicTools);
+            if (dynamicTools.length > 0) {
+              emit(
+                createStreamEvent({
+                  type: "log",
+                  message: `[SYSTEM] Mounted ${dynamicTools.length} OpenAPI plugin tool(s) from workspace scope.`,
+                  agentId: "system",
+                  agentName: "SYSTEM_NODE",
+                  status: "IDLE",
+                  progress: 1,
+                  stage: "plugins",
+                  prismaStatus: "IDLE",
+                  sessionId: liveSessionId ?? undefined,
+                })
+              );
+            }
+          } catch {
+            clearDynamicTools();
+            emit(
+              createStreamEvent({
+                type: "log",
+                message:
+                  "[SYSTEM] Workspace plugin tools unavailable — continuing with default Web Crawler / sandbox modules.",
+                agentId: "system",
+                agentName: "SYSTEM_NODE",
+                status: "IDLE",
+                progress: 1,
+                stage: "plugins",
+                prismaStatus: "IDLE",
+                sessionId: liveSessionId ?? undefined,
+              })
+            );
+          }
+
           if (profile.id) {
             const recalled = await recallMemories(profile.id, orgId, objective, 3);
             emit(
@@ -1224,6 +1266,7 @@ export async function GET(request: Request) {
           );
           await flushSession();
         } finally {
+          clearDynamicTools();
           if (!persisted && recordedEvents.length > 0 && profile.id) {
             await flushSession();
           }

@@ -10,7 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardRoutePage() {
+  // Safe on Vercel when DEV_* vars are unset; localhost Overlord bypass still works.
   const isSuperAdmin =
+    typeof process !== "undefined" &&
     process.env.DEV_USER_ROLE === "SUPER_ADMIN" &&
     process.env.DEV_USER_TIER === "OVERLORD_500";
 

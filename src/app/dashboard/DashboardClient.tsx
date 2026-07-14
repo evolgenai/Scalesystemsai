@@ -33,20 +33,30 @@ export default function DashboardClient({
 }: DashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, ready: authReady } = useAuth();
   const [objective, setObjective] = useState(DEFAULT_OBJECTIVE);
   const [personaId, setPersonaId] = useState(DEFAULT_PERSONA_ID);
   const [customSystemPrompt, setCustomSystemPrompt] = useState("");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null
   );
+  const [mountedPluginIds, setMountedPluginIds] = useState<string[]>([]);
   const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
   const typingIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
 
-  // Unlocked when env Overlord bypass is active, or a signed-in session exists.
-  const personasUnlocked = isSuperAdmin || Boolean(user);
+  /**
+   * Hydration-stable lock: SSR + first client paint use only the server-passed
+   * isSuperAdmin flag. Auth (localStorage) is applied after `authReady` so
+   * guest Vercel views never mismatch / unmount the selector.
+   */
+  const [personasLocked, setPersonasLocked] = useState(!isSuperAdmin);
+
+  useEffect(() => {
+    if (!authReady) return;
+    setPersonasLocked(!(isSuperAdmin || Boolean(user)));
+  }, [authReady, isSuperAdmin, user]);
 
   const {
     lines,
@@ -273,6 +283,7 @@ export default function DashboardClient({
             </div>
           </section>
 
+          {/* Always mounted for guests + authenticated — same slot above spawn/stream */}
           <section
             aria-labelledby="persona-heading"
             className="mb-6 w-full rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5"
@@ -285,7 +296,7 @@ export default function DashboardClient({
               onPersonaChange={setPersonaId}
               customSystemPrompt={customSystemPrompt}
               onCustomSystemPromptChange={setCustomSystemPrompt}
-              locked={!personasUnlocked}
+              locked={personasLocked}
               isSuperAdmin={isSuperAdmin}
             />
           </section>
@@ -306,6 +317,8 @@ export default function DashboardClient({
                 onStart={handleStart}
                 onStop={handleStop}
                 onClear={handleClear}
+                mountedPluginIds={mountedPluginIds}
+                onMountedPluginIdsChange={setMountedPluginIds}
               />
             </div>
             <div className="lg:col-span-3">

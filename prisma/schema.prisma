@@ -214,14 +214,41 @@ model SwarmSession {
 }
 
 model Organization {
-  id          String          @id @default(cuid())
+  id          String            @id @default(cuid())
   name        String
-  slug        String          @unique
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  slug        String            @unique
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
   memberships OrgMembership[]
   sessions    SwarmSession[]
   memories    WorkspaceMemory[]
+  plugins     WorkspacePlugin[]
+}
+
+/**
+ * External OpenAPI-backed tools scoped to a workspace (Organization).
+ * authToken is AES-256-GCM ciphertext with an "ss..." prefix when present.
+ */
+model WorkspacePlugin {
+  id          String        @id @default(uuid())
+  name        String
+  /** Parsed OpenAPI paths & schemas for dynamic tool compilation. */
+  spec        Json
+  baseUrl     String
+  /** "none" | "bearer" | "apiKey" */
+  authType    String
+  /** e.g. "Authorization" or "x-api-key" */
+  authHeader  String
+  /** Securely encrypted string with "ss..." prefix; null when authType is "none". */
+  authToken   String?
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  workspaceId String?
+  workspace   Organization? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([workspaceId, isActive])
 }
 
 model WorkspaceMemory {

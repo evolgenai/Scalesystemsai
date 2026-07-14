@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import MemoryBankCard from "@/components/org/MemoryBankCard";
+import OpenApiPluginsCard from "@/components/org/OpenApiPluginsCard";
 import TeamMembersInviteCard from "@/components/org/TeamMembersInviteCard";
 
 export default function SettingsPage() {
@@ -54,6 +55,8 @@ export default function SettingsPage() {
       </div>
 
       <TeamMembersInviteCard />
+
+      <OpenApiPluginsCard />
 
       <MemoryBankCard />
 
