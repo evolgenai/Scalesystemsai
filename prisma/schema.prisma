@@ -120,6 +120,10 @@ model User {
 
   developerCredentials DeveloperCredential[]
 
+  apiKeys      ApiKey[]
+
+  workspacePersonas WorkspacePersona[]
+
   subscription Subscription?
 
   createdAt    DateTime         @default(now())
@@ -233,6 +237,8 @@ model Organization {
   sessions    SwarmSession[]
   memories    WorkspaceMemory[]
   credentials DeveloperCredential[]
+  apiKeys     ApiKey[]
+  personas    WorkspacePersona[]
 }
 
 model DeveloperCredential {
@@ -254,6 +260,43 @@ model DeveloperCredential {
   @@index([userId])
   @@index([orgId])
   @@index([provider])
+}
+
+model ApiKey {
+  id         String        @id @default(cuid())
+  hashedKey  String        @unique
+  prefix     String
+  name       String
+  orgId      String?
+  userId     String
+  createdAt  DateTime      @default(now())
+  lastUsedAt DateTime?
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([hashedKey])
+  @@index([prefix])
+  @@index([userId, orgId])
+}
+
+model WorkspacePersona {
+  id           String        @id @default(cuid())
+  name         String
+  description  String        @db.Text
+  systemPrompt String        @db.Text
+  tools        String[]
+  orgId        String?
+  userId       String
+  createdAt    DateTime      @default(now())
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([userId, orgId])
+  @@index([createdAt])
 }
 
 model WorkspaceMemory {

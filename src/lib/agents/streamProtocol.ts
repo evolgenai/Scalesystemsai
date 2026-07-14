@@ -1,5 +1,7 @@
 import type { AgentStatus } from "@prisma/client";
 
+export type { DebateRole } from "@/lib/agents/debateEngine";
+
 /** Client-facing visualizer states for dashboard cards. */
 export type VisualizerStatus =
   | "IDLE"
@@ -141,4 +143,15 @@ export function createStreamEvent(
 /** Encode a single SSE `data:` frame for a typed agent event. */
 export function encodeSseData(event: AgentStreamEvent): string {
   return `data: ${JSON.stringify(event)}\n\n`;
+}
+
+/** Tailwind dot class for non-running sandbox status indicators. */
+export function sandboxStatusIndicatorClass(
+  status: Exclude<SandboxExecutionStatus, "running">
+): string {
+  if (status === "success") {
+    return "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]";
+  }
+  if (status === "error") return "bg-rose-400";
+  return "bg-slate-500";
 }

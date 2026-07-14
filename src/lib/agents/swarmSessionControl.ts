@@ -35,6 +35,7 @@ export async function createLiveSwarmSession(input: {
   userId: string;
   orgId?: string | null;
   objective: string;
+  persona?: string | null;
 }): Promise<string | null> {
   if (!input.userId.trim()) return null;
   try {
@@ -47,6 +48,7 @@ export async function createLiveSwarmSession(input: {
         kernelLogs: "[]",
         status: "ACTIVE",
         interventionDirective: null,
+        persona: input.persona?.trim()?.slice(0, 64) || null,
       },
       select: { id: true },
     });

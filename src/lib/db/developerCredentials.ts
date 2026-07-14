@@ -41,30 +41,45 @@ export async function upsertDeveloperCredential(input: {
   const orgId = input.orgId?.trim() || null;
 
   return withSecureTransaction(async (tx) => {
-    return tx.developerCredential.upsert({
+    const existing = await tx.developerCredential.findFirst({
       where: {
-        userId_orgId_provider_keyFingerprint: {
-          userId: input.userId,
-          orgId,
-          provider,
-          keyFingerprint,
-        },
-      },
-      create: {
         userId: input.userId,
         orgId,
         provider,
-        label: input.label?.trim()?.slice(0, 120) || null,
-        secretCipher: blob.cipher,
-        secretIv: blob.iv,
-        secretTag: blob.tag,
         keyFingerprint,
       },
-      update: {
-        label: input.label?.trim()?.slice(0, 120) || null,
-        secretCipher: blob.cipher,
-        secretIv: blob.iv,
-        secretTag: blob.tag,
+      select: { id: true },
+    });
+
+    const payload = {
+      label: input.label?.trim()?.slice(0, 120) || null,
+      secretCipher: blob.cipher,
+      secretIv: blob.iv,
+      secretTag: blob.tag,
+    };
+
+    if (existing) {
+      return tx.developerCredential.update({
+        where: { id: existing.id },
+        data: payload,
+        select: {
+          id: true,
+          provider: true,
+          label: true,
+          keyFingerprint: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    }
+
+    return tx.developerCredential.create({
+      data: {
+        userId: input.userId,
+        orgId,
+        provider,
+        keyFingerprint,
+        ...payload,
       },
       select: {
         id: true,
