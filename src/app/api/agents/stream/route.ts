@@ -509,7 +509,7 @@ export async function GET(request: Request) {
     searchParams.get("customSystemPrompt") ??
     searchParams.get("customPrompt") ??
     searchParams.get("systemInstruction");
-  const customSystemPrompt = customSystemPromptRaw?.trim()
+  let customSystemPrompt = customSystemPromptRaw?.trim()
     ? customSystemPromptRaw.trim().slice(0, 8000)
     : undefined;
 
