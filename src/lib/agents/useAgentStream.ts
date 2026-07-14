@@ -144,6 +144,16 @@ export function extractResultItem(
     };
   }
 
+  if (event.type === "sandbox_execution") {
+    const markdown = (event.stdout ?? event.message ?? "").trim();
+    if (!markdown) return null;
+    return {
+      id: `${event.timestamp}-sandbox-out-${index}`,
+      markdown,
+      agent: event.agentName ?? "Sandbox",
+    };
+  }
+
   if (
     event.message.startsWith("[gemini:digest]") ||
     event.message.startsWith("[webScraper:content]")
@@ -497,6 +507,7 @@ export function useAgentStream(
               let hitConsensus = false;
               let nextRecalled: RecalledMemory[] | null = null;
               const newSandboxFrames: SandboxExecutionFrame[] = [];
+              const sandboxResultItems: StreamResultItem[] = [];
               for (const event of events) {
                 if (event.type === "debate_turn") {
                   const role: DebateRole =
@@ -554,17 +565,30 @@ export function useAgentStream(
                           ? "success"
                           : "error";
 
+                  const stdoutText = (event.stdout ?? "").trim();
+                  const messageText = (event.message ?? "").trim();
+                  const primaryOut = stdoutText || messageText;
+
                   newSandboxFrames.push({
                     id: `${event.timestamp}-sandbox-${newSandboxFrames.length}`,
                     status: sandboxStatus,
                     language: event.language,
                     code: event.code,
-                    stdout: event.stdout ?? event.message ?? "",
+                    stdout: stdoutText || messageText,
                     stderr: event.stderr ?? "",
                     exitCode,
                     timestamp: event.timestamp,
                     message: event.message,
                   });
+
+                  // Direct runner stdout belongs in Actual Results, not only stealth/console.
+                  if (primaryOut) {
+                    sandboxResultItems.push({
+                      id: `${event.timestamp}-sandbox-result-${sandboxResultItems.length}`,
+                      markdown: primaryOut,
+                      agent: event.agentName ?? "Sandbox",
+                    });
+                  }
                 }
               }
 
@@ -584,6 +608,12 @@ export function useAgentStream(
                 );
               }
 
+              if (sandboxResultItems.length > 0) {
+                setResults((prev) =>
+                  [...prev, ...sandboxResultItems].slice(-40)
+                );
+              }
+
               if (hitConsensus) {
                 setConsensusPending(true);
                 pausedRef.current = true;
@@ -591,7 +621,28 @@ export function useAgentStream(
               }
 
               // HITL / consensus pause: keep draining SSE, suspend non-debate UI.
-              if (pausedRef.current) continue;
+              // Still accept direct result/summary payloads into Actual Results.
+              if (pausedRef.current) {
+                const pausedDirectResults: StreamResultItem[] = [];
+                for (const event of events) {
+                  if (
+                    event.type === "sandbox_execution" ||
+                    event.type === "debate_turn" ||
+                    event.type === "consensus_pending" ||
+                    event.type === "memory_recalled"
+                  ) {
+                    continue;
+                  }
+                  const item = extractResultItem(event, resultIndex++);
+                  if (item) pausedDirectResults.push(item);
+                }
+                if (pausedDirectResults.length > 0) {
+                  setResults((prev) =>
+                    [...prev, ...pausedDirectResults].slice(-40)
+                  );
+                }
+                continue;
+              }
 
               const nonDebate = events.filter(
                 (event) =>

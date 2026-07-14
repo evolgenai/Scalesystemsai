@@ -146,7 +146,7 @@ async function executePythonLocal(
     return await new Promise<SandboxExecutionResult>((resolve) => {
       const child = execFile(
         bin,
-        [filePath],
+        ["-B", filePath],
         {
           timeout: TIMEOUT_MS,
           maxBuffer: 1024 * 1024,
@@ -157,6 +157,8 @@ async function executePythonLocal(
             SYSTEMROOT: process.env.SYSTEMROOT,
             PYTHONIOENCODING: "utf-8",
             PYTHONDONTWRITEBYTECODE: "1",
+            PYTHONWARNINGS: "ignore",
+            PYTHONNOUSERSITE: "1",
           },
         },
         (error, stdout, stderr) => {

@@ -585,6 +585,57 @@ export async function GET(request: Request) {
         };
 
         try {
+          // Direct code-first: emit only Actual Results chunks (type:"result") — no stealth/trace wrappers.
+          const direct = await runDirectCodeExecution(
+            objective,
+            request.signal
+          );
+          if (direct.matched) {
+            if (direct.exitCode === 0) {
+              const stdoutOnly = (direct.stdout ?? "").replace(/\r\n/g, "\n").trimEnd();
+              lastFinalAnswer = stdoutOnly;
+              emit(
+                createStreamEvent({
+                  type: "result",
+                  message: stdoutOnly,
+                  resultMarkdown: stdoutOnly,
+                  text: stdoutOnly,
+                  status: "SUCCESS",
+                  progress: 100,
+                  stage: "answer",
+                  prismaStatus: "IDLE",
+                })
+              );
+            } else {
+              lastFinalAnswer = (direct.stderr || "Sandbox execution failed.")
+                .replace(/\r\n/g, "\n")
+                .trimEnd();
+              emit(
+                createStreamEvent({
+                  type: "error",
+                  message: lastFinalAnswer,
+                  status: "ERROR",
+                  prismaStatus: "ERROR",
+                })
+              );
+            }
+
+            emit(
+              createStreamEvent({
+                type: "workflow_complete",
+                message: "Completed successfully",
+                status: "SUCCESS",
+                progress: 100,
+                stage: "complete",
+                prismaStatus: "IDLE",
+              })
+            );
+            sessionStatus =
+              direct.exitCode === 0 ? "COMPLETED" : "FAILED";
+            await flushSession();
+            return;
+          }
+
           emit(
             createStreamEvent({
               type: "command",
@@ -662,68 +713,6 @@ export async function GET(request: Request) {
               prismaStatus: "PLANNING",
             })
           );
-
-          // Direct code-first interceptor — bypass swarm; emit stdout only.
-          const direct = await runDirectCodeExecution(
-            objective,
-            request.signal
-          );
-          if (direct.matched) {
-            if (direct.exitCode === 0) {
-              const stdoutOnly = direct.stdout;
-              lastFinalAnswer = stdoutOnly;
-              emit(
-                createStreamEvent({
-                  type: "result",
-                  message: stdoutOnly,
-                  resultMarkdown: stdoutOnly,
-                  agentId: "code-architect",
-                  agentName: "CodeArchitect Sub-Agent",
-                  status: "SUCCESS",
-                  progress: 100,
-                  stage: "answer",
-                  prismaStatus: "IDLE",
-                  language: direct.language,
-                  stdout: stdoutOnly,
-                  stderr: "",
-                  exitCode: 0,
-                  sandboxStatus: "success",
-                })
-              );
-            } else {
-              lastFinalAnswer = direct.stderr || "Sandbox execution failed.";
-              emit(
-                createStreamEvent({
-                  type: "error",
-                  message: lastFinalAnswer,
-                  status: "ERROR",
-                  prismaStatus: "ERROR",
-                  language: direct.language,
-                  stdout: direct.stdout,
-                  stderr: direct.stderr,
-                  exitCode: direct.exitCode,
-                  sandboxStatus: "error",
-                })
-              );
-            }
-
-            emit(
-              createStreamEvent({
-                type: "workflow_complete",
-                message: "Completed successfully",
-                agentId: "ops-orchestrator",
-                agentName: "Systems Orchestrator",
-                status: "SUCCESS",
-                progress: 100,
-                stage: "complete",
-                prismaStatus: "IDLE",
-              })
-            );
-            sessionStatus =
-              direct.exitCode === 0 ? "COMPLETED" : "FAILED";
-            await flushSession();
-            return;
-          }
 
           const greeting = /^(hi|hello|hey|yo)\b[\s!?.]*$/i.test(objective);
           if (greeting) {

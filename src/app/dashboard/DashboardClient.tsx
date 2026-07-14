@@ -263,7 +263,7 @@ export default function DashboardClient() {
 
           <section
             aria-labelledby="persona-heading"
-            className="mb-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5"
+            className="mb-6 w-full rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5"
           >
             <h2 id="persona-heading" className="sr-only">
               Agent personality templates
