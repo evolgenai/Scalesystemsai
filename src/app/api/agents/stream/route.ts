@@ -415,56 +415,74 @@ async function runToolStep(
 
 export async function GET(request: Request) {
   const profile = await resolveRequestUser(request);
-  const billingResolution = await resolveBillingProfileForRequest(
-    request,
-    profile
-  );
-
-  if (!billingResolution.ok) {
-    return NextResponse.json(
-      {
-        error: "Forbidden",
-        code: billingResolution.code,
-        message: billingResolution.message,
-        orgId: billingResolution.orgId,
-      },
-      { status: 403 }
-    );
-  }
-
-  const { billing, orgId, billingMode } = billingResolution;
   const { searchParams } = new URL(request.url);
-  const forceExceeded =
-    searchParams.get("quotaExceeded") === "1" ||
-    searchParams.get("simulateQuotaExceeded") === "1";
 
-  // Consume credits from OWNER pool when billingMode === "org_owner".
-  const gate = evaluateStreamAccess(billing, {
-    consume: true,
-    forceExceeded,
-  });
+  const isSuperAdmin =
+    process.env.DEV_USER_ROLE === "SUPER_ADMIN" &&
+    process.env.DEV_USER_TIER === "OVERLORD_500";
 
-  if (!gate.allowed) {
-    return NextResponse.json(
-      {
-        error: "Payment Required",
-        code: gate.code,
-        message:
-          billingMode === "org_owner"
-            ? `${gate.message} (team credit pool — organization owner plan).`
-            : gate.message,
-        plan: gate.plan,
-        used: gate.used,
-        limit: gate.limit,
-        orgId,
-        billingMode,
-        upgrade: {
-          stripe: "/api/checkout/stripe",
-          bvnk: "/api/checkout/bvnk",
-        },
-      },
-      { status: 402 }
+  let orgId: string | null = null;
+  let billing = profile;
+  let billingMode: "personal" | "org_owner" = "personal";
+
+  // Env-driven Super Admin: skip org/account/quota gates entirely.
+  if (!isSuperAdmin && !profile.isSuperAdmin) {
+    const billingResolution = await resolveBillingProfileForRequest(
+      request,
+      profile
     );
+
+    if (!billingResolution.ok) {
+      return NextResponse.json(
+        {
+          error: "Forbidden",
+          code: billingResolution.code,
+          message: billingResolution.message,
+          orgId: billingResolution.orgId,
+        },
+        { status: 403 }
+      );
+    }
+
+    billing = billingResolution.billing;
+    orgId = billingResolution.orgId;
+    billingMode = billingResolution.billingMode;
+
+    const forceExceeded =
+      searchParams.get("quotaExceeded") === "1" ||
+      searchParams.get("simulateQuotaExceeded") === "1";
+
+    // Signed-in operators must have an active session + credit allowance.
+    // Guests may continue; custom personality is downgraded below (no 401/403).
+    if (profile.id) {
+      const gate = evaluateStreamAccess(billing, {
+        consume: true,
+        forceExceeded,
+      });
+
+      if (!gate.allowed) {
+        return NextResponse.json(
+          {
+            error: "Payment Required",
+            code: gate.code,
+            message:
+              billingMode === "org_owner"
+                ? `${gate.message} (team credit pool — organization owner plan).`
+                : gate.message,
+            plan: gate.plan,
+            used: gate.used,
+            limit: gate.limit,
+            orgId,
+            billingMode,
+            upgrade: {
+              stripe: "/api/checkout/stripe",
+              bvnk: "/api/checkout/bvnk",
+            },
+          },
+          { status: 402 }
+        );
+      }
+    }
   }
 
   const encoder = new TextEncoder();
@@ -477,17 +495,42 @@ export async function GET(request: Request) {
   const loop = searchParams.get("loop") === "1";
 
   // Persona payload — query string (SSE GET) with safe length caps.
-  const personaId =
+  let personaId =
     searchParams.get("personaId")?.trim() ||
+    searchParams.get("personalityId")?.trim() ||
     searchParams.get("persona")?.trim() ||
     undefined;
-  const customSystemPromptRaw =
+  let customSystemPromptRaw =
     searchParams.get("customSystemPrompt") ??
     searchParams.get("customPrompt") ??
     searchParams.get("systemInstruction");
-  const customSystemPrompt = customSystemPromptRaw?.trim()
+  let customSystemPrompt = customSystemPromptRaw?.trim()
     ? customSystemPromptRaw.trim().slice(0, 8000)
     : undefined;
+
+  const requestsCustomPersonality = Boolean(
+    customSystemPrompt ||
+      (personaId &&
+        !["researcher", "security", "marketing"].includes(
+          personaId.toLowerCase()
+        ))
+  );
+
+  let personaFallbackNotice: string | null = null;
+
+  // Guests forcing a custom personality → soft-fallback to Web Crawler (researcher).
+  if (
+    !isSuperAdmin &&
+    !profile.isSuperAdmin &&
+    !profile.id &&
+    requestsCustomPersonality
+  ) {
+    personaId = "researcher";
+    customSystemPrompt = undefined;
+    personaFallbackNotice =
+      "Custom personalities require a signed-in session. Falling back to the Web Crawler (Researcher) profile.";
+  }
+
   const systemInstruction = getSystemInstructionForPersona(
     personaId,
     customSystemPrompt
@@ -670,6 +713,21 @@ export async function GET(request: Request) {
               sessionId: liveSessionId ?? undefined,
             })
           );
+
+          if (personaFallbackNotice) {
+            emit(
+              createStreamEvent({
+                type: "log",
+                message: personaFallbackNotice,
+                agentId: "system",
+                agentName: "SYSTEM_NODE",
+                status: "IDLE",
+                progress: 1,
+                stage: "persona-fallback",
+                prismaStatus: "IDLE",
+              })
+            );
+          }
 
           if (profile.id) {
             const recalled = await recallMemories(profile.id, orgId, objective, 3);

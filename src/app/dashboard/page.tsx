@@ -10,6 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardRoutePage() {
+  const isSuperAdmin =
+    process.env.DEV_USER_ROLE === "SUPER_ADMIN" &&
+    process.env.DEV_USER_TIER === "OVERLORD_500";
+
   return (
     <Suspense
       fallback={
@@ -18,7 +22,7 @@ export default function DashboardRoutePage() {
         </div>
       }
     >
-      <DashboardClient />
+      <DashboardClient isSuperAdmin={isSuperAdmin} />
     </Suspense>
   );
 }

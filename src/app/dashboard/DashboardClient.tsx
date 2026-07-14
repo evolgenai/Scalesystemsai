@@ -14,6 +14,7 @@ import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
 import AgentPersonaSelector from "@/components/dashboard/AgentPersonaSelector";
 import LiveStreamTerminal from "@/components/dashboard/LiveStreamTerminal";
 import WorkspaceHistorySidebar from "@/components/dashboard/WorkspaceHistorySidebar";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import { DEFAULT_PERSONA_ID } from "@/lib/agents/personaPresets";
@@ -22,9 +23,17 @@ import { reportWorkspaceActivity } from "@/lib/org/useWorkspacePresence";
 const DEFAULT_OBJECTIVE =
   "Analyze https://example.com and run a TypeScript lead-scoring script in the sandbox.";
 
-export default function DashboardClient() {
+type DashboardClientProps = {
+  /** Server-derived env bypass: DEV_USER_ROLE + DEV_USER_TIER. */
+  isSuperAdmin?: boolean;
+};
+
+export default function DashboardClient({
+  isSuperAdmin = false,
+}: DashboardClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const [objective, setObjective] = useState(DEFAULT_OBJECTIVE);
   const [personaId, setPersonaId] = useState(DEFAULT_PERSONA_ID);
   const [customSystemPrompt, setCustomSystemPrompt] = useState("");
@@ -35,6 +44,9 @@ export default function DashboardClient() {
   const typingIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+
+  // Unlocked when env Overlord bypass is active, or a signed-in session exists.
+  const personasUnlocked = isSuperAdmin || Boolean(user);
 
   const {
     lines,
@@ -273,6 +285,8 @@ export default function DashboardClient() {
               onPersonaChange={setPersonaId}
               customSystemPrompt={customSystemPrompt}
               onCustomSystemPromptChange={setCustomSystemPrompt}
+              locked={!personasUnlocked}
+              isSuperAdmin={isSuperAdmin}
             />
           </section>
 
