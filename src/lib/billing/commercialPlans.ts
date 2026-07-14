@@ -83,5 +83,19 @@ export function planFromStripePriceId(
 }
 
 export function bvnkAmountUsdForPlan(plan: CheckoutPlan): number {
-  return plan === "PREMIUM" ? 149 : 49;
+  return plan === "PREMIUM" ? 99 : 29;
 }
+
+export const PLAN_DISPLAY = {
+  STARTER: {
+    label: "Starter",
+    priceMonthly: 29,
+    tagline: "Perfect for individual builders.",
+  },
+  PREMIUM: {
+    label: "Professional",
+    priceMonthly: 99,
+    tagline:
+      "Advanced swarm access, parallel workers, and automated API hooks.",
+  },
+} as const;

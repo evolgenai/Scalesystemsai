@@ -1,9 +1,12 @@
 export type FunnelEventName =
   | "auth_modal_open"
+  | "auth_signup_clicked"
+  | "auth_signin_clicked"
   | "auth_signup_submit"
   | "auth_signin_submit"
   | "auth_success"
   | "auth_failure"
+  | "pricing_tier_clicked"
   | "stream_launch"
   | "stream_quota_hit"
   | "checkout_modal_open"
@@ -12,6 +15,7 @@ export type FunnelEventName =
   | "checkout_stripe_start"
   | "checkout_bvnk_start"
   | "checkout_redirect"
+  | "redirected_to_payment"
   | "payment_success_landing"
   | "payment_cancelled_landing";
 

@@ -10,12 +10,15 @@ type AuthModalProps = {
   open: boolean;
   onClose: () => void;
   initialMode?: "signin" | "signup";
+  /** Called after a successful auth so callers can redirect (e.g. checkout). */
+  onSuccess?: () => void;
 };
 
 export default function AuthModal({
   open,
   onClose,
   initialMode = "signin",
+  onSuccess,
 }: AuthModalProps) {
   const { signIn, signUp } = useAuth();
   const [mounted, setMounted] = useState(false);
@@ -66,6 +69,7 @@ export default function AuthModal({
       return;
     }
     onClose();
+    onSuccess?.();
   };
 
   return createPortal(
@@ -181,7 +185,10 @@ export default function AuthModal({
                 <button
                   type="button"
                   className="text-cyan-accent hover:underline"
-                  onClick={() => setMode("signup")}
+                  onClick={() => {
+                    setMode("signup");
+                    trackFunnelEvent({ event: "auth_signup_clicked" });
+                  }}
                 >
                   Sign up
                 </button>
@@ -192,7 +199,10 @@ export default function AuthModal({
                 <button
                   type="button"
                   className="text-cyan-accent hover:underline"
-                  onClick={() => setMode("signin")}
+                  onClick={() => {
+                    setMode("signin");
+                    trackFunnelEvent({ event: "auth_signin_clicked" });
+                  }}
                 >
                   Sign in
                 </button>

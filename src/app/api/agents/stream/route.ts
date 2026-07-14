@@ -7,6 +7,9 @@ import {
   buildGeminiOrchestratorPlan,
   executePlanStepTool,
   narrateStepWithGemini,
+  type GeminiPlanStep,
+  type GeminiOrchestratorPlan,
+  type ToolExecutionResult,
 } from "@/lib/agents/geminiOrchestrator";
 import { resolveRequestUser } from "@/lib/auth/requestUser";
 import { evaluateStreamAccess } from "@/lib/auth/subscriptionGating";
@@ -57,6 +60,128 @@ function isAbortError(error: unknown): boolean {
     (error instanceof DOMException && error.name === "AbortError") ||
     (error instanceof Error && error.name === "AbortError")
   );
+}
+
+type Push = (
+  event: AgentStreamEvent
+) => void;
+
+function emitToolOutcome(
+  push: Push,
+  step: GeminiPlanStep,
+  toolResult: ToolExecutionResult,
+  progress: number
+): void {
+  for (const line of toolResult.logLines) {
+    push(
+      createStreamEvent({
+        type: toolResult.blocked
+          ? "error"
+          : toolResult.success
+            ? "log"
+            : "error",
+        message: line,
+        agentId: step.agentId,
+        agentName: step.agentName,
+        status: toolResult.blocked
+          ? "ERROR"
+          : toolResult.success
+            ? "EXECUTING"
+            : "ERROR",
+        progress: Math.max(progress, 12),
+        stage: `${step.stage}:tool-output`,
+        prismaStatus: toolResult.success ? "EXECUTING" : "ERROR",
+      })
+    );
+  }
+
+  if (toolResult.digestForGemini) {
+    push(
+      createStreamEvent({
+        type: "result",
+        message: toolResult.digestForGemini,
+        resultMarkdown: toolResult.digestForGemini,
+        agentId: step.agentId,
+        agentName: step.agentName,
+        status: toolResult.success ? "SUCCESS" : "ERROR",
+        progress: Math.max(progress, 18),
+        stage: `${step.stage}:result`,
+        prismaStatus: toolResult.success ? "ACTIVE" : "ERROR",
+      })
+    );
+  }
+
+  push(
+    createStreamEvent({
+      type: "agent_update",
+      message: toolResult.blocked
+        ? "Sandbox blocked unsafe payload — worker aborted safely."
+        : toolResult.success
+          ? `Tool [${toolResult.tool}] completed — results streamed to terminal.`
+          : `Tool [${toolResult.tool}] finished with errors.`,
+      agentId: step.agentId,
+      agentName: step.agentName,
+      status: toolResult.blocked
+        ? "ERROR"
+        : toolResult.success
+          ? "SUCCESS"
+          : "ERROR",
+      progress: Math.max(progress, 20),
+      stage: `${step.stage}:tool-done`,
+      prismaStatus: toolResult.success ? "ACTIVE" : "ERROR",
+    })
+  );
+}
+
+async function runToolStep(
+  push: Push,
+  step: GeminiPlanStep,
+  plan: GeminiOrchestratorPlan,
+  objective: string,
+  progress: number,
+  signal: AbortSignal,
+  isClosed: () => boolean
+): Promise<void> {
+  const command =
+    step.tool === "webScraper"
+      ? `curl -sSL ${plan.detectedUrl ?? "https://scalesystemsai.vercel.app"} | scalesystems-sanitize`
+      : `node --eval "runSandbox({ agent: '${step.agentId}' })"`;
+
+  push(
+    createStreamEvent({
+      type: "command",
+      message: `$ ${command}`,
+      command,
+      agentId: step.agentId,
+      agentName: step.agentName,
+      status: "EXECUTING",
+      progress: Math.max(progress, 10),
+      stage: `${step.stage}:tool`,
+      prismaStatus: "EXECUTING",
+    })
+  );
+
+  push(
+    createStreamEvent({
+      type: "log",
+      message: `Invoking sandbox tool [${step.tool}]…`,
+      agentId: step.agentId,
+      agentName: step.agentName,
+      status: "EXECUTING",
+      progress: Math.max(progress, 10),
+      stage: `${step.stage}:tool`,
+      prismaStatus: "EXECUTING",
+    })
+  );
+
+  const toolResult = await executePlanStepTool(
+    step,
+    plan,
+    objective,
+    signal
+  );
+  if (isClosed() || !toolResult) return;
+  emitToolOutcome(push, step, toolResult, progress);
 }
 
 export async function GET(request: Request) {
@@ -267,6 +392,26 @@ export async function GET(request: Request) {
               })
             );
 
+            if (plan.routedWorkers?.length) {
+              pushEvent(
+                controller,
+                encoder,
+                isClosed,
+                createStreamEvent({
+                  type: "log",
+                  message: `Router → Worker dispatch: [${plan.routedWorkers.join(", ")}]${
+                    plan.parallelTools ? " · parallel tool channels armed" : ""
+                  }`,
+                  agentId: "ops-orchestrator",
+                  agentName: "Systems Orchestrator",
+                  status: "THINKING",
+                  progress: 13,
+                  stage: "route",
+                  prismaStatus: "PLANNING",
+                })
+              );
+            }
+
             if (plan.detectedUrl) {
               pushEvent(
                 controller,
@@ -285,23 +430,84 @@ export async function GET(request: Request) {
               );
             }
 
+            const push: Push = (event) =>
+              pushEvent(controller, encoder, isClosed, event);
+
             const total = Math.max(plan.steps.length, 1);
+            let index = 0;
 
-            for (const [index, step] of plan.steps.entries()) {
+            while (index < plan.steps.length) {
               if (isClosed()) break;
 
-              await sleep(step.delayMs, request.signal);
-              if (isClosed()) break;
-
+              const step = plan.steps[index]!;
               const progress = Math.min(
                 99,
                 Math.round(((index + 1) / total) * 100)
               );
 
-              pushEvent(
-                controller,
-                encoder,
-                isClosed,
+              // Batch consecutive independent tool steps for parallel channels.
+              if (
+                plan.parallelTools &&
+                step.tool &&
+                Boolean(plan.steps[index + 1]?.tool)
+              ) {
+                const batch: GeminiPlanStep[] = [];
+                while (
+                  index < plan.steps.length &&
+                  plan.steps[index]?.tool
+                ) {
+                  batch.push(plan.steps[index]!);
+                  index += 1;
+                }
+
+                push(
+                  createStreamEvent({
+                    type: "log",
+                    message: `Opening ${batch.length} parallel execution channels…`,
+                    agentId: "ops-orchestrator",
+                    agentName: "Systems Orchestrator",
+                    status: "EXECUTING",
+                    progress: Math.max(progress, 15),
+                    stage: "parallel",
+                    prismaStatus: "EXECUTING",
+                  })
+                );
+
+                for (const batched of batch) {
+                  push(
+                    createStreamEvent({
+                      type: "agent_update",
+                      message: batched.message,
+                      agentId: batched.agentId,
+                      agentName: batched.agentName,
+                      status: "EXECUTING",
+                      progress: Math.max(progress, 16),
+                      stage: batched.stage,
+                      prismaStatus: "EXECUTING",
+                    })
+                  );
+                }
+
+                await Promise.all(
+                  batch.map((batched) =>
+                    runToolStep(
+                      push,
+                      batched,
+                      plan,
+                      objective,
+                      Math.max(progress, 18),
+                      request.signal,
+                      isClosed
+                    )
+                  )
+                );
+                continue;
+              }
+
+              await sleep(step.delayMs, request.signal);
+              if (isClosed()) break;
+
+              push(
                 createStreamEvent({
                   type:
                     step.stage === "complete"
@@ -319,124 +525,15 @@ export async function GET(request: Request) {
               );
 
               if (step.tool) {
-                const command =
-                  step.tool === "webScraper"
-                    ? `curl -sSL ${plan.detectedUrl ?? "https://scalesystemsai.vercel.app"} | scalesystems-sanitize`
-                    : `node --eval "runSandbox({ agent: '${step.agentId}' })"`;
-
-                pushEvent(
-                  controller,
-                  encoder,
-                  isClosed,
-                  createStreamEvent({
-                    type: "command",
-                    message: `$ ${command}`,
-                    command,
-                    agentId: step.agentId,
-                    agentName: step.agentName,
-                    status: "EXECUTING",
-                    progress: Math.max(progress, 10),
-                    stage: `${step.stage}:tool`,
-                    prismaStatus: "EXECUTING",
-                  })
-                );
-
-                pushEvent(
-                  controller,
-                  encoder,
-                  isClosed,
-                  createStreamEvent({
-                    type: "log",
-                    message: `Invoking sandbox tool [${step.tool}]…`,
-                    agentId: step.agentId,
-                    agentName: step.agentName,
-                    status: "EXECUTING",
-                    progress: Math.max(progress, 10),
-                    stage: `${step.stage}:tool`,
-                    prismaStatus: "EXECUTING",
-                  })
-                );
-
-                const toolResult = await executePlanStepTool(
+                await runToolStep(
+                  push,
                   step,
                   plan,
                   objective,
-                  request.signal
+                  progress,
+                  request.signal,
+                  isClosed
                 );
-                if (isClosed()) break;
-
-                if (toolResult) {
-                  for (const line of toolResult.logLines) {
-                    pushEvent(
-                      controller,
-                      encoder,
-                      isClosed,
-                      createStreamEvent({
-                        type: toolResult.blocked
-                          ? "error"
-                          : toolResult.success
-                            ? "log"
-                            : "error",
-                        message: line,
-                        agentId: step.agentId,
-                        agentName: step.agentName,
-                        status: toolResult.blocked
-                          ? "ERROR"
-                          : toolResult.success
-                            ? "EXECUTING"
-                            : "ERROR",
-                        progress: Math.max(progress, 12),
-                        stage: `${step.stage}:tool-output`,
-                        prismaStatus: toolResult.success
-                          ? "EXECUTING"
-                          : "ERROR",
-                      })
-                    );
-                  }
-
-                  if (toolResult.digestForGemini) {
-                    pushEvent(
-                      controller,
-                      encoder,
-                      isClosed,
-                      createStreamEvent({
-                        type: "result",
-                        message: toolResult.digestForGemini,
-                        resultMarkdown: toolResult.digestForGemini,
-                        agentId: step.agentId,
-                        agentName: step.agentName,
-                        status: toolResult.success ? "SUCCESS" : "ERROR",
-                        progress: Math.max(progress, 18),
-                        stage: `${step.stage}:result`,
-                        prismaStatus: toolResult.success ? "ACTIVE" : "ERROR",
-                      })
-                    );
-                  }
-
-                  pushEvent(
-                    controller,
-                    encoder,
-                    isClosed,
-                    createStreamEvent({
-                      type: "agent_update",
-                      message: toolResult.blocked
-                        ? "Sandbox blocked unsafe payload — worker aborted safely."
-                        : toolResult.success
-                          ? `Tool [${toolResult.tool}] completed — results streamed to terminal.`
-                          : `Tool [${toolResult.tool}] finished with errors.`,
-                      agentId: step.agentId,
-                      agentName: step.agentName,
-                      status: toolResult.blocked
-                        ? "ERROR"
-                        : toolResult.success
-                          ? "SUCCESS"
-                          : "ERROR",
-                      progress: Math.max(progress, 20),
-                      stage: `${step.stage}:tool-done`,
-                      prismaStatus: toolResult.success ? "ACTIVE" : "ERROR",
-                    })
-                  );
-                }
               } else {
                 const narration = await narrateStepWithGemini(
                   objective,
@@ -446,10 +543,7 @@ export async function GET(request: Request) {
                 if (isClosed()) break;
 
                 if (narration) {
-                  pushEvent(
-                    controller,
-                    encoder,
-                    isClosed,
+                  push(
                     createStreamEvent({
                       type: "log",
                       message: narration,
@@ -461,10 +555,7 @@ export async function GET(request: Request) {
                       prismaStatus: step.prismaStatus,
                     })
                   );
-                  pushEvent(
-                    controller,
-                    encoder,
-                    isClosed,
+                  push(
                     createStreamEvent({
                       type: "result",
                       message: narration,
@@ -479,6 +570,8 @@ export async function GET(request: Request) {
                   );
                 }
               }
+
+              index += 1;
             }
 
             if (isClosed()) break;

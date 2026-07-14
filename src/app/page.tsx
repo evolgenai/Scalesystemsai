@@ -1,61 +1,63 @@
-import AgentTerminal from '@/components/AgentTerminal';
+import AgentTerminal from "@/components/AgentTerminal";
 import ROISavingsCalculator from "@/components/ROISavingsCalculator";
-import type { Metadata } from "next";import Link from "next/link";
+import type { Metadata } from "next";
+import Link from "next/link";
 import Hero from "@/components/Hero";
 import {
   Bot,
   Layers,
+  Network,
   Plug,
-  Workflow,
+  Route,
   Shield,
   Clock,
   TrendingUp,
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Hire an AI Employee for $0/Hour | Agentic Business Automation",
+  title: "ScaleSystems | Multi-Agent Orchestration Workspace",
   description:
-    "ScaleSystems deploys autonomous AI employees that eliminate admin overhead, automate CRM workflows, and scale operations 24/7. AI Automation Agency for enterprise teams.",
+    "ScaleSystems is the premier multi-agent orchestration workspace — Router–Worker swarms, parallel tool channels, and Obsidian/cyan dual-pane control.",
   keywords: [
-    "AI Automation Agency",
-    "Agentic AI Employees",
-    "ScaleSystems Business Automation",
-    "hire AI employee",
-    "autonomous workflows",
+    "multi-agent orchestration",
+    "AI swarm workspace",
+    "ScaleSystems",
+    "Router Worker agents",
+    "agentic automation",
   ],
   openGraph: {
-    title: "ScaleSystems | Hire an AI Employee for $0/Hour",
+    title: "ScaleSystems | Multi-Agent Orchestration Workspace",
     description:
-      "Eliminate administrative overhead with custom multi-agent frameworks and enterprise workflow optimization.",
+      "Deploy autonomous worker fleets with parallel execution and live dual-pane telemetry.",
     url: "/",
   },
 };
 
 const pillars = [
   {
+    icon: Route,
+    title: "Router → Worker routing",
+    description:
+      "A fast orchestrator pass classifies each objective and dispatches Code Sandbox, Web Scraper, and specialist workers — never a single monolithic prompt.",
+  },
+  {
+    icon: Network,
+    title: "Parallel execution channels",
+    description:
+      "Independent tool runs fire concurrently so scrape + sandbox cycles finish in one wave, not a slow serial queue.",
+  },
+  {
     icon: Layers,
-    title: "Custom Multi-Agent Frameworks",
+    title: "Human digests + kernel feed",
     description:
-      "Orchestrated agent networks that collaborate across tasks—lead routing, document processing, approval chains, and executive reporting—built for your exact operating model.",
-  },
-  {
-    icon: Plug,
-    title: "SaaS Automation Integrations",
-    description:
-      "Native connectors and API pipelines across Salesforce, HubSpot, Slack, Notion, legacy ERPs, and custom internal tools. Your stack stays; the manual work disappears.",
-  },
-  {
-    icon: Workflow,
-    title: "Enterprise Workflow Optimization",
-    description:
-      "We map bottlenecks, redesign processes, and deploy agents that enforce SLAs, reduce error rates, and deliver measurable ROI within the first sprint cycle.",
+      "Operators get markdown-ready results on the left and verbose swarm telemetry on the right — same stream, two minds.",
   },
 ];
 
 const stats = [
-  { icon: Clock, value: "24/7", label: "Always-on operations" },
-  { icon: TrendingUp, value: "73%", label: "Avg. admin time saved" },
-  { icon: Shield, value: "SOC 2", label: "Security-first architecture" },
+  { icon: Clock, value: "24/7", label: "Always-on swarm runtime" },
+  { icon: TrendingUp, value: "Parallel", label: "Tool channel execution" },
+  { icon: Shield, value: "Sandbox", label: "Guarded code evaluation" },
 ];
 
 function PillarCard({
@@ -64,7 +66,7 @@ function PillarCard({
   description,
 }: (typeof pillars)[number]) {
   return (
-    <article className="glass group rounded-2xl p-8 transition-all hover:border-cyan-accent/30 hover:shadow-glow-sm">
+    <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 transition-all hover:border-cyan-accent/30 hover:shadow-[0_0_30px_rgba(0,242,254,0.06)]">
       <div className="mb-5 inline-flex rounded-xl bg-cyan-accent/10 p-3">
         <Icon className="h-6 w-6 text-cyan-accent" aria-hidden />
       </div>
@@ -87,7 +89,7 @@ export default function HomePage() {
         aria-labelledby="stats-heading"
       >
         <h2 id="stats-heading" className="sr-only">
-          Key performance metrics
+          Key runtime signals
         </h2>
         <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-3">
           {stats.map((stat) => (
@@ -114,11 +116,11 @@ export default function HomePage() {
               id="pillars-heading"
               className="font-display text-3xl font-bold sm:text-4xl"
             >
-              Core Capabilities
+              Built for agentic operators
             </h2>
             <p className="mt-4 text-slate-muted">
-              Three pillars that power every ScaleSystems deployment—from
-              prototype to production-grade autonomous operations.
+              ScaleSystems turns swarm design patterns into a production
+              workspace — routing, parallel tools, and dual-pane visibility.
             </p>
           </div>
 
@@ -135,25 +137,34 @@ export default function HomePage() {
       <section
         className="px-4 py-20 sm:px-6 lg:px-8"
         aria-labelledby="cta-heading"
-      >        <div className="glass mx-auto max-w-4xl rounded-3xl p-10 text-center sm:p-14">
+      >
+        <div className="mx-auto max-w-4xl rounded-3xl border border-cyan-accent/20 bg-gradient-to-b from-cyan-accent/[0.08] to-white/[0.02] p-10 text-center sm:p-14">
           <Bot className="mx-auto h-12 w-12 text-cyan-accent" aria-hidden />
           <h2
             id="cta-heading"
             className="mt-6 font-display text-3xl font-bold sm:text-4xl"
           >
-            Ready to deploy your first AI employee?
+            Ready to orchestrate your first swarm?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-slate-muted">
-            Book a strategy session. We&apos;ll audit your operational
-            bottlenecks and scope a custom build sprint with clear deliverables
-            and ROI targets.
+            Open the Workforce Console or compare Starter and Professional
+            capacity — Sign Up unlocks checkout with your plan retained.
           </p>
-          <Link
-            href="/contact"
-            className="mt-8 inline-flex rounded-lg bg-cyan-accent px-8 py-3.5 text-sm font-semibold text-obsidian shadow-glow-sm transition-shadow hover:shadow-glow"
-          >
-            Schedule a Consultation
-          </Link>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/dashboard"
+              className="inline-flex rounded-lg bg-cyan-accent px-8 py-3.5 text-sm font-semibold text-obsidian shadow-glow-sm transition-shadow hover:shadow-glow"
+            >
+              Open dashboard
+            </Link>
+            <Link
+              href="/pricing"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-8 py-3.5 text-sm font-semibold text-white transition hover:border-cyan-accent/50 hover:text-cyan-accent"
+            >
+              <Plug className="h-4 w-4" aria-hidden />
+              See pricing
+            </Link>
+          </div>
         </div>
       </section>
     </main>

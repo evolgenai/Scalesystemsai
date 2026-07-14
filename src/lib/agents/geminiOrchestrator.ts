@@ -31,6 +31,10 @@ export type GeminiOrchestratorPlan = {
   steps: GeminiPlanStep[];
   detectedUrl: string | null;
   detectedCode: string | null;
+  /** Workers selected by the fast router pass. */
+  routedWorkers?: string[];
+  /** True when independent tool steps should run concurrently. */
+  parallelTools?: boolean;
 };
 
 export type ToolExecutionResult = {
@@ -203,19 +207,7 @@ function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
       status: "EXECUTING",
       prismaStatus: "EXECUTING",
       stage: "spawn-web",
-      delayMs: 700,
-    });
-    steps.push({
-      agentId: "web-scraper",
-      agentName: "WebScraper Sub-Agent",
-      message: detectedUrl
-        ? `Fetching and sanitizing ${detectedUrl}…`
-        : "Extracting target signals and pruning noisy branch nodes…",
-      status: "EXECUTING",
-      prismaStatus: "EXECUTING",
-      stage: "extract",
       delayMs: 400,
-      tool: detectedUrl ? "webScraper" : null,
     });
   }
 
@@ -227,8 +219,27 @@ function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
       status: "EXECUTING",
       prismaStatus: "EXECUTING",
       stage: "spawn-code",
-      delayMs: 700,
+      delayMs: 400,
     });
+  }
+
+  // Place tool channels adjacent so the stream runtime can Promise.all them.
+  if (wantsWeb || (!wantsCode && !wantsLeads && !wantsSupport)) {
+    steps.push({
+      agentId: "web-scraper",
+      agentName: "WebScraper Sub-Agent",
+      message: detectedUrl
+        ? `Fetching and sanitizing ${detectedUrl}…`
+        : "Extracting target signals and pruning noisy branch nodes…",
+      status: "EXECUTING",
+      prismaStatus: "EXECUTING",
+      stage: "extract",
+      delayMs: 200,
+      tool: detectedUrl ? "webScraper" : null,
+    });
+  }
+
+  if (wantsCode) {
     steps.push({
       agentId: "code-architect",
       agentName: "CodeArchitect Sub-Agent",
@@ -236,7 +247,7 @@ function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
       status: "EXECUTING",
       prismaStatus: "EXECUTING",
       stage: "sandbox-run",
-      delayMs: 350,
+      delayMs: 200,
       tool: "codeSandbox",
     });
   }
@@ -291,6 +302,17 @@ function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
     steps,
     detectedUrl,
     detectedCode,
+    routedWorkers: [
+      ...(wantsWeb || (!wantsCode && !wantsLeads && !wantsSupport)
+        ? ["web-scraper"]
+        : []),
+      ...(wantsCode ? ["code-architect"] : []),
+      ...(wantsLeads ? ["lead-sentinel"] : []),
+      ...(wantsSupport ? ["support-specialist"] : []),
+    ],
+    parallelTools: Boolean(
+      (wantsWeb || Boolean(detectedUrl)) && wantsCode
+    ),
   };
 }
 
@@ -510,12 +532,97 @@ function normalizeGeminiPlan(
     steps,
     detectedUrl,
     detectedCode,
+    routedWorkers: Array.from(
+      new Set(
+        steps
+          .map((s) => s.agentId)
+          .filter((id) => id !== "ops-orchestrator")
+      )
+    ),
+    parallelTools:
+      steps.filter((s) => s.tool).length >= 2,
   };
 }
 
 /**
+ * Fast Router pass — classify the objective into specialized workers before
+ * the full plan is expanded. Falls back to heuristic routing when Gemini is
+ * unavailable.
+ */
+export async function routeObjectiveToWorkers(
+  objective: string,
+  signal: AbortSignal
+): Promise<{
+  workers: string[];
+  rationale: string;
+  engine: "gemini" | "heuristic";
+}> {
+  const trimmed = objective.trim();
+  const heuristic = buildHeuristicPlan(trimmed);
+
+  try {
+    const text = await callGeminiGenerateContent(
+      [
+        "You are the ScaleSystems Swarm Router — a principal software engineer.",
+        "Classify the operator objective into the minimal set of specialist workers.",
+        "Return ONLY valid JSON:",
+        '{"workers":["web-scraper"|"code-architect"|"lead-sentinel"|"support-specialist"],"rationale":"one terse sentence"}',
+        "Rules:",
+        "- Prefer web-scraper for URLs, crawl, scrape, page analysis.",
+        "- Prefer code-architect for scripts, TypeScript/Python, sandbox execution, architecture.",
+        "- Prefer lead-sentinel for CRM/lead qualification.",
+        "- Prefer support-specialist for tickets/support triage.",
+        "- Select 1–3 workers max. Never invent new worker ids.",
+        "- Act like an expert SRE: be precise, no fluff.",
+        "",
+        `Objective: ${trimmed}`,
+      ].join("\n"),
+      signal,
+      { maxOutputTokens: 220 }
+    );
+    const parsed = extractJsonObject(text) as {
+      workers?: unknown;
+      rationale?: unknown;
+    };
+    const workers = Array.isArray(parsed.workers)
+      ? parsed.workers
+          .map((w) => resolveWorker(String(w)).agentId)
+          .filter(
+            (id, index, all) =>
+              id !== "ops-orchestrator" && all.indexOf(id) === index
+          )
+          .slice(0, 3)
+      : [];
+
+    if (workers.length === 0) {
+      return {
+        workers: heuristic.routedWorkers ?? [],
+        rationale: heuristic.summary,
+        engine: "heuristic",
+      };
+    }
+
+    return {
+      workers,
+      rationale:
+        typeof parsed.rationale === "string" && parsed.rationale.trim()
+          ? parsed.rationale.trim()
+          : `Routed to ${workers.join(", ")}`,
+      engine: "gemini",
+    };
+  } catch {
+    return {
+      workers: heuristic.routedWorkers ?? [],
+      rationale: heuristic.summary,
+      engine: "heuristic",
+    };
+  }
+}
+
+/**
  * Build a Gemini-powered multi-agent execution plan for the given objective.
- * Falls back to a deterministic heuristic plan when the key is missing or the API fails.
+ * Uses a fast Router pass first, then expands a Worker graph. Falls back to a
+ * deterministic heuristic plan when the key is missing or the API fails.
  */
 export async function buildGeminiOrchestratorPlan(
   objective: string,
@@ -524,27 +631,52 @@ export async function buildGeminiOrchestratorPlan(
   const trimmed =
     objective.trim() || "Execute a general enterprise swarm cycle.";
 
+  const route = await routeObjectiveToWorkers(trimmed, signal);
+
   try {
     const prompt = [
-      "You are the ScaleSystems Systems Orchestrator.",
-      "Analyze the operator objective and return ONLY valid JSON with this shape:",
-      '{"summary":"string","steps":[{"agentId":"web-scraper|code-architect|lead-sentinel|support-specialist|ops-orchestrator","agentName":"string","message":"concise telemetry line","status":"THINKING|EXECUTING|SUCCESS","stage":"short-slug","tool":"webScraper|codeSandbox|null"}]}',
-      "Rules:",
-      "- Prefer WebScraper for website/crawl/analysis tasks; set tool=webScraper on the scrape/extract step.",
-      "- Prefer CodeArchitect for code/architecture/implementation tasks; set tool=codeSandbox on the run/exec step.",
-      "- Prefer Lead Sentinel for CRM/lead qualification.",
-      "- Prefer Support Specialist for tickets/support.",
+      "You are the ScaleSystems Systems Orchestrator — principal staff engineer.",
+      "Expand the Router decision into a concrete Worker execution graph.",
+      "Return ONLY valid JSON with this shape:",
+      '{"summary":"string","steps":[{"agentId":"web-scraper|code-architect|lead-sentinel|support-specialist|ops-orchestrator","agentName":"string","message":"concise kernel telemetry","status":"THINKING|EXECUTING|SUCCESS","stage":"short-slug","tool":"webScraper|codeSandbox|null"}]}',
+      "System guidelines:",
+      "- Dual output discipline: console telemetry stays terse; human digests are produced by tools separately.",
+      "- Prefer WebScraper for website/crawl/analysis; set tool=webScraper on scrape/extract steps.",
+      "- Prefer CodeArchitect for code/architecture/implementation; set tool=codeSandbox on run/exec steps.",
+      "- Prefer Lead Sentinel for CRM/lead qualification; Support Specialist for tickets.",
+      "- When scrape + sandbox are both required, emit both tool steps so they can run in PARALLEL.",
       "- Include 3 to 6 worker steps (not counting orchestrator).",
-      "- Messages must be crisp operator telemetry, no markdown.",
+      "- Messages: crisp operator telemetry only — no markdown, no prose essays.",
       "",
+      `Router workers: ${route.workers.join(", ") || "auto"}`,
+      `Router rationale: ${route.rationale}`,
       `Objective: ${trimmed}`,
     ].join("\n");
 
     const text = await callGeminiGenerateContent(prompt, signal);
     const parsed = extractJsonObject(text);
-    return normalizeGeminiPlan(trimmed, parsed);
+    const plan = normalizeGeminiPlan(trimmed, parsed);
+    return {
+      ...plan,
+      routedWorkers: route.workers.length
+        ? route.workers
+        : plan.routedWorkers,
+      parallelTools:
+        plan.parallelTools ||
+        (route.workers.includes("web-scraper") &&
+          route.workers.includes("code-architect")),
+      summary:
+        `${route.engine === "gemini" ? "Routed" : "Heuristic"} · ${plan.summary}`,
+    };
   } catch {
-    return buildHeuristicPlan(trimmed);
+    const heuristic = buildHeuristicPlan(trimmed);
+    return {
+      ...heuristic,
+      routedWorkers: route.workers.length
+        ? route.workers
+        : heuristic.routedWorkers,
+      summary: `${route.rationale} · ${heuristic.summary}`,
+    };
   }
 }
 
@@ -563,9 +695,9 @@ export async function narrateStepWithGemini(
   try {
     const text = await callGeminiGenerateContent(
       [
-        "You are ScaleSystems live telemetry.",
-        "Reply with ONE concise log line (max 16 words).",
-        "No markdown, no quotes.",
+        "You are ScaleSystems live kernel telemetry (expert software engineer).",
+        "Reply with ONE concise system log line for the Verbose Kernel Feed (max 16 words).",
+        "No markdown, no quotes, no emojis.",
         `Objective: ${objective}`,
         `Current step: ${stepMessage}`,
       ].join("\n"),
@@ -595,15 +727,15 @@ async function digestToolOutputWithGemini(
   try {
     const text = await callGeminiGenerateContent(
       [
-        "You are ScaleSystems Systems Orchestrator.",
-        "Summarize the tool output for the live operator terminal in 1-2 terse sentences.",
-        "No markdown.",
+        "You are ScaleSystems Systems Orchestrator writing for the Actual Results Pane.",
+        "Summarize the tool output for a human operator in 1-2 clear sentences.",
+        "Use light markdown if helpful (bold key nouns only). No code fences.",
         `Objective: ${objective}`,
         `Tool: ${tool}`,
         `Output:\n${digest.slice(0, 3500)}`,
       ].join("\n"),
       signal,
-      { json: false, maxOutputTokens: 160 }
+      { json: false, maxOutputTokens: 180 }
     );
     return text.trim() || null;
   } catch {
