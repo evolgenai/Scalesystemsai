@@ -82,6 +82,8 @@ model User {
 
   agents       Agent[]
 
+  swarmSessions SwarmSession[]
+
   subscription Subscription?
 
   createdAt    DateTime         @default(now())
@@ -148,4 +150,18 @@ model SystemSnapshot {
   lastCommit        String
   activeAgentsCount Int
   timestamp         DateTime @default(now())
+}
+
+model SwarmSession {
+  id             String   @id @default(cuid())
+  userId         String
+  objective      String
+  resultMarkdown String   @db.Text
+  kernelLogs     String   @db.Text
+  status         String   @default("COMPLETED")
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }

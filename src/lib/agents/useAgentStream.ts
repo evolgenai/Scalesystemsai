@@ -8,6 +8,7 @@ import {
   type VisualizerStatus,
 } from "@/lib/agents/streamProtocol";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
+import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 
 export type StreamConnectionState =
   | "idle"
@@ -45,6 +46,11 @@ export type UseAgentStreamResult = {
   stop: () => void;
   clear: () => void;
   dismissPaymentRequired: () => void;
+  /** Replay a saved SwarmSession into the dual-pane terminal. */
+  hydrateFromHistory: (input: {
+    lines: AgentStreamEvent[];
+    results: StreamResultItem[];
+  }) => void;
 };
 
 function initialAgents(): AgentCardState[] {
@@ -219,6 +225,20 @@ export function useAgentStream(
     setOverallProgress(0);
   }, []);
 
+  const hydrateFromHistory = useCallback(
+    (input: { lines: AgentStreamEvent[]; results: StreamResultItem[] }) => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setPaymentRequired(false);
+      setConnection("closed");
+      setOverallProgress(100);
+      setAgents(initialAgents());
+      setLines(input.lines.slice(-maxLines));
+      setResults(input.results.slice(-40));
+    },
+    [maxLines]
+  );
+
   const dismissPaymentRequired = useCallback(() => {
     setPaymentRequired(false);
   }, []);
@@ -254,7 +274,10 @@ export function useAgentStream(
         try {
           const response = await fetch(streamUrl, {
             method: "GET",
-            headers: { Accept: "text/event-stream" },
+            headers: {
+              Accept: "text/event-stream",
+              ...getClientAuthHeaders(),
+            },
             signal: controller.signal,
             cache: "no-store",
           });
@@ -408,5 +431,6 @@ export function useAgentStream(
     stop,
     clear,
     dismissPaymentRequired,
+    hydrateFromHistory,
   };
 }

@@ -13,6 +13,7 @@ import {
 } from "@/lib/agents/geminiOrchestrator";
 import { resolveRequestUser } from "@/lib/auth/requestUser";
 import { evaluateStreamAccess } from "@/lib/auth/subscriptionGating";
+import { persistSwarmSession } from "@/lib/agents/persistSwarmSession";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -228,11 +229,28 @@ export async function GET(request: Request) {
       // Return Response immediately; drive the async Gemini + tool loop in a background IIFE
       // so Vercel does not buffer the entire payload before flushing.
       void (async () => {
+        const recordedEvents: AgentStreamEvent[] = [];
+        let sessionStatus: "COMPLETED" | "FAILED" | "TIMEOUT" = "COMPLETED";
+        let persisted = false;
+
+        const emit = (event: AgentStreamEvent) => {
+          recordedEvents.push(event);
+          pushEvent(controller, encoder, isClosed, event);
+        };
+
+        const flushSession = async () => {
+          if (persisted || !profile.id || recordedEvents.length === 0) return;
+          persisted = true;
+          await persistSwarmSession({
+            userId: profile.id,
+            objective,
+            events: recordedEvents,
+            status: sessionStatus,
+          });
+        };
+
         try {
-          pushEvent(
-            controller,
-            encoder,
-            isClosed,
+          emit(
             createStreamEvent({
               type: "command",
               message: "$ export SCALE_SWARM_SESSION=$(uuidgen)",
@@ -246,10 +264,7 @@ export async function GET(request: Request) {
             })
           );
 
-          pushEvent(
-            controller,
-            encoder,
-            isClosed,
+          emit(
             createStreamEvent({
               type: "log",
               message:
@@ -265,10 +280,7 @@ export async function GET(request: Request) {
 
           const greeting = /^(hi|hello|hey|yo)\b[\s!?.]*$/i.test(objective);
           if (greeting) {
-            pushEvent(
-              controller,
-              encoder,
-              isClosed,
+            emit(
               createStreamEvent({
                 type: "command",
                 message: '$ echo "operator_greeting"',
@@ -281,10 +293,7 @@ export async function GET(request: Request) {
                 prismaStatus: "PLANNING",
               })
             );
-            pushEvent(
-              controller,
-              encoder,
-              isClosed,
+            emit(
               createStreamEvent({
                 type: "result",
                 message:
@@ -299,10 +308,7 @@ export async function GET(request: Request) {
                 prismaStatus: "IDLE",
               })
             );
-            pushEvent(
-              controller,
-              encoder,
-              isClosed,
+            emit(
               createStreamEvent({
                 type: "workflow_complete",
                 message: "Completed successfully",
@@ -314,16 +320,18 @@ export async function GET(request: Request) {
                 prismaStatus: "IDLE",
               })
             );
+            sessionStatus = "COMPLETED";
+            await flushSession();
             return;
           }
 
           do {
-            if (isClosed()) break;
+            if (isClosed()) {
+              sessionStatus = "TIMEOUT";
+              break;
+            }
 
-            pushEvent(
-              controller,
-              encoder,
-              isClosed,
+            emit(
               createStreamEvent({
                 type: "command",
                 message: `$ cat <<'OBJ'\n${objective.slice(0, 240)}\nOBJ`,
@@ -337,10 +345,7 @@ export async function GET(request: Request) {
               })
             );
 
-            pushEvent(
-              controller,
-              encoder,
-              isClosed,
+            emit(
               createStreamEvent({
                 type: "agent_update",
                 message: "Systems Orchestrator capturing operator prompt…",
@@ -357,12 +362,12 @@ export async function GET(request: Request) {
               objective,
               request.signal
             );
-            if (isClosed()) break;
+            if (isClosed()) {
+              sessionStatus = "TIMEOUT";
+              break;
+            }
 
-            pushEvent(
-              controller,
-              encoder,
-              isClosed,
+            emit(
               createStreamEvent({
                 type: "log",
                 message: `Plan ready via ${plan.engine.toUpperCase()} — ${plan.summary}`,
@@ -375,10 +380,7 @@ export async function GET(request: Request) {
               })
             );
 
-            pushEvent(
-              controller,
-              encoder,
-              isClosed,
+            emit(
               createStreamEvent({
                 type: "summary",
                 message: plan.summary,
@@ -393,10 +395,7 @@ export async function GET(request: Request) {
             );
 
             if (plan.routedWorkers?.length) {
-              pushEvent(
-                controller,
-                encoder,
-                isClosed,
+              emit(
                 createStreamEvent({
                   type: "log",
                   message: `Router → Worker dispatch: [${plan.routedWorkers.join(", ")}]${
@@ -413,10 +412,7 @@ export async function GET(request: Request) {
             }
 
             if (plan.detectedUrl) {
-              pushEvent(
-                controller,
-                encoder,
-                isClosed,
+              emit(
                 createStreamEvent({
                   type: "log",
                   message: `Detected scrape target: ${plan.detectedUrl}`,
@@ -430,14 +426,16 @@ export async function GET(request: Request) {
               );
             }
 
-            const push: Push = (event) =>
-              pushEvent(controller, encoder, isClosed, event);
+            const push: Push = emit;
 
             const total = Math.max(plan.steps.length, 1);
             let index = 0;
 
             while (index < plan.steps.length) {
-              if (isClosed()) break;
+              if (isClosed()) {
+                sessionStatus = "TIMEOUT";
+                break;
+              }
 
               const step = plan.steps[index]!;
               const progress = Math.min(
@@ -505,7 +503,10 @@ export async function GET(request: Request) {
               }
 
               await sleep(step.delayMs, request.signal);
-              if (isClosed()) break;
+              if (isClosed()) {
+                sessionStatus = "TIMEOUT";
+                break;
+              }
 
               push(
                 createStreamEvent({
@@ -540,7 +541,10 @@ export async function GET(request: Request) {
                   step.message,
                   request.signal
                 );
-                if (isClosed()) break;
+                if (isClosed()) {
+                  sessionStatus = "TIMEOUT";
+                  break;
+                }
 
                 if (narration) {
                   push(
@@ -576,10 +580,7 @@ export async function GET(request: Request) {
 
             if (isClosed()) break;
 
-            pushEvent(
-              controller,
-              encoder,
-              isClosed,
+            emit(
               createStreamEvent({
                 type: "workflow_complete",
                 message: "Completed successfully",
@@ -592,17 +593,24 @@ export async function GET(request: Request) {
               })
             );
 
+            sessionStatus = "COMPLETED";
+            await flushSession();
+            persisted = false;
+            recordedEvents.length = 0;
+
             if (loop) {
               await sleep(2200, request.signal);
             }
           } while (loop && !isClosed());
         } catch (error) {
-          if (isAbortError(error)) return;
+          if (isAbortError(error)) {
+            sessionStatus = "TIMEOUT";
+            await flushSession();
+            return;
+          }
 
-          pushEvent(
-            controller,
-            encoder,
-            isClosed,
+          sessionStatus = "FAILED";
+          emit(
             createStreamEvent({
               type: "error",
               message:
@@ -613,7 +621,11 @@ export async function GET(request: Request) {
               prismaStatus: "ERROR",
             })
           );
+          await flushSession();
         } finally {
+          if (!persisted && recordedEvents.length > 0 && profile.id) {
+            await flushSession();
+          }
           if (!closed) {
             closed = true;
             try {
