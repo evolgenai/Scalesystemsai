@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { resolveRequestUser } from "@/lib/auth/requestUser";
 import { getPrisma } from "@/lib/prisma";
 import type { SwarmSessionDto } from "@/lib/agents/swarmSessionTypes";
+import {
+  extractOrgIdFromRequest,
+  resolveOrgContext,
+  swarmSessionListWhere,
+} from "@/lib/org/orgScope";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,8 +29,31 @@ export async function GET(request: Request) {
   }
 
   try {
+    const headerOrgId = extractOrgIdFromRequest(request);
+    let activeOrgId: string | null = null;
+
+    if (headerOrgId) {
+      const membership = await resolveOrgContext(profile.id, headerOrgId);
+      if (!membership) {
+        return NextResponse.json(
+          {
+            success: false,
+            error:
+              "You are not a member of this organization. Session history denied.",
+            code: "ORG_ACCESS_DENIED",
+            orgId: headerOrgId,
+            sessions: [] as SwarmSessionDto[],
+          },
+          { status: 403 }
+        );
+      }
+      activeOrgId = membership.orgId;
+    }
+
+    // Org mode: only sessions with orgId === activeOrgId.
+    // Personal mode: only caller's sessions where orgId is null.
     const rows = await getPrisma().swarmSession.findMany({
-      where: { userId: profile.id },
+      where: swarmSessionListWhere(profile.id, activeOrgId),
       orderBy: { createdAt: "desc" },
       take: 50,
       select: {
@@ -47,7 +75,11 @@ export async function GET(request: Request) {
       createdAt: row.createdAt.toISOString(),
     }));
 
-    return NextResponse.json({ success: true, sessions });
+    return NextResponse.json({
+      success: true,
+      orgId: activeOrgId,
+      sessions,
+    });
   } catch (error) {
     console.error("[sessions] list failed", error);
     return NextResponse.json(

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Settings, UserRound } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import AuthModal from "@/components/auth/AuthModal";
+import WorkspaceSwitcher from "@/components/navigation/WorkspaceSwitcher";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
   OPEN_AUTH_EVENT,
@@ -109,6 +110,7 @@ export default function TopAuthHeader() {
             <div className="h-8 w-28 animate-pulse rounded-lg bg-white/5" />
           ) : user ? (
             <>
+              <WorkspaceSwitcher enabled />
               <Link
                 href="/settings"
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1.5 transition hover:border-cyan-accent/30"

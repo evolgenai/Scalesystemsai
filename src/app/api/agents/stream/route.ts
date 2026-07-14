@@ -14,6 +14,7 @@ import {
 import { resolveRequestUser } from "@/lib/auth/requestUser";
 import { evaluateStreamAccess } from "@/lib/auth/subscriptionGating";
 import { persistSwarmSession } from "@/lib/agents/persistSwarmSession";
+import { resolveBillingProfileForRequest } from "@/lib/org/orgScope";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -187,12 +188,31 @@ async function runToolStep(
 
 export async function GET(request: Request) {
   const profile = await resolveRequestUser(request);
+  const billingResolution = await resolveBillingProfileForRequest(
+    request,
+    profile
+  );
+
+  if (!billingResolution.ok) {
+    return NextResponse.json(
+      {
+        error: "Forbidden",
+        code: billingResolution.code,
+        message: billingResolution.message,
+        orgId: billingResolution.orgId,
+      },
+      { status: 403 }
+    );
+  }
+
+  const { billing, orgId, billingMode } = billingResolution;
   const { searchParams } = new URL(request.url);
   const forceExceeded =
     searchParams.get("quotaExceeded") === "1" ||
     searchParams.get("simulateQuotaExceeded") === "1";
 
-  const gate = evaluateStreamAccess(profile, {
+  // Consume credits from OWNER pool when billingMode === "org_owner".
+  const gate = evaluateStreamAccess(billing, {
     consume: true,
     forceExceeded,
   });
@@ -202,10 +222,15 @@ export async function GET(request: Request) {
       {
         error: "Payment Required",
         code: gate.code,
-        message: gate.message,
+        message:
+          billingMode === "org_owner"
+            ? `${gate.message} (team credit pool — organization owner plan).`
+            : gate.message,
         plan: gate.plan,
         used: gate.used,
         limit: gate.limit,
+        orgId,
+        billingMode,
         upgrade: {
           stripe: "/api/checkout/stripe",
           bvnk: "/api/checkout/bvnk",
@@ -243,6 +268,7 @@ export async function GET(request: Request) {
           persisted = true;
           await persistSwarmSession({
             userId: profile.id,
+            orgId,
             objective,
             events: recordedEvents,
             status: sessionStatus,

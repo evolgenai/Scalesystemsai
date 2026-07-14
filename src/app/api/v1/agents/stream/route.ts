@@ -14,6 +14,7 @@ import {
   resolveRequestUser,
 } from "@/lib/auth/requestUser";
 import { evaluateStreamAccess } from "@/lib/auth/subscriptionGating";
+import { resolveBillingProfileForRequest } from "@/lib/org/orgScope";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -49,22 +50,49 @@ async function shouldEnforceQuotaGate(request: Request): Promise<boolean> {
   return !isQuotaBypassed(profile);
 }
 
+/**
+ * Enforce FREE-tier credits against personal pool, or org OWNER pool when
+ * `x-org-id` is present. Invalid org context → 403 (no personal fallback).
+ */
 async function enforceSubscriptionGate(
   request: Request
 ): Promise<NextResponse | null> {
   const profile = await resolveRequestUser(request);
-  const gate = evaluateStreamAccess(profile, {
+  const billingResolution = await resolveBillingProfileForRequest(
+    request,
+    profile
+  );
+
+  if (!billingResolution.ok) {
+    return NextResponse.json(
+      {
+        error: "Forbidden",
+        code: billingResolution.code,
+        message: billingResolution.message,
+        orgId: billingResolution.orgId,
+      },
+      { status: 403 }
+    );
+  }
+
+  const gate = evaluateStreamAccess(billingResolution.billing, {
     consume: true,
     forceExceeded: isQuotaGateActive(request),
   });
   if (gate.allowed) return null;
+
   return NextResponse.json(
     {
       ...PAYMENT_REQUIRED_BODY,
       plan: gate.plan,
       used: gate.used,
       limit: gate.limit,
-      message: gate.message,
+      orgId: billingResolution.orgId,
+      billingMode: billingResolution.billingMode,
+      message:
+        billingResolution.billingMode === "org_owner"
+          ? `${gate.message} (team credit pool — organization owner plan).`
+          : gate.message,
     },
     { status: 402 }
   );

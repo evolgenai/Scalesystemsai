@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
+import TeamMembersInviteCard from "@/components/org/TeamMembersInviteCard";
 
 export default function SettingsPage() {
   const { user, signOut, ready } = useAuth();
@@ -50,6 +51,8 @@ export default function SettingsPage() {
           <span className="font-mono text-[11px] text-slate-muted">{user.id}</span>
         </div>
       </div>
+
+      <TeamMembersInviteCard />
 
       <div className="flex flex-wrap gap-3">
         <Link

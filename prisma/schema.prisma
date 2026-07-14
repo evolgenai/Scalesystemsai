@@ -62,6 +62,18 @@ enum SubscriptionTier {
 
 
 
+enum OrgRole {
+
+  OWNER
+
+  ADMIN
+
+  MEMBER
+
+}
+
+
+
 model User {
 
   id           String           @id @default(cuid())
@@ -83,6 +95,8 @@ model User {
   agents       Agent[]
 
   swarmSessions SwarmSession[]
+
+  memberships  OrgMembership[]
 
   subscription Subscription?
 
@@ -155,13 +169,41 @@ model SystemSnapshot {
 model SwarmSession {
   id             String   @id @default(cuid())
   userId         String
+  orgId          String?
   objective      String
   resultMarkdown String   @db.Text
   kernelLogs     String   @db.Text
   status         String   @default("COMPLETED")
   createdAt      DateTime @default(now())
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([orgId])
   @@index([createdAt])
+}
+
+model Organization {
+  id          String          @id @default(cuid())
+  name        String
+  slug        String          @unique
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  memberships OrgMembership[]
+  sessions    SwarmSession[]
+}
+
+model OrgMembership {
+  id           String       @id @default(cuid())
+  orgId        String
+  userId       String
+  role         OrgRole      @default(MEMBER)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@index([orgId])
 }

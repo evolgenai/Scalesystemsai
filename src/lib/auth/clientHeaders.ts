@@ -1,22 +1,34 @@
 /**
  * Build identity headers for API routes from the client-side auth store.
- * Matches `resolveRequestUser` (x-user-id / x-user-email).
+ * Matches `resolveRequestUser` (x-user-id / x-user-email) and optional org scope.
  */
-export function getClientAuthHeaders(): Record<string, string> {
-  if (typeof window === "undefined") return {};
+import { getActiveOrgId } from "@/lib/org/activeOrg";
+
+export function getClientAuthHeaders(
+  customHeaders?: Record<string, string>
+): Record<string, string> {
+  if (typeof window === "undefined") {
+    return { ...(customHeaders ?? {}) };
+  }
 
   try {
     const raw = window.localStorage.getItem("scalesystems.auth.user");
-    if (!raw) return {};
-    const user = JSON.parse(raw) as {
-      id?: string;
-      email?: string;
-    };
-    const headers: Record<string, string> = {};
-    if (user.id) headers["x-user-id"] = user.id;
-    if (user.email) headers["x-user-email"] = user.email;
+    const headers: Record<string, string> = { ...(customHeaders ?? {}) };
+
+    if (raw) {
+      const user = JSON.parse(raw) as {
+        id?: string;
+        email?: string;
+      };
+      if (user.id) headers["x-user-id"] = user.id;
+      if (user.email) headers["x-user-email"] = user.email;
+    }
+
+    const orgId = getActiveOrgId();
+    if (orgId) headers["x-org-id"] = orgId;
+
     return headers;
   } catch {
-    return {};
+    return { ...(customHeaders ?? {}) };
   }
 }

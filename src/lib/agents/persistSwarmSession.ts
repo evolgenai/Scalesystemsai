@@ -31,6 +31,7 @@ export function buildResultMarkdown(events: AgentStreamEvent[]): string {
  */
 export async function persistSwarmSession(input: {
   userId: string;
+  orgId?: string | null;
   objective: string;
   events: AgentStreamEvent[];
   status?: SwarmSessionStatus;
@@ -41,6 +42,7 @@ export async function persistSwarmSession(input: {
     await getPrisma().swarmSession.create({
       data: {
         userId: input.userId,
+        orgId: input.orgId ?? null,
         objective: input.objective.slice(0, 4000),
         resultMarkdown: buildResultMarkdown(input.events),
         kernelLogs: JSON.stringify(input.events),

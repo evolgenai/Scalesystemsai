@@ -137,6 +137,15 @@ export default function WorkspaceHistorySidebar({
     void load();
   }, [ready, load, refreshToken]);
 
+  useEffect(() => {
+    const onOrgChanged = () => {
+      void load();
+    };
+    window.addEventListener("scalesystems:org-changed", onOrgChanged);
+    return () =>
+      window.removeEventListener("scalesystems:org-changed", onOrgChanged);
+  }, [load]);
+
   return (
     <aside
       className={`relative shrink-0 transition-[width] duration-300 ${
