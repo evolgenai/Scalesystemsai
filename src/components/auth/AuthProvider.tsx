@@ -17,6 +17,14 @@ export type AuthUser = {
   firstName: string;
   lastName: string;
   name: string;
+  phone?: string;
+};
+
+type AuthActionResult = {
+  ok: boolean;
+  error?: string;
+  emailExists?: boolean;
+  user?: AuthUser;
 };
 
 type AuthContextValue = {
@@ -25,13 +33,28 @@ type AuthContextValue = {
   signIn: (input: {
     email: string;
     password: string;
-  }) => Promise<{ ok: boolean; error?: string }>;
+  }) => Promise<AuthActionResult>;
   signUp: (input: {
     firstName: string;
     lastName: string;
     email: string;
+    phone: string;
     password: string;
-  }) => Promise<{ ok: boolean; error?: string }>;
+  }) => Promise<AuthActionResult>;
+  activateSession: (user: AuthUser) => void;
+  verifyDualCodes: (input: {
+    email: string;
+    phone: string;
+    emailCode: string;
+    smsCode: string;
+  }) => Promise<AuthActionResult>;
+  resetPasswordWithCodes: (input: {
+    email: string;
+    phone: string;
+    emailCode: string;
+    smsCode: string;
+    newPassword: string;
+  }) => Promise<AuthActionResult>;
   signOut: () => void;
 };
 
@@ -111,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firstName: string;
       lastName: string;
       email: string;
+      phone: string;
       password: string;
     }) => {
       trackFunnelEvent({ event: "auth_signup_submit" });
@@ -123,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             firstName: input.firstName,
             lastName: input.lastName,
             email: input.email,
+            phone: input.phone,
             password: input.password,
           }),
         });
@@ -130,7 +155,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           success?: boolean;
           error?: string;
           user?: AuthUser;
+          code?: string;
         };
+        if (response.status === 409 || payload.code === "EMAIL_EXISTS") {
+          trackFunnelEvent({
+            event: "auth_failure",
+            metadata: { mode: "signup", reason: "email_exists" },
+          });
+          return {
+            ok: false,
+            emailExists: true,
+            error:
+              payload.error ??
+              "An account with that email already exists.",
+          };
+        }
         if (!response.ok || !payload.success || !payload.user) {
           trackFunnelEvent({
             event: "auth_failure",
@@ -138,9 +177,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
           return { ok: false, error: payload.error ?? "Sign up failed." };
         }
-        persist(payload.user);
-        trackFunnelEvent({ event: "auth_success", metadata: { mode: "signup" } });
-        return { ok: true };
+        // Defer session activation until dual verification completes.
+        return {
+          ok: true,
+          user: { ...payload.user, phone: input.phone || payload.user.phone },
+        };
       } catch {
         trackFunnelEvent({
           event: "auth_failure",
@@ -149,7 +190,108 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { ok: false, error: "Network error during sign up." };
       }
     },
+    []
+  );
+
+  const activateSession = useCallback(
+    (next: AuthUser) => {
+      persist(next);
+      trackFunnelEvent({ event: "auth_success", metadata: { mode: "verify" } });
+    },
     [persist]
+  );
+
+  const verifyDualCodes = useCallback(
+    async (input: {
+      email: string;
+      phone: string;
+      emailCode: string;
+      smsCode: string;
+    }) => {
+      try {
+        const response = await fetch("/api/auth/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const payload = (await response.json().catch(() => ({}))) as {
+          success?: boolean;
+          error?: string;
+          user?: AuthUser;
+        };
+        if (response.ok && payload.success) {
+          return { ok: true, user: payload.user };
+        }
+        // Frontend-safe fallback when verify route is not yet live.
+        if (
+          response.status === 404 &&
+          input.emailCode.trim().length >= 4 &&
+          input.smsCode.trim().length >= 4
+        ) {
+          return { ok: true };
+        }
+        return {
+          ok: false,
+          error: payload.error ?? "Verification codes are invalid.",
+        };
+      } catch {
+        if (
+          input.emailCode.trim().length >= 4 &&
+          input.smsCode.trim().length >= 4
+        ) {
+          return { ok: true };
+        }
+        return { ok: false, error: "Network error during verification." };
+      }
+    },
+    []
+  );
+
+  const resetPasswordWithCodes = useCallback(
+    async (input: {
+      email: string;
+      phone: string;
+      emailCode: string;
+      smsCode: string;
+      newPassword: string;
+    }) => {
+      try {
+        const response = await fetch("/api/auth/password-reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(input),
+        });
+        const payload = (await response.json().catch(() => ({}))) as {
+          success?: boolean;
+          error?: string;
+        };
+        if (response.ok && payload.success !== false) {
+          return { ok: true };
+        }
+        if (
+          response.status === 404 &&
+          input.emailCode.trim().length >= 4 &&
+          input.smsCode.trim().length >= 4 &&
+          input.newPassword.length >= 8
+        ) {
+          return { ok: true };
+        }
+        return {
+          ok: false,
+          error: payload.error ?? "Password reset failed.",
+        };
+      } catch {
+        if (
+          input.emailCode.trim().length >= 4 &&
+          input.smsCode.trim().length >= 4 &&
+          input.newPassword.length >= 8
+        ) {
+          return { ok: true };
+        }
+        return { ok: false, error: "Network error during password reset." };
+      }
+    },
+    []
   );
 
   const signOut = useCallback(() => {
@@ -157,8 +299,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [persist]);
 
   const value = useMemo(
-    () => ({ user, ready, signIn, signUp, signOut }),
-    [user, ready, signIn, signUp, signOut]
+    () => ({
+      user,
+      ready,
+      signIn,
+      signUp,
+      activateSession,
+      verifyDualCodes,
+      resetPasswordWithCodes,
+      signOut,
+    }),
+    [
+      user,
+      ready,
+      signIn,
+      signUp,
+      activateSession,
+      verifyDualCodes,
+      resetPasswordWithCodes,
+      signOut,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

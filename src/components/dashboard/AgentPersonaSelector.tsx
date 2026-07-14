@@ -41,7 +41,7 @@ export default function AgentPersonaSelector({
       <div
         role="listbox"
         aria-label="Persona templates"
-        className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+        className="grid grid-cols-1 gap-4 md:grid-cols-4"
       >
         {AGENT_PERSONA_PRESETS.map((persona) => {
           const Icon = persona.icon;
@@ -60,21 +60,21 @@ export default function AgentPersonaSelector({
                   onCustomSystemPromptChange("");
                 }
               }}
-              className={`group relative rounded-xl border bg-black/35 p-3 text-left transition-all duration-300 ${accent.border} ${accent.glow} ${
+              className={`group relative rounded-xl border bg-black/35 p-4 text-left transition-all duration-300 ${accent.border} ${accent.glow} ${
                 selected
                   ? `${accent.borderActive} bg-white/[0.04] ring-1 ${accent.ring} shadow-[0_0_24px_rgba(0,242,254,0.12)]`
                   : "opacity-90"
               } ${customOverrideActive ? "opacity-55" : ""}`}
             >
-              <div className="flex items-start gap-2.5">
+              <div className="flex items-start gap-3">
                 <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${accent.iconWrap}`}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${accent.iconWrap}`}
                 >
-                  <Icon className={`h-3.5 w-3.5 ${accent.icon}`} aria-hidden />
+                  <Icon className={`h-4 w-4 ${accent.icon}`} aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-semibold leading-snug text-white">
+                    <p className="text-sm font-semibold leading-snug text-white">
                       {persona.title}
                     </p>
                     {selected ? (
@@ -84,7 +84,7 @@ export default function AgentPersonaSelector({
                       />
                     ) : null}
                   </div>
-                  <p className="mt-1 text-[10px] leading-relaxed text-slate-dim">
+                  <p className="mt-1.5 text-xs leading-relaxed text-slate-dim">
                     {persona.description}
                   </p>
                 </div>

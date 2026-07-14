@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Bitcoin, CreditCard, ShieldCheck } from "lucide-react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Bitcoin, CreditCard, FlaskConical, ShieldCheck } from "lucide-react";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
   isCheckoutPlan,
@@ -10,11 +10,62 @@ import {
   type CheckoutPlan,
 } from "@/lib/billing/commercialPlans";
 
+const SANDBOX_PLAN_FALLBACK: Record<
+  CheckoutPlan,
+  { label: string; priceMonthly: number; tagline: string }
+> = {
+  STARTER: {
+    label: "Starter",
+    priceMonthly: 29,
+    tagline: "Sandbox pricing · individual builders.",
+  },
+  PREMIUM: {
+    label: "Professional",
+    priceMonthly: 99,
+    tagline: "Sandbox pricing · advanced swarm capacity.",
+  },
+};
+
+function resolvePlanDisplay(plan: CheckoutPlan) {
+  try {
+    const display = PLAN_DISPLAY?.[plan];
+    if (
+      display &&
+      typeof display.priceMonthly === "number" &&
+      Number.isFinite(display.priceMonthly)
+    ) {
+      return { ...display, sandbox: false as const };
+    }
+  } catch {
+    // PLAN_DISPLAY unavailable — fall through to sandbox mock prices.
+  }
+  return { ...SANDBOX_PLAN_FALLBACK[plan], sandbox: true as const };
+}
+
+function isConfigFailure(message: string | undefined): boolean {
+  if (!message) return false;
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes("price") ||
+    normalized.includes("env") ||
+    normalized.includes("stripe") ||
+    normalized.includes("bvnk") ||
+    normalized.includes("not configured") ||
+    normalized.includes("missing") ||
+    normalized.includes("secret")
+  );
+}
+
 function CheckoutInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [plan, setPlan] = useState<CheckoutPlan>("STARTER");
-  const [pending, setPending] = useState<"stripe" | "bvnk" | null>(null);
+  const [pending, setPending] = useState<"stripe" | "bvnk" | "sandbox" | null>(
+    null
+  );
   const [error, setError] = useState<string | null>(null);
+  const [sandboxMode, setSandboxMode] = useState(false);
+  const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     const fromQuery = searchParams.get("plan")?.toUpperCase() ?? "";
@@ -28,9 +79,45 @@ function CheckoutInner() {
     }
   }, [searchParams]);
 
+  const planCards = useMemo(() => {
+    return (["STARTER", "PREMIUM"] as const).map((option) => ({
+      option,
+      display: resolvePlanDisplay(option),
+    }));
+  }, []);
+
+  useEffect(() => {
+    if (planCards.some((card) => card.display.sandbox)) {
+      setSandboxMode(true);
+      setInfo(
+        "Live price catalog unavailable — showing sandbox mock pricing until billing env vars load."
+      );
+    }
+  }, [planCards]);
+
+  const runSandboxCheckout = (provider: "stripe" | "bvnk" | "sandbox") => {
+    setPending(provider);
+    setError(null);
+    setInfo(
+      `Sandbox ${provider} session simulated. Redirecting to dashboard with a mock success receipt…`
+    );
+    trackFunnelEvent({
+      event: "checkout_redirect",
+      plan,
+      provider: provider === "sandbox" ? "stripe" : provider,
+      metadata: { sandbox: true },
+    });
+    window.setTimeout(() => {
+      router.push(
+        `/dashboard?payment=success&provider=${provider === "sandbox" ? "stripe" : provider}&plan=${plan}&sandbox=1`
+      );
+    }, 700);
+  };
+
   const launchCheckout = async (provider: "stripe" | "bvnk") => {
     setPending(provider);
     setError(null);
+    setInfo(null);
     trackFunnelEvent({
       event:
         provider === "stripe" ? "checkout_stripe_start" : "checkout_bvnk_start",
@@ -50,7 +137,14 @@ function CheckoutInner() {
         error?: string;
       };
       if (!response.ok || !payload.success || !payload.url) {
-        setError(payload.error ?? "Checkout failed.");
+        const message = payload.error ?? "Checkout failed.";
+        setError(message);
+        if (isConfigFailure(message) || response.status >= 500) {
+          setSandboxMode(true);
+          setInfo(
+            "Billing provider env looks incomplete. You can continue with a simulated sandbox checkout."
+          );
+        }
         setPending(null);
         return;
       }
@@ -68,6 +162,10 @@ function CheckoutInner() {
       window.location.href = payload.url;
     } catch {
       setError("Network error launching checkout.");
+      setSandboxMode(true);
+      setInfo(
+        "Unable to reach payment providers. Sandbox mock checkout is available."
+      );
       setPending(null);
     }
   };
@@ -88,26 +186,28 @@ function CheckoutInner() {
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2">
-        {(["STARTER", "PREMIUM"] as const).map((option) => {
-          const display = PLAN_DISPLAY[option];
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setPlan(option)}
-              className={`rounded-2xl border px-4 py-4 text-left transition ${
-                plan === option
-                  ? "border-cyan-accent/50 bg-cyan-accent/10"
-                  : "border-white/10 bg-white/[0.03] hover:border-white/20"
-              }`}
-            >
-              <p className="font-display text-sm font-semibold text-white">
-                {display.label} · ${display.priceMonthly}/mo
+        {planCards.map(({ option, display }) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setPlan(option)}
+            className={`rounded-2xl border px-4 py-4 text-left transition ${
+              plan === option
+                ? "border-cyan-accent/50 bg-cyan-accent/10"
+                : "border-white/10 bg-white/[0.03] hover:border-white/20"
+            }`}
+          >
+            <p className="font-display text-sm font-semibold text-white">
+              {display.label} · ${display.priceMonthly}/mo
+            </p>
+            <p className="mt-1 text-xs text-slate-dim">{display.tagline}</p>
+            {display.sandbox ? (
+              <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-amber-200/90">
+                Mock pricing
               </p>
-              <p className="mt-1 text-xs text-slate-dim">{display.tagline}</p>
-            </button>
-          );
-        })}
+            ) : null}
+          </button>
+        ))}
       </div>
 
       <div className="space-y-3 rounded-2xl border border-white/10 bg-[#0b0f17] p-5">
@@ -137,6 +237,26 @@ function CheckoutInner() {
             ? "Redirecting to BVNK…"
             : "Pay with BVNK Crypto"}
         </button>
+
+        {sandboxMode ? (
+          <button
+            type="button"
+            disabled={pending !== null}
+            onClick={() => runSandboxCheckout("sandbox")}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-400/20 disabled:opacity-50"
+          >
+            <FlaskConical className="h-4 w-4" aria-hidden />
+            {pending === "sandbox"
+              ? "Simulating sandbox payment…"
+              : "Simulate sandbox checkout"}
+          </button>
+        ) : null}
+
+        {info ? (
+          <p className="rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
+            {info}
+          </p>
+        ) : null}
 
         {error ? (
           <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">

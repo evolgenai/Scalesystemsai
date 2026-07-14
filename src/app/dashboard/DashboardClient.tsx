@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
+import AgentPersonaSelector from "@/components/dashboard/AgentPersonaSelector";
 import LiveStreamTerminal from "@/components/dashboard/LiveStreamTerminal";
 import WorkspaceHistorySidebar from "@/components/dashboard/WorkspaceHistorySidebar";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
@@ -261,6 +262,21 @@ export default function DashboardClient() {
           </section>
 
           <section
+            aria-labelledby="persona-heading"
+            className="mb-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5"
+          >
+            <h2 id="persona-heading" className="sr-only">
+              Agent personality templates
+            </h2>
+            <AgentPersonaSelector
+              personaId={personaId}
+              onPersonaChange={setPersonaId}
+              customSystemPrompt={customSystemPrompt}
+              onCustomSystemPromptChange={setCustomSystemPrompt}
+            />
+          </section>
+
+          <section
             aria-labelledby="split-heading"
             className="grid items-start gap-4 lg:grid-cols-5 lg:gap-6"
           >
@@ -271,10 +287,6 @@ export default function DashboardClient() {
               <AgentSpawnPanel
                 objective={objective}
                 onObjectiveChange={handleObjectiveChange}
-                personaId={personaId}
-                onPersonaChange={setPersonaId}
-                customSystemPrompt={customSystemPrompt}
-                onCustomSystemPromptChange={setCustomSystemPrompt}
                 connection={connection}
                 overallProgress={overallProgress}
                 onStart={handleStart}

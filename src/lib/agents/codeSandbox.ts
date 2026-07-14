@@ -1,10 +1,15 @@
 /**
- * Isolated code runner — never shells out to the host for arbitrary code.
- * JavaScript runs in `node:vm` with a sealed context (5s timeout, no I/O).
- * Python uses a registered remote hook (E2B/Pyodide) or a restricted expression
- * evaluator for trivial print/math snippets.
+ * Isolated code runner.
+ * JavaScript: sealed `node:vm` (5s timeout, no I/O).
+ * Python: local `python`/`python3` via `execFile` + temp file (no shell),
+ *         optional E2B/Pyodide hook override.
  */
 
+import { execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
+import { unlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import vm from "node:vm";
 
 export type SandboxLanguage = "python" | "javascript";
@@ -23,26 +28,55 @@ export type PythonSandboxHook = (
 const TIMEOUT_MS = 5_000;
 const MAX_CODE_CHARS = 12_000;
 
-const BLOCKED_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
+const JS_BLOCKED_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
   { pattern: /\brequire\s*\(/i, reason: "require() is blocked in the sandbox." },
   { pattern: /\bimport\s*\(/i, reason: "dynamic import() is blocked." },
   {
     pattern: /\bfrom\s+['"`]|^\s*import\s+/m,
-    reason: "Module imports are blocked in the sandbox.",
+    reason: "Module imports are blocked in the JS sandbox.",
   },
   { pattern: /\bprocess\b/, reason: "process access is blocked." },
   { pattern: /\bglobalThis\b|\bglobal\b/, reason: "Global object access is blocked." },
   { pattern: /\bfetch\s*\(/i, reason: "Network fetch is blocked." },
   { pattern: /\bXMLHttpRequest\b|\bWebSocket\b/, reason: "Network APIs are blocked." },
-  { pattern: /\bchild_process\b|\bfs\b|\bnet\b|\bdgram\b|\bhttp\b|\bhttps\b/i, reason: "Node host modules are blocked." },
+  {
+    pattern: /\bchild_process\b|\bnode:fs\b|\bnode:net\b|\bnode:http\b/i,
+    reason: "Node host modules are blocked.",
+  },
   { pattern: /\beval\s*\(/, reason: "eval() is blocked." },
   { pattern: /\bnew\s+Function\s*\(/, reason: "Function constructor is blocked." },
   { pattern: /\bFunction\s*\(/, reason: "Function constructor is blocked." },
   { pattern: /\bWebAssembly\b/, reason: "WebAssembly is blocked." },
   { pattern: /\bDeno\b|\bBun\b/, reason: "Alternate runtimes are blocked." },
   { pattern: /\b__dirname\b|\b__filename\b/, reason: "Filesystem introspection is blocked." },
-  { pattern: /\bopen\s*\(|\bexec\s*\(|\bos\.system\b|\bsubprocess\b|\bpopen\b/i, reason: "Host process/file APIs are blocked." },
-  { pattern: /\b(?:api[_-]?key|secret[_-]?key|GEMINI_API_KEY|AWS_SECRET)\b/i, reason: "Credential references are blocked." },
+  {
+    pattern: /\b(?:api[_-]?key|secret[_-]?key|GEMINI_API_KEY|AWS_SECRET)\b/i,
+    reason: "Credential references are blocked.",
+  },
+];
+
+/** Host-escape guards for Python — multi-line scripts + imports are allowed. */
+const PY_BLOCKED_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
+  {
+    pattern: /\b(?:os\.system|subprocess|popen|pty\.spawn)\b/i,
+    reason: "Process spawning APIs are blocked in the Python sandbox.",
+  },
+  {
+    pattern: /\b(?:ctypes|cffi|multiprocessing)\b/i,
+    reason: "Low-level process/memory modules are blocked.",
+  },
+  {
+    pattern: /\b(?:socket|http\.client|urllib\.request|requests\.|aiohttp)\b/i,
+    reason: "Network modules are blocked in the Python sandbox.",
+  },
+  {
+    pattern: /(?:^|[^\w])\/(?:etc|proc|sys)\//i,
+    reason: "Absolute system path access is blocked.",
+  },
+  {
+    pattern: /\b(?:api[_-]?key|secret[_-]?key|GEMINI_API_KEY|AWS_SECRET)\b/i,
+    reason: "Credential references are blocked.",
+  },
 ];
 
 let pythonHook: PythonSandboxHook | null = null;
@@ -52,8 +86,12 @@ export function registerPythonSandboxHook(hook: PythonSandboxHook | null): void 
   pythonHook = hook;
 }
 
-function securityScan(code: string): string | null {
-  for (const rule of BLOCKED_PATTERNS) {
+function securityScan(
+  code: string,
+  language: SandboxLanguage
+): string | null {
+  const rules = language === "python" ? PY_BLOCKED_PATTERNS : JS_BLOCKED_PATTERNS;
+  for (const rule of rules) {
     if (rule.pattern.test(code)) return rule.reason;
   }
   return null;
@@ -65,6 +103,129 @@ function normalizeLanguage(
   const key = language.trim().toLowerCase();
   if (key === "python" || key === "py") return "python";
   return "javascript";
+}
+
+function resolvePythonBinary(): string {
+  const fromEnv = process.env.PYTHON_PATH?.trim();
+  if (fromEnv) return fromEnv;
+  return process.platform === "win32" ? "python" : "python3";
+}
+
+/**
+ * Run multi-line Python via local interpreter.
+ * Uses `execFile` (argv array) — never `shell: true` / string interpolation.
+ */
+async function executePythonLocal(
+  code: string,
+  signal?: AbortSignal
+): Promise<SandboxExecutionResult> {
+  if (signal?.aborted) {
+    return { stdout: "", stderr: "Aborted", exitCode: 130 };
+  }
+
+  const bin = resolvePythonBinary();
+  const filePath = join(
+    tmpdir(),
+    `ss-py-${randomBytes(10).toString("hex")}.py`
+  );
+
+  try {
+    await writeFile(filePath, code, { encoding: "utf8", mode: 0o600 });
+  } catch (error) {
+    return {
+      stdout: "",
+      stderr:
+        error instanceof Error
+          ? `Unable to stage Python temp file: ${error.message}`
+          : "Unable to stage Python temp file.",
+      exitCode: 1,
+    };
+  }
+
+  try {
+    return await new Promise<SandboxExecutionResult>((resolve) => {
+      const child = execFile(
+        bin,
+        [filePath],
+        {
+          timeout: TIMEOUT_MS,
+          maxBuffer: 1024 * 1024,
+          windowsHide: true,
+          shell: false,
+          env: {
+            PATH: process.env.PATH,
+            SYSTEMROOT: process.env.SYSTEMROOT,
+            PYTHONIOENCODING: "utf-8",
+            PYTHONDONTWRITEBYTECODE: "1",
+          },
+        },
+        (error, stdout, stderr) => {
+          const out = String(stdout ?? "").replace(/\r\n/g, "\n").trimEnd();
+          const err = String(stderr ?? "").replace(/\r\n/g, "\n").trimEnd();
+
+          if (!error) {
+            resolve({ stdout: out, stderr: err, exitCode: 0 });
+            return;
+          }
+
+          const nodeErr = error as NodeJS.ErrnoException & {
+            killed?: boolean;
+            code?: string | number;
+          };
+
+          if (nodeErr.code === "ENOENT") {
+            resolve({
+              stdout: out,
+              stderr: `Python runtime not found (${bin}). Set PYTHON_PATH to your interpreter.`,
+              exitCode: 127,
+            });
+            return;
+          }
+
+          if (nodeErr.killed || nodeErr.code === "ETIMEDOUT") {
+            resolve({
+              stdout: out,
+              stderr: err || `Sandbox timeout after ${TIMEOUT_MS}ms`,
+              exitCode: 124,
+            });
+            return;
+          }
+
+          const exitCode =
+            typeof nodeErr.code === "number" ? nodeErr.code : 1;
+
+          resolve({
+            stdout: out,
+            stderr: err || error.message,
+            exitCode,
+          });
+        }
+      );
+
+      const onAbort = () => {
+        try {
+          child.kill();
+        } catch {
+          // ignore
+        }
+      };
+      signal?.addEventListener("abort", onAbort, { once: true });
+      child.on("close", () => {
+        signal?.removeEventListener("abort", onAbort);
+      });
+    });
+  } catch (error) {
+    return {
+      stdout: "",
+      stderr:
+        error instanceof Error
+          ? error.message
+          : "Python sandbox execution failed.",
+      exitCode: 1,
+    };
+  } finally {
+    await unlink(filePath).catch(() => undefined);
+  }
 }
 
 async function executeJavaScript(
@@ -167,62 +328,6 @@ function stringifyArg(value: unknown): string {
   }
 }
 
-/**
- * Restricted Python-lite: only `print(<arithmetic expression>)` lines.
- * No host Python process, no shell.
- */
-function executeRestrictedPythonExpress(code: string): SandboxExecutionResult {
-  const lines = code
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l && !l.startsWith("#"));
-
-  if (lines.length === 0) {
-    return { stdout: "", stderr: "Empty Python payload.", exitCode: 1 };
-  }
-
-  const stdout: string[] = [];
-
-  for (const line of lines) {
-    const printMatch = line.match(/^print\s*\((.*)\)\s*$/);
-    if (!printMatch) {
-      return {
-        stdout: stdout.join("\n"),
-        stderr:
-          "Restricted Python sandbox only allows print(<expression>) lines. Register an E2B/Pyodide hook for full Python.",
-        exitCode: 1,
-      };
-    }
-
-    const expr = printMatch[1]!.trim();
-    if (!/^[\d\s+\-*/%().]+$/.test(expr)) {
-      return {
-        stdout: stdout.join("\n"),
-        stderr:
-          "Restricted Python sandbox only permits numeric arithmetic expressions inside print().",
-        exitCode: 1,
-      };
-    }
-
-    try {
-      // Expression already constrained to digits/operators — evaluate in vm.
-      const value = vm.runInNewContext(expr, Object.create(null), {
-        timeout: 500,
-      });
-      stdout.push(String(value));
-    } catch (error) {
-      return {
-        stdout: stdout.join("\n"),
-        stderr:
-          error instanceof Error ? error.message : "Expression evaluation failed.",
-        exitCode: 1,
-      };
-    }
-  }
-
-  return { stdout: stdout.join("\n"), stderr: "", exitCode: 0 };
-}
-
 async function executePython(
   code: string,
   signal?: AbortSignal
@@ -242,21 +347,12 @@ async function executePython(
     }
   }
 
-  if (process.env.E2B_API_KEY?.trim()) {
-    return {
-      stdout: "",
-      stderr:
-        "E2B_API_KEY is set but no Python sandbox hook is registered. Call registerPythonSandboxHook() to bind @e2b/code-interpreter.",
-      exitCode: 1,
-    };
-  }
-
-  return executeRestrictedPythonExpress(code);
+  return executePythonLocal(code, signal);
 }
 
 /**
  * Execute untrusted code in an isolated context.
- * Never invokes a host shell (`sh`/`cmd`) with user-controlled strings.
+ * Python uses argv-safe `execFile` (never a shell string).
  */
 export async function executeCodeInSandbox(
   code: string,
@@ -275,7 +371,8 @@ export async function executeCodeInSandbox(
     };
   }
 
-  const blockReason = securityScan(trimmed);
+  const lang = normalizeLanguage(language);
+  const blockReason = securityScan(trimmed, lang);
   if (blockReason) {
     return {
       stdout: "",
@@ -284,7 +381,6 @@ export async function executeCodeInSandbox(
     };
   }
 
-  const lang = normalizeLanguage(language);
   if (lang === "python") {
     return executePython(trimmed, options?.signal);
   }

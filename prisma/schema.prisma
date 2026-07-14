@@ -82,6 +82,8 @@ model User {
 
   email        String           @unique
 
+  phone        String?
+
   password     String
 
   role         UserRole         @default(USER)
@@ -91,6 +93,13 @@ model User {
   maxAgents    Int              @default(5)
 
   plan         String           @default("FREE")
+
+  emailCode           String?
+  emailCodeExpiresAt  DateTime?
+  phoneCode           String?
+  phoneCodeExpiresAt  DateTime?
+  emailVerifiedAt     DateTime?
+  phoneVerifiedAt     DateTime?
 
   agents       Agent[]
 

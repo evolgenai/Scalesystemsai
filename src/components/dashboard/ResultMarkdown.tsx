@@ -216,6 +216,7 @@ export default function ResultMarkdown({ markdown }: ResultMarkdownProps) {
             {run ? (
               <SandboxConsole
                 compact
+                mode="direct"
                 status={run.status}
                 language={run.language}
                 stdout={run.stdout}

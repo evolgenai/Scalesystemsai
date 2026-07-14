@@ -288,6 +288,8 @@ function ResultsPane({
                       stderr={frame.stderr}
                       exitCode={frame.exitCode}
                       title="Agent Sandbox Execution"
+                      mode={frame.code ? "direct" : "swarm"}
+                      traceLogs={frame.message}
                     />
                   ))}
                 </div>
@@ -308,68 +310,103 @@ function VerbosePane({
   connection: StreamConnectionState;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const [stealthOpen, setStealthOpen] = useState(false);
 
   useEffect(() => {
     const el = scrollerRef.current;
-    if (!el) return;
+    if (!el || !stealthOpen) return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [verboseLines]);
+  }, [verboseLines, stealthOpen]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-[#0a0e16] px-3 py-2">
-        <Terminal className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
-        <span className="font-mono text-[10px] uppercase tracking-wider text-slate-dim">
-          Verbose Kernel Feed
-        </span>
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#0a0e16] px-3 py-2">
+        <div className="flex items-center gap-2">
+          <Terminal className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+          <span className="font-mono text-[10px] uppercase tracking-wider text-slate-dim">
+            Swarm Surface
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setStealthOpen((open) => !open)}
+          className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-slate-dim transition hover:border-cyan-accent/30 hover:text-cyan-accent"
+          aria-expanded={stealthOpen}
+        >
+          Stealth Trace Logs
+          <span className="tabular-nums text-cyan-accent/80">
+            {verboseLines.length}
+          </span>
+        </button>
       </div>
-      <div
-        ref={scrollerRef}
-        className="terminal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 font-mono text-[11px] sm:text-xs"
-        role="log"
-        aria-live="polite"
-      >
-        {verboseLines.length === 0 ? (
-          <p className="animate-pulse text-slate-dim">
-            {connection === "connecting"
-              ? "$ opening ReadableStream channel…"
-              : "$ awaiting swarm telemetry…"}
+
+      {stealthOpen ? (
+        <div
+          ref={scrollerRef}
+          className="terminal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 font-mono text-[11px] sm:text-xs"
+          role="log"
+          aria-live="polite"
+        >
+          {verboseLines.length === 0 ? (
+            <p className="animate-pulse text-slate-dim">
+              {connection === "connecting"
+                ? "$ opening ReadableStream channel…"
+                : "$ awaiting swarm telemetry…"}
+            </p>
+          ) : (
+            verboseLines.map((line, index) => {
+              const isLatest = index === verboseLines.length - 1;
+              return (
+                <div
+                  key={`${line}-${index}`}
+                  className={`mb-1.5 break-words leading-relaxed ${
+                    line.includes("SECURITY") || line.includes("ERROR")
+                      ? "text-rose-400"
+                      : line.startsWith("$") || line.includes(" $ ")
+                        ? "text-emerald-300"
+                        : isLatest
+                          ? "text-cyan-accent"
+                          : "text-slate-300"
+                  }`}
+                >
+                  {line}
+                </div>
+              );
+            })
+          )}
+          {connection === "live" ? (
+            <div className="mt-2 flex items-center gap-1 text-cyan-accent">
+              <span className="text-cyan-500/50">$</span>
+              <span className="h-3.5 w-1.5 animate-pulse bg-cyan-accent" />
+            </div>
+          ) : connection === "paused" ? (
+            <div className="mt-2 flex items-center gap-1.5 text-amber-300">
+              <Pause className="h-3 w-3" aria-hidden />
+              <span className="text-[10px] uppercase tracking-wider">
+                swarm paused — awaiting directive
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
+          <p className="text-sm text-slate-muted">
+            Multi-agent kernel chatter is folded into Stealth Trace Logs.
           </p>
-        ) : (
-          verboseLines.map((line, index) => {
-            const isLatest = index === verboseLines.length - 1;
-            return (
-              <div
-                key={`${line}-${index}`}
-                className={`mb-1.5 break-words leading-relaxed ${
-                  line.includes("SECURITY") || line.includes("ERROR")
-                    ? "text-rose-400"
-                    : line.startsWith("$") || line.includes(" $ ")
-                      ? "text-emerald-300"
-                      : isLatest
-                        ? "text-cyan-accent"
-                        : "text-slate-300"
-                }`}
-              >
-                {line}
-              </div>
-            );
-          })
-        )}
-        {connection === "live" ? (
-          <div className="mt-2 flex items-center gap-1 text-cyan-accent">
-            <span className="text-cyan-500/50">$</span>
-            <span className="h-3.5 w-1.5 animate-pulse bg-cyan-accent" />
-          </div>
-        ) : connection === "paused" ? (
-          <div className="mt-2 flex items-center gap-1.5 text-amber-300">
-            <Pause className="h-3 w-3" aria-hidden />
-            <span className="text-[10px] uppercase tracking-wider">
-              swarm paused — awaiting directive
-            </span>
-          </div>
-        ) : null}
-      </div>
+          <p className="max-w-xs text-[11px] text-slate-dim">
+            Expand only when you need low-level swarm diagnostics.
+          </p>
+          {connection === "live" ? (
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-emerald-300">
+              stream live
+            </p>
+          ) : connection === "paused" ? (
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-amber-300">
+              stream paused
+            </p>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

@@ -39,6 +39,7 @@ import {
   storeMemory,
   summarizeRunTakeaway,
 } from "@/lib/agents/memoryBank";
+import { runDirectCodeExecution } from "@/lib/agents/directCodeInterceptor";
 import { resolveBillingProfileForRequest } from "@/lib/org/orgScope";
 import { NextResponse } from "next/server";
 
@@ -662,6 +663,68 @@ export async function GET(request: Request) {
             })
           );
 
+          // Direct code-first interceptor — bypass swarm; emit stdout only.
+          const direct = await runDirectCodeExecution(
+            objective,
+            request.signal
+          );
+          if (direct.matched) {
+            if (direct.exitCode === 0) {
+              const stdoutOnly = direct.stdout;
+              lastFinalAnswer = stdoutOnly;
+              emit(
+                createStreamEvent({
+                  type: "result",
+                  message: stdoutOnly,
+                  resultMarkdown: stdoutOnly,
+                  agentId: "code-architect",
+                  agentName: "CodeArchitect Sub-Agent",
+                  status: "SUCCESS",
+                  progress: 100,
+                  stage: "answer",
+                  prismaStatus: "IDLE",
+                  language: direct.language,
+                  stdout: stdoutOnly,
+                  stderr: "",
+                  exitCode: 0,
+                  sandboxStatus: "success",
+                })
+              );
+            } else {
+              lastFinalAnswer = direct.stderr || "Sandbox execution failed.";
+              emit(
+                createStreamEvent({
+                  type: "error",
+                  message: lastFinalAnswer,
+                  status: "ERROR",
+                  prismaStatus: "ERROR",
+                  language: direct.language,
+                  stdout: direct.stdout,
+                  stderr: direct.stderr,
+                  exitCode: direct.exitCode,
+                  sandboxStatus: "error",
+                })
+              );
+            }
+
+            emit(
+              createStreamEvent({
+                type: "workflow_complete",
+                message: "Completed successfully",
+                agentId: "ops-orchestrator",
+                agentName: "Systems Orchestrator",
+                status: "SUCCESS",
+                progress: 100,
+                stage: "complete",
+                prismaStatus: "IDLE",
+              })
+            );
+            sessionStatus =
+              direct.exitCode === 0 ? "COMPLETED" : "FAILED";
+            await flushSession();
+            return;
+          }
+
           const greeting = /^(hi|hello|hey|yo)\b[\s!?.]*$/i.test(objective);
           if (greeting) {
             emit(
@@ -894,14 +957,14 @@ export async function GET(request: Request) {
 
               push(
                 createStreamEvent({
-                  type: "agent_update",
-                  message: step.message,
+                  type: "log",
+                  message: `[stealth] ${step.message}`,
                   agentId: step.agentId,
                   agentName: step.agentName,
                   status: step.status,
                   progress:
                     step.stage === "complete" ? 92 : Math.max(progress, 8),
-                  stage: step.stage,
+                  stage: `stealth:${step.stage}`,
                   prismaStatus: step.prismaStatus,
                 })
               );

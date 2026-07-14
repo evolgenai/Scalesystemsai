@@ -1,16 +1,11 @@
 "use client";
 
 import { Play, Square, RotateCcw, SlidersHorizontal } from "lucide-react";
-import AgentPersonaSelector from "@/components/dashboard/AgentPersonaSelector";
 import type { StreamConnectionState } from "@/lib/agents/useAgentStream";
 
 type AgentSpawnPanelProps = {
   objective: string;
   onObjectiveChange: (value: string) => void;
-  personaId: string;
-  onPersonaChange: (personaId: string) => void;
-  customSystemPrompt: string;
-  onCustomSystemPromptChange: (value: string) => void;
   connection: StreamConnectionState;
   overallProgress: number;
   onStart: () => void;
@@ -30,10 +25,6 @@ const CONNECTION_LABEL: Record<StreamConnectionState, string> = {
 export default function AgentSpawnPanel({
   objective,
   onObjectiveChange,
-  personaId,
-  onPersonaChange,
-  customSystemPrompt,
-  onCustomSystemPromptChange,
   connection,
   overallProgress,
   onStart,
@@ -55,13 +46,6 @@ export default function AgentSpawnPanel({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
-        <AgentPersonaSelector
-          personaId={personaId}
-          onPersonaChange={onPersonaChange}
-          customSystemPrompt={customSystemPrompt}
-          onCustomSystemPromptChange={onCustomSystemPromptChange}
-        />
-
         <div>
           <label
             htmlFor="swarm-objective"

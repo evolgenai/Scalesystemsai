@@ -10,7 +10,16 @@ export type BvnkCheckoutResult = {
   status: string;
 };
 
-function getBvnkConfig() {
+function getBvnkConfig():
+  | {
+      configured: true;
+      baseUrl: string;
+      apiKey: string;
+      apiSecret: string;
+      merchantId?: string;
+      walletId?: string;
+    }
+  | { configured: false } {
   const baseUrl = (
     process.env.BVNK_API_BASE_URL?.trim() || "https://api.sandbox.bvnk.com"
   ).replace(/\/$/, "");
@@ -24,10 +33,10 @@ function getBvnkConfig() {
   const walletId = process.env.BVNK_WALLET_ID?.trim();
 
   if (!apiKey || !apiSecret) {
-    throw new Error("BVNK_API_KEY / BVNK_API_SECRET are not configured.");
+    return { configured: false };
   }
 
-  return { baseUrl, apiKey, apiSecret, merchantId, walletId };
+  return { configured: true, baseUrl, apiKey, apiSecret, merchantId, walletId };
 }
 
 function hawkPayloadHash(body: string): string {
@@ -70,6 +79,23 @@ export async function createBvnkCheckoutSession(input: {
   const amount = bvnkAmountUsdForPlan(input.plan);
   const reference = `scalesystems_${input.plan.toLowerCase()}_${Date.now()}`;
 
+  const mockCheckout = (): BvnkCheckoutResult => {
+    const checkoutUrl = new URL(input.successUrl);
+    checkoutUrl.searchParams.set("provider", "bvnk");
+    checkoutUrl.searchParams.set("plan", input.plan);
+    checkoutUrl.searchParams.set("ref", reference);
+    checkoutUrl.searchParams.set("mock", "1");
+    return {
+      paymentId: reference,
+      checkoutUrl: checkoutUrl.toString(),
+      status: "sandbox_simulated",
+    };
+  };
+
+  if (!config.configured) {
+    return mockCheckout();
+  }
+
   const merchantConfigured =
     Boolean(config.merchantId) &&
     config.merchantId !== "bvnk_merchant_id_placeholder" &&
@@ -78,15 +104,7 @@ export async function createBvnkCheckoutSession(input: {
 
   // Local/sandbox fallback keeps checkout UX unblocked until merchant IDs are provisioned.
   if (!merchantConfigured) {
-    const checkoutUrl = new URL(input.successUrl);
-    checkoutUrl.searchParams.set("provider", "bvnk");
-    checkoutUrl.searchParams.set("plan", input.plan);
-    checkoutUrl.searchParams.set("ref", reference);
-    return {
-      paymentId: reference,
-      checkoutUrl: checkoutUrl.toString(),
-      status: "sandbox_simulated",
-    };
+    return mockCheckout();
   }
 
   const endpoint = `${config.baseUrl}/api/v1/payment`;
