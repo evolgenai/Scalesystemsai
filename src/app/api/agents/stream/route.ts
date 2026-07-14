@@ -7,6 +7,7 @@ import {
   buildGeminiOrchestratorPlan,
   executePlanStepTool,
   narrateStepWithGemini,
+  synthesizeObjectiveAnswer,
   type GeminiPlanStep,
   type GeminiOrchestratorPlan,
   type ToolExecutionResult,
@@ -14,6 +15,30 @@ import {
 import { resolveRequestUser } from "@/lib/auth/requestUser";
 import { evaluateStreamAccess } from "@/lib/auth/subscriptionGating";
 import { persistSwarmSession } from "@/lib/agents/persistSwarmSession";
+import {
+  getPersonaDisplayName,
+  getSystemInstructionForPersona,
+} from "@/lib/agents/presets";
+import {
+  consumeConsensusVote,
+  consumeInterventionDirective,
+  formatInterventionOverride,
+  getSwarmSessionLoopState,
+  markPendingConsensus,
+  resolveLiveSwarmSessionId,
+} from "@/lib/agents/swarmSessionControl";
+import {
+  runDebateTurns,
+  synthesizeWinningConsensus,
+  type DebateRole,
+  type DebateTurn,
+} from "@/lib/agents/debateEngine";
+import {
+  formatRecalledContext,
+  recallMemories,
+  storeMemory,
+  summarizeRunTakeaway,
+} from "@/lib/agents/memoryBank";
 import { resolveBillingProfileForRequest } from "@/lib/org/orgScope";
 import { NextResponse } from "next/server";
 
@@ -64,9 +89,172 @@ function isAbortError(error: unknown): boolean {
   );
 }
 
-type Push = (
-  event: AgentStreamEvent
-) => void;
+/**
+ * Poll SwarmSession for PAUSED → ACTIVE. Yields SSE paused/heartbeat/resumed
+ * frames and returns any freshly consumed intervention override.
+ */
+async function awaitHitlGate(input: {
+  sessionId: string | null;
+  push: (event: AgentStreamEvent) => void;
+  signal: AbortSignal;
+  isClosed: () => boolean;
+  pollMs?: number;
+}): Promise<{ override: string | null; hitlTouched: boolean }> {
+  const { sessionId, push, signal, isClosed } = input;
+  if (!sessionId) return { override: null, hitlTouched: false };
+
+  const pollMs = input.pollMs ?? 900;
+  let announcedPause = false;
+
+  while (!isClosed() && !signal.aborted) {
+    const state = await getSwarmSessionLoopState(sessionId);
+    if (!state) return { override: null, hitlTouched: announcedPause };
+
+    // Debate consensus wait is handled by awaitConsensusGate — do not proceed here.
+    if (state.status === "PENDING_CONSENSUS") {
+      try {
+        await sleep(pollMs, signal);
+      } catch {
+        return { override: null, hitlTouched: announcedPause };
+      }
+      continue;
+    }
+
+    if (state.status !== "PAUSED") {
+      if (announcedPause) {
+        push(
+          createStreamEvent({
+            type: "resumed",
+            message: "[SYSTEM] HITL resume — swarm loop re-armed.",
+            agentId: "ops-orchestrator",
+            agentName: "Systems Orchestrator",
+            status: "EXECUTING",
+            stage: "hitl-resume",
+            prismaStatus: "ACTIVE",
+            sessionId,
+          })
+        );
+      }
+
+      const directive = await consumeInterventionDirective(sessionId);
+      return {
+        override: directive ? formatInterventionOverride(directive) : null,
+        hitlTouched: announcedPause || Boolean(directive),
+      };
+    }
+
+    if (!announcedPause) {
+      announcedPause = true;
+      push(
+        createStreamEvent({
+          type: "paused",
+          message:
+            "[SYSTEM] HITL pause — awaiting operator intervention directive.",
+          agentId: "ops-orchestrator",
+          agentName: "Systems Orchestrator",
+          status: "IDLE",
+          stage: "hitl-pause",
+          prismaStatus: "PAUSED",
+          sessionId,
+        })
+      );
+    } else {
+      push(
+        createStreamEvent({
+          type: "heartbeat",
+          message: "[SYSTEM] HITL idle ping — still PAUSED.",
+          agentId: "system",
+          agentName: "SYSTEM_NODE",
+          status: "IDLE",
+          stage: "hitl-wait",
+          prismaStatus: "PAUSED",
+          sessionId,
+        })
+      );
+    }
+
+    try {
+      await sleep(pollMs, signal);
+    } catch {
+      return { override: null, hitlTouched: announcedPause };
+    }
+  }
+
+  return { override: null, hitlTouched: announcedPause };
+}
+
+/**
+ * After Creator/Critic turns: park on PENDING_CONSENSUS until a human vote.
+ */
+async function awaitConsensusGate(input: {
+  sessionId: string | null;
+  push: (event: AgentStreamEvent) => void;
+  signal: AbortSignal;
+  isClosed: () => boolean;
+  pollMs?: number;
+}): Promise<DebateRole | null> {
+  const { sessionId, push, signal, isClosed } = input;
+  if (!sessionId) return null;
+
+  const pollMs = input.pollMs ?? 900;
+  await markPendingConsensus(sessionId);
+
+  push(
+    createStreamEvent({
+      type: "consensus_pending",
+      message:
+        "[SYSTEM] Debate complete — awaiting human consensus vote (creator | critic).",
+      agentId: "ops-orchestrator",
+      agentName: "Systems Orchestrator",
+      status: "IDLE",
+      stage: "consensus",
+      prismaStatus: "PAUSED",
+      sessionId,
+    })
+  );
+
+  while (!isClosed() && !signal.aborted) {
+    const vote = await consumeConsensusVote(sessionId);
+    if (vote) {
+      push(
+        createStreamEvent({
+          type: "log",
+          message: `[SYSTEM] Consensus vote accepted — winning path: ${vote}.`,
+          agentId: "ops-orchestrator",
+          agentName: "Systems Orchestrator",
+          status: "EXECUTING",
+          stage: "consensus-resume",
+          prismaStatus: "ACTIVE",
+          sessionId,
+        })
+      );
+      return vote;
+    }
+
+    push(
+      createStreamEvent({
+        type: "heartbeat",
+        message: "[SYSTEM] Consensus idle ping — PENDING_CONSENSUS.",
+        agentId: "system",
+        agentName: "SYSTEM_NODE",
+        status: "IDLE",
+        stage: "consensus-wait",
+        prismaStatus: "PAUSED",
+        sessionId,
+      })
+    );
+
+    try {
+      await sleep(pollMs, signal);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+type Push = (event: AgentStreamEvent) => void;
 
 function emitToolOutcome(
   push: Push,
@@ -97,17 +285,23 @@ function emitToolOutcome(
     );
   }
 
-  if (toolResult.digestForGemini) {
+  // Tool digests stay in the Verbose Kernel Feed. User-facing answers are
+  // emitted once at the end via synthesizeObjectiveAnswer → type:"result".
+  const geminiDigest = toolResult.logLines
+    .find((line) => line.startsWith("[SYSTEM:tool-digest]"))
+    ?.replace(/^\[SYSTEM:tool-digest\]\s*/, "")
+    .trim();
+
+  if (geminiDigest) {
     push(
       createStreamEvent({
-        type: "result",
-        message: toolResult.digestForGemini,
-        resultMarkdown: toolResult.digestForGemini,
+        type: "log",
+        message: `[SYSTEM] Tool digest ready (${step.tool}) — deferred to final results synthesis.`,
         agentId: step.agentId,
         agentName: step.agentName,
         status: toolResult.success ? "SUCCESS" : "ERROR",
         progress: Math.max(progress, 18),
-        stage: `${step.stage}:result`,
+        stage: `${step.stage}:digest`,
         prismaStatus: toolResult.success ? "ACTIVE" : "ERROR",
       })
     );
@@ -142,8 +336,9 @@ async function runToolStep(
   objective: string,
   progress: number,
   signal: AbortSignal,
-  isClosed: () => boolean
-): Promise<void> {
+  isClosed: () => boolean,
+  systemInstruction?: string
+): Promise<string | null> {
   const command =
     step.tool === "webScraper"
       ? `curl -sSL ${plan.detectedUrl ?? "https://scalesystemsai.vercel.app"} | scalesystems-sanitize`
@@ -180,10 +375,17 @@ async function runToolStep(
     step,
     plan,
     objective,
-    signal
+    signal,
+    systemInstruction
   );
-  if (isClosed() || !toolResult) return;
+  if (isClosed() || !toolResult) return null;
   emitToolOutcome(push, step, toolResult, progress);
+
+  const geminiDigest = toolResult.logLines
+    .find((line) => line.startsWith("[SYSTEM:tool-digest]"))
+    ?.replace(/^\[SYSTEM:tool-digest\]\s*/, "")
+    .trim();
+  return geminiDigest || toolResult.digestForGemini || null;
 }
 
 export async function GET(request: Request) {
@@ -249,6 +451,34 @@ export async function GET(request: Request) {
     "Qualify inbound B2B leads, sync CRM vectors, and consolidate schema output.";
   const loop = searchParams.get("loop") === "1";
 
+  // Persona payload — query string (SSE GET) with safe length caps.
+  const personaId =
+    searchParams.get("personaId")?.trim() ||
+    searchParams.get("persona")?.trim() ||
+    undefined;
+  const customSystemPromptRaw =
+    searchParams.get("customSystemPrompt") ??
+    searchParams.get("customPrompt") ??
+    searchParams.get("systemInstruction");
+  const customSystemPrompt = customSystemPromptRaw?.trim()
+    ? customSystemPromptRaw.trim().slice(0, 8000)
+    : undefined;
+  const systemInstruction = getSystemInstructionForPersona(
+    personaId,
+    customSystemPrompt
+  );
+  const personaName = getPersonaDisplayName(personaId, customSystemPrompt);
+
+  const clientSessionId = searchParams.get("sessionId")?.trim() || null;
+  const liveSessionId = profile.id
+    ? await resolveLiveSwarmSessionId({
+        userId: profile.id,
+        orgId,
+        objective,
+        sessionId: clientSessionId,
+      })
+    : null;
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       // Return Response immediately; drive the async Gemini + tool loop in a background IIFE
@@ -257,6 +487,10 @@ export async function GET(request: Request) {
         const recordedEvents: AgentStreamEvent[] = [];
         let sessionStatus: "COMPLETED" | "FAILED" | "TIMEOUT" = "COMPLETED";
         let persisted = false;
+        let activeSystemInstruction = systemInstruction;
+        let lastFinalAnswer = "";
+        let hitlUsed = false;
+        const runStartedAt = Date.now();
 
         const emit = (event: AgentStreamEvent) => {
           recordedEvents.push(event);
@@ -269,38 +503,138 @@ export async function GET(request: Request) {
           await persistSwarmSession({
             userId: profile.id,
             orgId,
+            sessionId: liveSessionId,
             objective,
             events: recordedEvents,
             status: sessionStatus,
+            durationMs: Date.now() - runStartedAt,
+            creditsUsed: 1,
+            persona: personaName,
+            hitlUsed,
           });
+
+          if (
+            sessionStatus === "COMPLETED" &&
+            lastFinalAnswer.trim() &&
+            profile.id
+          ) {
+            try {
+              const takeaway = await summarizeRunTakeaway(
+                objective,
+                lastFinalAnswer,
+                request.signal
+              );
+              await storeMemory(profile.id, orgId, takeaway);
+            } catch (error) {
+              console.error("[memory-bank] auto-store failed", error);
+            }
+          }
+        };
+
+        const applyHitlGate = async (): Promise<boolean> => {
+          const gate = await awaitHitlGate({
+            sessionId: liveSessionId,
+            push: emit,
+            signal: request.signal,
+            isClosed,
+          });
+          if (isClosed()) return false;
+          if (gate.hitlTouched) hitlUsed = true;
+          if (gate.override) {
+            hitlUsed = true;
+            activeSystemInstruction = `${activeSystemInstruction}\n\n${gate.override}`;
+            emit(
+              createStreamEvent({
+                type: "log",
+                message: `[SYSTEM] ${gate.override}`,
+                agentId: "ops-orchestrator",
+                agentName: "Systems Orchestrator",
+                status: "THINKING",
+                stage: "hitl-directive",
+                prismaStatus: "PLANNING",
+                sessionId: liveSessionId ?? undefined,
+              })
+            );
+          }
+          return true;
         };
 
         try {
           emit(
             createStreamEvent({
               type: "command",
-              message: "$ export SCALE_SWARM_SESSION=$(uuidgen)",
-              command: "export SCALE_SWARM_SESSION=$(uuidgen)",
+              message: liveSessionId
+                ? `$ export SCALE_SWARM_SESSION=${liveSessionId}`
+                : "$ export SCALE_SWARM_SESSION=$(uuidgen)",
+              command: liveSessionId
+                ? `export SCALE_SWARM_SESSION=${liveSessionId}`
+                : "export SCALE_SWARM_SESSION=$(uuidgen)",
               agentId: "system",
               agentName: "SYSTEM_NODE",
               status: "IDLE",
               progress: 0,
               stage: "connect",
               prismaStatus: "IDLE",
+              sessionId: liveSessionId ?? undefined,
             })
           );
 
           emit(
             createStreamEvent({
               type: "log",
-              message:
-                "SSE channel open — Systems Orchestrator online (Gemini + sandbox tools).",
+              message: liveSessionId
+                ? `SSE channel open — live SwarmSession ${liveSessionId} (HITL enabled).`
+                : "SSE channel open — Systems Orchestrator online (Gemini + sandbox tools).",
               agentId: "system",
               agentName: "SYSTEM_NODE",
               status: "IDLE",
               progress: 1,
               stage: "connect",
               prismaStatus: "IDLE",
+              sessionId: liveSessionId ?? undefined,
+            })
+          );
+
+          if (profile.id) {
+            const recalled = await recallMemories(profile.id, orgId, objective, 3);
+            emit(
+              createStreamEvent({
+                type: "memory_recalled",
+                message:
+                  recalled.length > 0
+                    ? `[SYSTEM] Recalled ${recalled.length} workspace memory fragment(s).`
+                    : "[SYSTEM] No prior workspace memories matched this objective.",
+                memories: recalled.map((m) => ({
+                  id: m.id,
+                  text: m.fragment,
+                  score: m.score,
+                })),
+                agentId: "ops-orchestrator",
+                agentName: "Systems Orchestrator",
+                status: "THINKING",
+                progress: 2,
+                stage: "memory",
+                prismaStatus: "PLANNING",
+                sessionId: liveSessionId ?? undefined,
+              })
+            );
+
+            const memoryBlock = formatRecalledContext(recalled);
+            if (memoryBlock) {
+              activeSystemInstruction = `${systemInstruction}\n\n${memoryBlock}`;
+            }
+          }
+
+          emit(
+            createStreamEvent({
+              type: "log",
+              message: `⚙️ [SYSTEM ARCHITECT]: Spawning specialized ${personaName} sub-agents…`,
+              agentId: "ops-orchestrator",
+              agentName: "Systems Orchestrator",
+              status: "THINKING",
+              progress: 2,
+              stage: "persona",
+              prismaStatus: "PLANNING",
             })
           );
 
@@ -357,6 +691,11 @@ export async function GET(request: Request) {
               break;
             }
 
+            if (!(await applyHitlGate())) {
+              sessionStatus = "TIMEOUT";
+              break;
+            }
+
             emit(
               createStreamEvent({
                 type: "command",
@@ -386,7 +725,8 @@ export async function GET(request: Request) {
 
             const plan = await buildGeminiOrchestratorPlan(
               objective,
-              request.signal
+              request.signal,
+              activeSystemInstruction
             );
             if (isClosed()) {
               sessionStatus = "TIMEOUT";
@@ -396,21 +736,7 @@ export async function GET(request: Request) {
             emit(
               createStreamEvent({
                 type: "log",
-                message: `Plan ready via ${plan.engine.toUpperCase()} — ${plan.summary}`,
-                agentId: "ops-orchestrator",
-                agentName: "Systems Orchestrator",
-                status: "THINKING",
-                progress: 12,
-                stage: "plan",
-                prismaStatus: "PLANNING",
-              })
-            );
-
-            emit(
-              createStreamEvent({
-                type: "summary",
-                message: plan.summary,
-                resultMarkdown: `## Swarm Plan\n\n${plan.summary}\n\n_Engine: ${plan.engine}_`,
+                message: `[SYSTEM] Plan ready via ${plan.engine.toUpperCase()} — ${plan.summary}`,
                 agentId: "ops-orchestrator",
                 agentName: "Systems Orchestrator",
                 status: "THINKING",
@@ -453,12 +779,18 @@ export async function GET(request: Request) {
             }
 
             const push: Push = emit;
+            const toolDigests: string[] = [];
 
             const total = Math.max(plan.steps.length, 1);
             let index = 0;
 
             while (index < plan.steps.length) {
               if (isClosed()) {
+                sessionStatus = "TIMEOUT";
+                break;
+              }
+
+              if (!(await applyHitlGate())) {
                 sessionStatus = "TIMEOUT";
                 break;
               }
@@ -513,17 +845,19 @@ export async function GET(request: Request) {
                 }
 
                 await Promise.all(
-                  batch.map((batched) =>
-                    runToolStep(
+                  batch.map(async (batched) => {
+                    const digest = await runToolStep(
                       push,
                       batched,
                       plan,
                       objective,
                       Math.max(progress, 18),
                       request.signal,
-                      isClosed
-                    )
-                  )
+                      isClosed,
+                      activeSystemInstruction
+                    );
+                    if (digest) toolDigests.push(digest);
+                  })
                 );
                 continue;
               }
@@ -536,60 +870,48 @@ export async function GET(request: Request) {
 
               push(
                 createStreamEvent({
-                  type:
-                    step.stage === "complete"
-                      ? "workflow_complete"
-                      : "agent_update",
+                  type: "agent_update",
                   message: step.message,
                   agentId: step.agentId,
                   agentName: step.agentName,
                   status: step.status,
                   progress:
-                    step.stage === "complete" ? 100 : Math.max(progress, 8),
+                    step.stage === "complete" ? 92 : Math.max(progress, 8),
                   stage: step.stage,
                   prismaStatus: step.prismaStatus,
                 })
               );
 
               if (step.tool) {
-                await runToolStep(
+                const digest = await runToolStep(
                   push,
                   step,
                   plan,
                   objective,
                   progress,
                   request.signal,
-                  isClosed
+                  isClosed,
+                  activeSystemInstruction
                 );
+                if (digest) toolDigests.push(digest);
               } else {
                 const narration = await narrateStepWithGemini(
                   objective,
                   step.message,
-                  request.signal
+                  request.signal,
+                  activeSystemInstruction
                 );
                 if (isClosed()) {
                   sessionStatus = "TIMEOUT";
                   break;
                 }
 
+                // Kernel Feed only — never mirrored into Actual Results Pane.
                 if (narration) {
                   push(
                     createStreamEvent({
                       type: "log",
-                      message: narration,
-                      agentId: step.agentId,
-                      agentName: step.agentName,
-                      status: step.status,
-                      progress: Math.max(progress, 8),
-                      stage: step.stage,
-                      prismaStatus: step.prismaStatus,
-                    })
-                  );
-                  push(
-                    createStreamEvent({
-                      type: "result",
-                      message: narration,
-                      resultMarkdown: narration,
+                      message: `[SYSTEM] ${narration}`,
                       agentId: step.agentId,
                       agentName: step.agentName,
                       status: step.status,
@@ -605,6 +927,125 @@ export async function GET(request: Request) {
             }
 
             if (isClosed()) break;
+
+            emit(
+              createStreamEvent({
+                type: "log",
+                message:
+                  "[SYSTEM] Opening Creator vs Critic debate panel before final synthesis…",
+                agentId: "ops-orchestrator",
+                agentName: "Systems Orchestrator",
+                status: "THINKING",
+                stage: "debate",
+                prismaStatus: "PLANNING",
+                sessionId: liveSessionId ?? undefined,
+              })
+            );
+
+            let debateTurns: DebateTurn[] = [];
+            try {
+              debateTurns = await runDebateTurns(
+                objective,
+                request.signal,
+                activeSystemInstruction
+              );
+            } catch (error) {
+              emit(
+                createStreamEvent({
+                  type: "log",
+                  message: `[SYSTEM] Debate panel failed — ${
+                    error instanceof Error ? error.message : "unknown error"
+                  }`,
+                  agentId: "ops-orchestrator",
+                  agentName: "Systems Orchestrator",
+                  status: "ERROR",
+                  stage: "debate",
+                  prismaStatus: "ERROR",
+                  sessionId: liveSessionId ?? undefined,
+                })
+              );
+            }
+
+            for (const turn of debateTurns) {
+              if (isClosed()) break;
+              emit(
+                createStreamEvent({
+                  type: "debate_turn",
+                  role: turn.role,
+                  text: turn.text,
+                  message: turn.text,
+                  agentId: `debate-${turn.role}`,
+                  agentName:
+                    turn.role === "creator"
+                      ? "Debate Creator"
+                      : "Debate Critic",
+                  status: "THINKING",
+                  stage: `debate-${turn.role}`,
+                  prismaStatus: "REFLECTING",
+                  sessionId: liveSessionId ?? undefined,
+                })
+              );
+            }
+
+            if (isClosed()) {
+              sessionStatus = "TIMEOUT";
+              break;
+            }
+
+            let winningVote: DebateRole | null = null;
+            if (liveSessionId && debateTurns.length >= 2) {
+              winningVote = await awaitConsensusGate({
+                sessionId: liveSessionId,
+                push: emit,
+                signal: request.signal,
+                isClosed,
+              });
+              if (winningVote) hitlUsed = true;
+            } else if (debateTurns.length >= 1) {
+              winningVote = "creator";
+            }
+
+            if (isClosed()) {
+              sessionStatus = "TIMEOUT";
+              break;
+            }
+
+            let finalAnswer: string;
+            if (winningVote && debateTurns.length > 0) {
+              finalAnswer = await synthesizeWinningConsensus({
+                objective,
+                vote: winningVote,
+                turns: debateTurns,
+                signal: request.signal,
+                personaInstruction: activeSystemInstruction,
+              });
+            } else {
+              finalAnswer = await synthesizeObjectiveAnswer(
+                objective,
+                request.signal,
+                { systemInstruction: activeSystemInstruction, toolDigests }
+              );
+            }
+            if (isClosed()) {
+              sessionStatus = "TIMEOUT";
+              break;
+            }
+
+            lastFinalAnswer = finalAnswer;
+
+            emit(
+              createStreamEvent({
+                type: "result",
+                message: finalAnswer,
+                resultMarkdown: finalAnswer,
+                agentId: "ops-orchestrator",
+                agentName: "Systems Orchestrator",
+                status: "SUCCESS",
+                progress: 96,
+                stage: "answer",
+                prismaStatus: "ACTIVE",
+              })
+            );
 
             emit(
               createStreamEvent({

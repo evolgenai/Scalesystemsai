@@ -165,6 +165,49 @@ function objectiveWantsCode(objective: string): boolean {
   );
 }
 
+/**
+ * Local fallback for trivial arithmetic objectives when Gemini is unavailable.
+ * Example: "1 + 1" → "1 + 1 equals 2"
+ */
+export function tryLocalObjectiveAnswer(objective: string): string | null {
+  const trimmed = objective.trim();
+  const match = trimmed.match(
+    /^(-?\d+(?:\.\d+)?)\s*([+\-*/x×])\s*(-?\d+(?:\.\d+)?)\s*[?.!]*$/i
+  );
+  if (!match) return null;
+
+  const a = Number(match[1]);
+  const b = Number(match[3]);
+  const op = match[2]!;
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+
+  let value: number;
+  switch (op) {
+    case "+":
+      value = a + b;
+      break;
+    case "-":
+      value = a - b;
+      break;
+    case "*":
+    case "x":
+    case "×":
+      value = a * b;
+      break;
+    case "/":
+      if (b === 0) return `${a} / ${b} is undefined (division by zero).`;
+      value = a / b;
+      break;
+    default:
+      return null;
+  }
+
+  const display = Number.isInteger(value)
+    ? String(value)
+    : String(Number(value.toPrecision(12)));
+  return `${a} ${op === "x" || op === "×" ? "*" : op} ${b} equals ${display}`;
+}
+
 function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
   const lower = objective.toLowerCase();
   const detectedUrl = extractUrlFromText(objective);
@@ -199,7 +242,14 @@ function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
     },
   ];
 
-  if (wantsWeb || (!wantsCode && !wantsLeads && !wantsSupport)) {
+  const isTrivialQa =
+    Boolean(tryLocalObjectiveAnswer(objective)) ||
+    (objective.trim().length <= 24 && /[+\-*/=]/.test(objective));
+
+  if (
+    !isTrivialQa &&
+    (wantsWeb || (!wantsCode && !wantsLeads && !wantsSupport))
+  ) {
     steps.push({
       agentId: "web-scraper",
       agentName: "WebScraper Sub-Agent",
@@ -211,7 +261,7 @@ function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
     });
   }
 
-  if (wantsCode) {
+  if (!isTrivialQa && wantsCode) {
     steps.push({
       agentId: "code-architect",
       agentName: "CodeArchitect Sub-Agent",
@@ -224,7 +274,10 @@ function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
   }
 
   // Place tool channels adjacent so the stream runtime can Promise.all them.
-  if (wantsWeb || (!wantsCode && !wantsLeads && !wantsSupport)) {
+  if (
+    !isTrivialQa &&
+    (wantsWeb || (!wantsCode && !wantsLeads && !wantsSupport))
+  ) {
     steps.push({
       agentId: "web-scraper",
       agentName: "WebScraper Sub-Agent",
@@ -239,7 +292,7 @@ function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
     });
   }
 
-  if (wantsCode) {
+  if (!isTrivialQa && wantsCode) {
     steps.push({
       agentId: "code-architect",
       agentName: "CodeArchitect Sub-Agent",
@@ -303,15 +356,16 @@ function buildHeuristicPlan(objective: string): GeminiOrchestratorPlan {
     detectedUrl,
     detectedCode,
     routedWorkers: [
-      ...(wantsWeb || (!wantsCode && !wantsLeads && !wantsSupport)
+      ...(!isTrivialQa &&
+      (wantsWeb || (!wantsCode && !wantsLeads && !wantsSupport))
         ? ["web-scraper"]
         : []),
-      ...(wantsCode ? ["code-architect"] : []),
+      ...(!isTrivialQa && wantsCode ? ["code-architect"] : []),
       ...(wantsLeads ? ["lead-sentinel"] : []),
       ...(wantsSupport ? ["support-specialist"] : []),
     ],
     parallelTools: Boolean(
-      (wantsWeb || Boolean(detectedUrl)) && wantsCode
+      !isTrivialQa && (wantsWeb || Boolean(detectedUrl)) && wantsCode
     ),
   };
 }
@@ -335,10 +389,26 @@ type GeminiGenerateResponse = {
   error?: { message?: string };
 };
 
+export type GeminiCallOptions = {
+  json?: boolean;
+  maxOutputTokens?: number;
+  /** Mapped to Gemini `systemInstruction` on generateContent. */
+  systemInstruction?: string;
+};
+
+/** Public wrapper for debate / consensus Gemini turns. */
+export async function generateGeminiText(
+  prompt: string,
+  signal: AbortSignal,
+  options?: GeminiCallOptions
+): Promise<string> {
+  return callGeminiGenerateContent(prompt, signal, options);
+}
+
 async function callGeminiGenerateContent(
   prompt: string,
   signal: AbortSignal,
-  options?: { json?: boolean; maxOutputTokens?: number }
+  options?: GeminiCallOptions
 ): Promise<string> {
   const apiKey =
     process.env.GEMINI_API_KEY?.trim() ||
@@ -358,11 +428,20 @@ async function callGeminiGenerateContent(
     model
   )}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
+  const systemInstruction = options?.systemInstruction?.trim();
+
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     signal,
     body: JSON.stringify({
+      ...(systemInstruction
+        ? {
+            systemInstruction: {
+              parts: [{ text: systemInstruction }],
+            },
+          }
+        : {}),
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.35,
@@ -551,7 +630,8 @@ function normalizeGeminiPlan(
  */
 export async function routeObjectiveToWorkers(
   objective: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  systemInstruction?: string
 ): Promise<{
   workers: string[];
   rationale: string;
@@ -578,7 +658,7 @@ export async function routeObjectiveToWorkers(
         `Objective: ${trimmed}`,
       ].join("\n"),
       signal,
-      { maxOutputTokens: 220 }
+      { maxOutputTokens: 220, systemInstruction }
     );
     const parsed = extractJsonObject(text) as {
       workers?: unknown;
@@ -626,12 +706,17 @@ export async function routeObjectiveToWorkers(
  */
 export async function buildGeminiOrchestratorPlan(
   objective: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  systemInstruction?: string
 ): Promise<GeminiOrchestratorPlan> {
   const trimmed =
     objective.trim() || "Execute a general enterprise swarm cycle.";
 
-  const route = await routeObjectiveToWorkers(trimmed, signal);
+  const route = await routeObjectiveToWorkers(
+    trimmed,
+    signal,
+    systemInstruction
+  );
 
   try {
     const prompt = [
@@ -647,13 +732,16 @@ export async function buildGeminiOrchestratorPlan(
       "- When scrape + sandbox are both required, emit both tool steps so they can run in PARALLEL.",
       "- Include 3 to 6 worker steps (not counting orchestrator).",
       "- Messages: crisp operator telemetry only — no markdown, no prose essays.",
+      "- Honor the active persona systemInstruction for tone and priorities across all steps.",
       "",
       `Router workers: ${route.workers.join(", ") || "auto"}`,
       `Router rationale: ${route.rationale}`,
       `Objective: ${trimmed}`,
     ].join("\n");
 
-    const text = await callGeminiGenerateContent(prompt, signal);
+    const text = await callGeminiGenerateContent(prompt, signal, {
+      systemInstruction,
+    });
     const parsed = extractJsonObject(text);
     const plan = normalizeGeminiPlan(trimmed, parsed);
     return {
@@ -683,7 +771,8 @@ export async function buildGeminiOrchestratorPlan(
 export async function narrateStepWithGemini(
   objective: string,
   stepMessage: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  systemInstruction?: string
 ): Promise<string | null> {
   const apiKey =
     process.env.GEMINI_API_KEY?.trim() ||
@@ -702,7 +791,7 @@ export async function narrateStepWithGemini(
         `Current step: ${stepMessage}`,
       ].join("\n"),
       signal,
-      { json: false, maxOutputTokens: 64 }
+      { json: false, maxOutputTokens: 64, systemInstruction }
     );
     const cleaned = text.replace(/^["']|["']$/g, "").trim();
     return cleaned || null;
@@ -711,11 +800,77 @@ export async function narrateStepWithGemini(
   }
 }
 
+/**
+ * Final user-facing answer for the Actual Results Pane.
+ * Never returns orchestrator/heuristic planning metadata.
+ */
+export async function synthesizeObjectiveAnswer(
+  objective: string,
+  signal: AbortSignal,
+  options?: {
+    systemInstruction?: string;
+    toolDigests?: string[];
+  }
+): Promise<string> {
+  const local = tryLocalObjectiveAnswer(objective);
+  if (local) return local;
+
+  const apiKey =
+    process.env.GEMINI_API_KEY?.trim() ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim() ||
+    process.env.GOOGLE_API_KEY?.trim();
+
+  const digests = (options?.toolDigests ?? [])
+    .map((d) => d.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+
+  if (!apiKey) {
+    if (digests.length > 0) {
+      return digests.join("\n\n");
+    }
+    return `Unable to resolve **${objective.slice(0, 120)}** without a configured Gemini API key.`;
+  }
+
+  try {
+    const text = await callGeminiGenerateContent(
+      [
+        "Answer the operator objective directly for the Actual Results Pane.",
+        "Return 1–4 short sentences or light markdown.",
+        "State the concrete answer or conclusion first.",
+        "Do NOT mention heuristic plans, swarm routing, workers, engines, or orchestration metadata.",
+        "Do NOT invent tool outputs you were not given.",
+        "",
+        `Objective: ${objective}`,
+        digests.length
+          ? `Evidence from tools:\n${digests.map((d, i) => `${i + 1}. ${d.slice(0, 1200)}`).join("\n")}`
+          : "No tool evidence was collected — reason from the objective alone.",
+      ].join("\n"),
+      signal,
+      {
+        json: false,
+        maxOutputTokens: 280,
+        systemInstruction: options?.systemInstruction,
+      }
+    );
+    const cleaned = text.trim();
+    if (cleaned && !/heuristic plan for/i.test(cleaned)) {
+      return cleaned;
+    }
+  } catch {
+    // Fall through to deterministic fallback.
+  }
+
+  if (digests.length > 0) return digests.join("\n\n");
+  return `Resolved objective: ${objective.slice(0, 200)}`;
+}
+
 async function digestToolOutputWithGemini(
   objective: string,
   tool: WorkerToolKind,
   digest: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  systemInstruction?: string
 ): Promise<string | null> {
   const apiKey =
     process.env.GEMINI_API_KEY?.trim() ||
@@ -735,7 +890,7 @@ async function digestToolOutputWithGemini(
         `Output:\n${digest.slice(0, 3500)}`,
       ].join("\n"),
       signal,
-      { json: false, maxOutputTokens: 180 }
+      { json: false, maxOutputTokens: 180, systemInstruction }
     );
     return text.trim() || null;
   } catch {
@@ -751,7 +906,8 @@ export async function executePlanStepTool(
   step: GeminiPlanStep,
   plan: GeminiOrchestratorPlan,
   objective: string,
-  signal: AbortSignal
+  signal: AbortSignal,
+  systemInstruction?: string
 ): Promise<ToolExecutionResult | null> {
   if (!step.tool) return null;
 
@@ -785,7 +941,7 @@ export async function executePlanStepTool(
         .split("\n")
         .filter(Boolean)
         .slice(0, 6)
-        .map((line) => `[webScraper:content] ${line.slice(0, 140)}`);
+        .map((line) => `[webScraper:snippet] ${line.slice(0, 140)}`);
       logLines.push(...snippet);
     }
 
@@ -794,12 +950,13 @@ export async function executePlanStepTool(
           objective,
           "webScraper",
           scrape.summary,
-          signal
+          signal,
+          systemInstruction
         )
       : null;
 
     if (geminiDigest) {
-      logLines.push(`[gemini:digest] ${geminiDigest}`);
+      logLines.push(`[SYSTEM:tool-digest] ${geminiDigest}`);
     }
 
     return {
@@ -835,10 +992,11 @@ export async function executePlanStepTool(
     objective,
     "codeSandbox",
     sandbox.preview,
-    signal
+    signal,
+    systemInstruction
   );
   if (geminiDigest) {
-    logLines.push(`[gemini:digest] ${geminiDigest}`);
+    logLines.push(`[SYSTEM:tool-digest] ${geminiDigest}`);
   }
 
   return {

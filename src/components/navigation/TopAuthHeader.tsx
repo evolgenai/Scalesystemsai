@@ -7,6 +7,7 @@ import { Settings, UserRound } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import AuthModal from "@/components/auth/AuthModal";
 import WorkspaceSwitcher from "@/components/navigation/WorkspaceSwitcher";
+import TeamPresenceBar from "@/components/org/TeamPresenceBar";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
   OPEN_AUTH_EVENT,
@@ -110,6 +111,7 @@ export default function TopAuthHeader() {
             <div className="h-8 w-28 animate-pulse rounded-lg bg-white/5" />
           ) : user ? (
             <>
+              <TeamPresenceBar />
               <WorkspaceSwitcher enabled />
               <Link
                 href="/settings"

@@ -98,6 +98,8 @@ model User {
 
   memberships  OrgMembership[]
 
+  workspaceMemories WorkspaceMemory[]
+
   subscription Subscription?
 
   createdAt    DateTime         @default(now())
@@ -167,20 +169,39 @@ model SystemSnapshot {
 }
 
 model SwarmSession {
-  id             String   @id @default(cuid())
-  userId         String
-  orgId          String?
-  objective      String
-  resultMarkdown String   @db.Text
-  kernelLogs     String   @db.Text
-  status         String   @default("COMPLETED")
-  createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  id                     String   @id @default(cuid())
+  userId                 String
+  orgId                  String?
+  objective              String
+  resultMarkdown         String   @db.Text
+  kernelLogs             String   @db.Text
+  /** ACTIVE | PAUSED | PENDING_CONSENSUS | COMPLETED | FAILED | TIMEOUT */
+  status                 String   @default("COMPLETED")
+  /** Operator HITL directive; cleared after the stream loop consumes it. */
+  interventionDirective  String?  @db.Text
+  /** Human debate vote: creator | critic — cleared after the loop consumes it. */
+  consensusVote          String?
+  /** Wall-clock duration of the swarm run in milliseconds. */
+  durationMs             Int      @default(0)
+  /** Execution credit units consumed by this run. */
+  creditsUsed            Int      @default(0)
+  /** Optional tokens estimate (chars/4 heuristic when provider tokens unavailable). */
+  tokensUsed             Int      @default(0)
+  /** Persona label used for the run (Researcher, Security, Custom, …). */
+  persona                String?
+  /** True when the run entered PAUSED / received an operator intervention. */
+  hitlUsed               Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization           Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([orgId])
+  @@index([userId, orgId, createdAt])
+  @@index([orgId, createdAt])
   @@index([createdAt])
+  @@index([status])
 }
 
 model Organization {
@@ -191,6 +212,22 @@ model Organization {
   updatedAt   DateTime        @updatedAt
   memberships OrgMembership[]
   sessions    SwarmSession[]
+  memories    WorkspaceMemory[]
+}
+
+model WorkspaceMemory {
+  id        String        @id @default(cuid())
+  orgId     String?
+  userId    String
+  fragment  String        @db.Text
+  keywords  String[]
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([orgId])
+  @@index([createdAt])
 }
 
 model OrgMembership {

@@ -1,11 +1,16 @@
 "use client";
 
 import { Play, Square, RotateCcw, SlidersHorizontal } from "lucide-react";
+import AgentPersonaSelector from "@/components/dashboard/AgentPersonaSelector";
 import type { StreamConnectionState } from "@/lib/agents/useAgentStream";
 
 type AgentSpawnPanelProps = {
   objective: string;
   onObjectiveChange: (value: string) => void;
+  personaId: string;
+  onPersonaChange: (personaId: string) => void;
+  customSystemPrompt: string;
+  onCustomSystemPromptChange: (value: string) => void;
   connection: StreamConnectionState;
   overallProgress: number;
   onStart: () => void;
@@ -17,6 +22,7 @@ const CONNECTION_LABEL: Record<StreamConnectionState, string> = {
   idle: "Idle",
   connecting: "Connecting…",
   live: "Live",
+  paused: "Paused",
   error: "Error",
   closed: "Closed",
 };
@@ -24,16 +30,23 @@ const CONNECTION_LABEL: Record<StreamConnectionState, string> = {
 export default function AgentSpawnPanel({
   objective,
   onObjectiveChange,
+  personaId,
+  onPersonaChange,
+  customSystemPrompt,
+  onCustomSystemPromptChange,
   connection,
   overallProgress,
   onStart,
   onStop,
   onClear,
 }: AgentSpawnPanelProps) {
-  const isLive = connection === "live" || connection === "connecting";
+  const isBusy =
+    connection === "live" ||
+    connection === "connecting" ||
+    connection === "paused";
 
   return (
-    <section className="flex h-[500px] max-h-[600px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950/50 backdrop-blur-md">
+    <section className="flex min-h-[500px] max-h-[720px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950/50 backdrop-blur-md">
       <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-4 py-3">
         <SlidersHorizontal className="h-4 w-4 text-cyan-accent" aria-hidden />
         <h2 className="font-display text-sm font-semibold text-white">
@@ -42,6 +55,13 @@ export default function AgentSpawnPanel({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
+        <AgentPersonaSelector
+          personaId={personaId}
+          onPersonaChange={onPersonaChange}
+          customSystemPrompt={customSystemPrompt}
+          onCustomSystemPromptChange={onCustomSystemPromptChange}
+        />
+
         <div>
           <label
             htmlFor="swarm-objective"
@@ -85,18 +105,20 @@ export default function AgentSpawnPanel({
               className={`h-2 w-2 rounded-full ${
                 connection === "live"
                   ? "animate-pulse bg-emerald-400"
-                  : connection === "error"
-                    ? "bg-rose-400"
-                    : connection === "connecting"
-                      ? "animate-pulse bg-amber-400"
-                      : "bg-slate-500"
+                  : connection === "paused"
+                    ? "animate-pulse bg-amber-400"
+                    : connection === "error"
+                      ? "bg-rose-400"
+                      : connection === "connecting"
+                        ? "animate-pulse bg-amber-400"
+                        : "bg-slate-500"
               }`}
               aria-hidden
             />
             {CONNECTION_LABEL[connection]}
           </p>
           <p className="mt-1 font-mono text-[10px] text-slate-dim">
-            GET /api/agents/stream?objective=…
+            GET /api/agents/stream?objective=&personaId=…
           </p>
         </div>
 
@@ -104,7 +126,7 @@ export default function AgentSpawnPanel({
           <button
             type="button"
             onClick={onStart}
-            disabled={isLive}
+            disabled={isBusy}
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-cyan-accent/40 bg-cyan-accent/10 px-3 py-2.5 text-xs font-semibold text-cyan-accent transition-all duration-500 ease-out hover:bg-cyan-accent/20 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Play className="h-3.5 w-3.5" aria-hidden />
@@ -113,7 +135,7 @@ export default function AgentSpawnPanel({
           <button
             type="button"
             onClick={onStop}
-            disabled={!isLive}
+            disabled={!isBusy}
             className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-semibold text-slate-muted transition-all duration-500 ease-out hover:border-rose-400/30 hover:text-rose-300 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Square className="h-3.5 w-3.5" aria-hidden />

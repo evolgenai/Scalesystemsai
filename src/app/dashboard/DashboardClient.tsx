@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
@@ -15,6 +15,8 @@ import LiveStreamTerminal from "@/components/dashboard/LiveStreamTerminal";
 import WorkspaceHistorySidebar from "@/components/dashboard/WorkspaceHistorySidebar";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
+import { DEFAULT_PERSONA_ID } from "@/lib/agents/personaPresets";
+import { reportWorkspaceActivity } from "@/lib/org/useWorkspacePresence";
 
 const DEFAULT_OBJECTIVE =
   "Analyze https://example.com and run a TypeScript lead-scoring script in the sandbox.";
@@ -23,10 +25,15 @@ export default function DashboardClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [objective, setObjective] = useState(DEFAULT_OBJECTIVE);
+  const [personaId, setPersonaId] = useState(DEFAULT_PERSONA_ID);
+  const [customSystemPrompt, setCustomSystemPrompt] = useState("");
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null
   );
   const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
+  const typingIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   const {
     lines,
@@ -35,14 +42,24 @@ export default function DashboardClient() {
     connection,
     overallProgress,
     paymentRequired,
+    sessionId,
+    debateTurns,
+    consensusPending,
+    debateVote,
+    recalledMemories,
     start,
     stop,
+    pause,
+    resume,
     clear,
     dismissPaymentRequired,
+    registerDebateVote,
     hydrateFromHistory,
   } = useAgentStream({
     enabled: false,
     objective,
+    personaId,
+    customSystemPrompt,
     loop: false,
   });
 
@@ -61,6 +78,36 @@ export default function DashboardClient() {
     if (connection === "closed") {
       setHistoryRefreshToken((token) => token + 1);
     }
+  }, [connection]);
+
+  useEffect(() => {
+    if (
+      connection === "live" ||
+      connection === "paused" ||
+      connection === "connecting"
+    ) {
+      reportWorkspaceActivity("spectating");
+      return;
+    }
+    reportWorkspaceActivity("idle");
+  }, [connection]);
+
+  const handleObjectiveChange = useCallback((value: string) => {
+    setObjective(value);
+    if (
+      connection === "live" ||
+      connection === "paused" ||
+      connection === "connecting"
+    ) {
+      return;
+    }
+    reportWorkspaceActivity("typing");
+    if (typingIdleTimerRef.current) {
+      clearTimeout(typingIdleTimerRef.current);
+    }
+    typingIdleTimerRef.current = setTimeout(() => {
+      reportWorkspaceActivity("idle");
+    }, 2500);
   }, [connection]);
 
   const handleStart = useCallback(() => {
@@ -222,7 +269,11 @@ export default function DashboardClient() {
             <div className="lg:col-span-2">
               <AgentSpawnPanel
                 objective={objective}
-                onObjectiveChange={setObjective}
+                onObjectiveChange={handleObjectiveChange}
+                personaId={personaId}
+                onPersonaChange={setPersonaId}
+                customSystemPrompt={customSystemPrompt}
+                onCustomSystemPromptChange={setCustomSystemPrompt}
                 connection={connection}
                 overallProgress={overallProgress}
                 onStart={handleStart}
@@ -235,8 +286,16 @@ export default function DashboardClient() {
                 lines={lines}
                 results={results}
                 connection={connection}
+                sessionId={sessionId}
+                debateTurns={debateTurns}
+                consensusPending={consensusPending}
+                debateVote={debateVote}
+                recalledMemories={recalledMemories}
+                onDebateVoteRegistered={registerDebateVote}
                 paymentRequired={paymentRequired}
                 onDismissPaymentRequired={dismissPaymentRequired}
+                onPause={pause}
+                onResume={resume}
                 onProceedCheckout={() => {
                   trackFunnelEvent({ event: "checkout_redirect" });
                   router.push("/checkout");

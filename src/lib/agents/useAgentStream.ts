@@ -5,6 +5,7 @@ import {
   VISUALIZER_AGENTS,
   type AgentCardState,
   type AgentStreamEvent,
+  type DebateRole,
   type VisualizerStatus,
 } from "@/lib/agents/streamProtocol";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
@@ -14,6 +15,7 @@ export type StreamConnectionState =
   | "idle"
   | "connecting"
   | "live"
+  | "paused"
   | "error"
   | "closed";
 
@@ -23,6 +25,22 @@ export type StreamResultItem = {
   agent?: string;
 };
 
+export type DebateTurn = {
+  id: string;
+  role: DebateRole;
+  message: string;
+  timestamp: string;
+  agentName?: string;
+};
+
+export type DebateVote = "creator" | "critic";
+
+export type RecalledMemory = {
+  id: string;
+  text: string;
+  score: number;
+};
+
 export type UseAgentStreamOptions = {
   /** When false, the stream is not opened automatically. */
   enabled?: boolean;
@@ -30,6 +48,10 @@ export type UseAgentStreamOptions = {
   maxLines?: number;
   /** Default objective used when start() is called without an override. */
   objective?: string;
+  /** Selected personality template id (ignored when customSystemPrompt is set). */
+  personaId?: string;
+  /** Custom system instructions — overrides persona presets when non-empty. */
+  customSystemPrompt?: string;
   /** When true, stream loops. Dashboard launches should keep this false. */
   loop?: boolean;
 };
@@ -42,10 +64,23 @@ export type UseAgentStreamResult = {
   connection: StreamConnectionState;
   overallProgress: number;
   paymentRequired: boolean;
+  /** Client-correlated id for HITL intervene calls during an active run. */
+  sessionId: string | null;
+  /** Creator/Critic dialogue turns from debate_turn SSE events. */
+  debateTurns: DebateTurn[];
+  /** True after consensus_pending — show human vote HUD. */
+  consensusPending: boolean;
+  /** Locked vote after successful POST /api/agents/debate/vote. */
+  debateVote: DebateVote | null;
+  /** Memories recalled for the active swarm run (memory_recalled SSE). */
+  recalledMemories: RecalledMemory[];
   start: (objectiveOverride?: string) => void;
   stop: () => void;
+  pause: () => void;
+  resume: () => void;
   clear: () => void;
   dismissPaymentRequired: () => void;
+  registerDebateVote: (vote: DebateVote) => void;
   /** Replay a saved SwarmSession into the dual-pane terminal. */
   hydrateFromHistory: (input: {
     lines: AgentStreamEvent[];
@@ -134,8 +169,19 @@ export function consumeSseBuffer(buffer: string): {
     const payload = dataLines.join("\n");
     try {
       const parsed = JSON.parse(payload) as AgentStreamEvent;
-      if (parsed && typeof parsed.message === "string") {
-        events.push(parsed);
+      if (!parsed || typeof parsed !== "object") continue;
+      const type = parsed.type;
+      const isSpecial =
+        type === "debate_turn" ||
+        type === "consensus_pending" ||
+        type === "memory_recalled";
+      if (typeof parsed.message === "string" || isSpecial) {
+        events.push({
+          ...parsed,
+          message:
+            typeof parsed.message === "string" ? parsed.message : "",
+          timestamp: parsed.timestamp || new Date().toISOString(),
+        });
       }
     } catch {
       // Incomplete or malformed JSON — discard this frame only.
@@ -182,7 +228,10 @@ function applyEventToAgents(
 function buildStreamUrl(
   endpoint: string,
   objective: string,
-  loop: boolean
+  loop: boolean,
+  personaId?: string,
+  customSystemPrompt?: string,
+  sessionId?: string | null
 ): string {
   const url = new URL(
     endpoint,
@@ -192,6 +241,18 @@ function buildStreamUrl(
   );
   url.searchParams.set("objective", objective);
   url.searchParams.set("loop", loop ? "1" : "0");
+
+  const trimmedCustom = customSystemPrompt?.trim() ?? "";
+  if (trimmedCustom) {
+    url.searchParams.set("customSystemPrompt", trimmedCustom);
+  }
+  if (personaId?.trim()) {
+    url.searchParams.set("personaId", personaId.trim());
+  }
+  if (sessionId?.trim()) {
+    url.searchParams.set("sessionId", sessionId.trim());
+  }
+
   return `${url.pathname}?${url.searchParams.toString()}`;
 }
 
@@ -203,6 +264,8 @@ export function useAgentStream(
     endpoint = "/api/agents/stream",
     maxLines = 200,
     objective = "Qualify inbound B2B leads, sync CRM vectors, and consolidate schema output.",
+    personaId,
+    customSystemPrompt,
     loop = false,
   } = options;
 
@@ -213,23 +276,45 @@ export function useAgentStream(
     useState<StreamConnectionState>("idle");
   const [overallProgress, setOverallProgress] = useState(0);
   const [paymentRequired, setPaymentRequired] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [debateTurns, setDebateTurns] = useState<DebateTurn[]>([]);
+  const [consensusPending, setConsensusPending] = useState(false);
+  const [debateVote, setDebateVote] = useState<DebateVote | null>(null);
+  const [recalledMemories, setRecalledMemories] = useState<RecalledMemory[]>(
+    []
+  );
 
   const abortRef = useRef<AbortController | null>(null);
+  const pausedRef = useRef(false);
   const objectiveRef = useRef(objective);
   objectiveRef.current = objective;
+  const personaIdRef = useRef(personaId);
+  personaIdRef.current = personaId;
+  const customSystemPromptRef = useRef(customSystemPrompt);
+  customSystemPromptRef.current = customSystemPrompt;
 
   const clear = useCallback(() => {
     setLines([]);
     setResults([]);
     setAgents(initialAgents());
     setOverallProgress(0);
+    setDebateTurns([]);
+    setConsensusPending(false);
+    setDebateVote(null);
+    setRecalledMemories([]);
   }, []);
 
   const hydrateFromHistory = useCallback(
     (input: { lines: AgentStreamEvent[]; results: StreamResultItem[] }) => {
       abortRef.current?.abort();
       abortRef.current = null;
+      pausedRef.current = false;
       setPaymentRequired(false);
+      setSessionId(null);
+      setDebateTurns([]);
+      setConsensusPending(false);
+      setDebateVote(null);
+      setRecalledMemories([]);
       setConnection("closed");
       setOverallProgress(100);
       setAgents(initialAgents());
@@ -244,11 +329,34 @@ export function useAgentStream(
   }, []);
 
   const stop = useCallback(() => {
+    pausedRef.current = false;
     abortRef.current?.abort();
     abortRef.current = null;
     setConnection((prev) =>
-      prev === "live" || prev === "connecting" ? "closed" : prev
+      prev === "live" || prev === "connecting" || prev === "paused"
+        ? "closed"
+        : prev
     );
+  }, []);
+
+  const pause = useCallback(() => {
+    setConnection((prev) => {
+      if (prev !== "live") return prev;
+      pausedRef.current = true;
+      return "paused";
+    });
+  }, []);
+
+  const resume = useCallback(() => {
+    setConnection((prev) => {
+      if (prev !== "paused") return prev;
+      pausedRef.current = false;
+      return "live";
+    });
+  }, []);
+
+  const registerDebateVote = useCallback((vote: DebateVote) => {
+    setDebateVote(vote);
   }, []);
 
   const start = useCallback(
@@ -256,16 +364,38 @@ export function useAgentStream(
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
+      pausedRef.current = false;
 
       const activeObjective =
         objectiveOverride?.trim() || objectiveRef.current.trim();
-      const streamUrl = buildStreamUrl(endpoint, activeObjective, loop);
+      const nextSessionId =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `swarm-${Date.now()}`;
+      setSessionId(nextSessionId);
+      setDebateTurns([]);
+      setConsensusPending(false);
+      setDebateVote(null);
+      setRecalledMemories([]);
+
+      const streamUrl = buildStreamUrl(
+        endpoint,
+        activeObjective,
+        loop,
+        personaIdRef.current,
+        customSystemPromptRef.current,
+        nextSessionId
+      );
 
       setPaymentRequired(false);
       setConnection("connecting");
       trackFunnelEvent({
         event: "stream_launch",
-        metadata: { length: activeObjective.length },
+        metadata: {
+          length: activeObjective.length,
+          personaId: personaIdRef.current ?? null,
+          hasCustomPrompt: Boolean(customSystemPromptRef.current?.trim()),
+        },
       });
 
       void (async () => {
@@ -342,16 +472,86 @@ export function useAgentStream(
 
               if (events.length === 0 || !isActive()) continue;
 
-              setLines((prev) => [...prev, ...events].slice(-maxLines));
+              const newDebateTurns: DebateTurn[] = [];
+              let hitConsensus = false;
+              let nextRecalled: RecalledMemory[] | null = null;
+              for (const event of events) {
+                if (event.type === "debate_turn") {
+                  const role: DebateRole =
+                    event.role === "critic" ? "critic" : "creator";
+                  newDebateTurns.push({
+                    id: `${event.timestamp}-${role}-${newDebateTurns.length}`,
+                    role,
+                    message: event.message || "(empty turn)",
+                    timestamp: event.timestamp,
+                    agentName: event.agentName,
+                  });
+                }
+                if (event.type === "consensus_pending") {
+                  hitConsensus = true;
+                }
+                if (event.type === "memory_recalled" && Array.isArray(event.memories)) {
+                  nextRecalled = event.memories
+                    .map((item, index) => {
+                      if (!item || typeof item !== "object") return null;
+                      const row = item as {
+                        id?: string;
+                        text?: string;
+                        score?: number;
+                      };
+                      const text = String(row.text ?? "").trim();
+                      if (!text) return null;
+                      return {
+                        id: String(row.id ?? `mem-${index}`),
+                        text,
+                        score:
+                          typeof row.score === "number" &&
+                          Number.isFinite(row.score)
+                            ? row.score
+                            : 0,
+                      } satisfies RecalledMemory;
+                    })
+                    .filter((item): item is RecalledMemory => item !== null);
+                }
+              }
+
+              if (newDebateTurns.length > 0) {
+                setDebateTurns((prev) =>
+                  [...prev, ...newDebateTurns].slice(-80)
+                );
+              }
+
+              if (nextRecalled) {
+                setRecalledMemories(nextRecalled.slice(0, 24));
+              }
+
+              if (hitConsensus) {
+                setConsensusPending(true);
+                pausedRef.current = true;
+                setConnection("paused");
+              }
+
+              // HITL / consensus pause: keep draining SSE, suspend non-debate UI.
+              if (pausedRef.current) continue;
+
+              const nonDebate = events.filter(
+                (event) =>
+                  event.type !== "debate_turn" &&
+                  event.type !== "consensus_pending" &&
+                  event.type !== "memory_recalled"
+              );
+              if (nonDebate.length === 0) continue;
+
+              setLines((prev) => [...prev, ...nonDebate].slice(-maxLines));
               setAgents((prev) =>
-                events.reduce(
+                nonDebate.reduce(
                   (acc, event) => applyEventToAgents(acc, event),
                   prev
                 )
               );
 
               const newResults: StreamResultItem[] = [];
-              for (const event of events) {
+              for (const event of nonDebate) {
                 const item = extractResultItem(event, resultIndex++);
                 if (item) newResults.push(item);
               }
@@ -359,7 +559,7 @@ export function useAgentStream(
                 setResults((prev) => [...prev, ...newResults].slice(-40));
               }
 
-              const withProgress = [...events]
+              const withProgress = [...nonDebate]
                 .reverse()
                 .find((e) => typeof e.progress === "number");
               if (withProgress && typeof withProgress.progress === "number") {
@@ -375,6 +575,7 @@ export function useAgentStream(
           }
 
           if (isActive() && !controller.signal.aborted) {
+            pausedRef.current = false;
             setConnection("closed");
           }
         } catch (error) {
@@ -385,11 +586,13 @@ export function useAgentStream(
             isAbortError(error)
           ) {
             if (isActive()) {
+              pausedRef.current = false;
               setConnection("closed");
             }
             return;
           }
 
+          pausedRef.current = false;
           setConnection("error");
           setLines((prev) => [
             ...prev.slice(-(maxLines - 1)),
@@ -427,10 +630,18 @@ export function useAgentStream(
     connection,
     overallProgress,
     paymentRequired,
+    sessionId,
+    debateTurns,
+    consensusPending,
+    debateVote,
+    recalledMemories,
     start,
     stop,
+    pause,
+    resume,
     clear,
     dismissPaymentRequired,
+    registerDebateVote,
     hydrateFromHistory,
   };
 }

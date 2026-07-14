@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
+import MemoryBankCard from "@/components/org/MemoryBankCard";
 import TeamMembersInviteCard from "@/components/org/TeamMembersInviteCard";
 
 export default function SettingsPage() {
@@ -29,7 +30,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-xl space-y-6 py-10 text-white">
+    <main className="mx-auto max-w-3xl space-y-6 py-10 text-white">
       <div>
         <h1 className="font-display text-2xl font-bold">Account Settings</h1>
         <p className="mt-2 text-sm text-slate-muted">
@@ -54,12 +55,20 @@ export default function SettingsPage() {
 
       <TeamMembersInviteCard />
 
+      <MemoryBankCard />
+
       <div className="flex flex-wrap gap-3">
         <Link
           href="/dashboard"
           className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-muted hover:text-white"
         >
           Back to dashboard
+        </Link>
+        <Link
+          href="/analytics"
+          className="rounded-xl border border-cyan-accent/40 bg-cyan-accent/10 px-4 py-2 text-xs font-semibold text-cyan-accent"
+        >
+          Analytics
         </Link>
         <Link
           href="/checkout"

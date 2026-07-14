@@ -16,7 +16,18 @@ export type AgentStreamEventType =
   | "error"
   | "result"
   | "summary"
-  | "command";
+  | "command"
+  | "paused"
+  | "resumed"
+  | "debate_turn"
+  | "consensus_pending"
+  | "memory_recalled";
+
+export type RecalledMemoryItem = {
+  id: string;
+  text: string;
+  score: number;
+};
 
 export type AgentStreamEvent = {
   type: AgentStreamEventType;
@@ -30,8 +41,16 @@ export type AgentStreamEvent = {
   prismaStatus?: AgentStatus;
   /** Linux-style command rendered in the verbose feed */
   command?: string;
-  /** Human-friendly markdown for the results pane */
+  /** Human-friendly markdown for the Results Pane */
   resultMarkdown?: string;
+  /** Live SwarmSession id for HITL steering */
+  sessionId?: string;
+  /** Debate panel role for `debate_turn` events */
+  role?: "creator" | "critic";
+  /** Debate turn body (mirrors message for FE convenience) */
+  text?: string;
+  /** Semantic memory hits for `memory_recalled` events */
+  memories?: RecalledMemoryItem[];
   timestamp: string;
 };
 
