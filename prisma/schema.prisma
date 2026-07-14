@@ -80,9 +80,11 @@ model User {
 
   plan         String           @default("FREE")
 
-  agents       Agent[]
+  agents        Agent[]
 
   swarmSessions SwarmSession[]
+
+  memberships   OrgMembership[]
 
   subscription Subscription?
 
@@ -152,16 +154,42 @@ model SystemSnapshot {
   timestamp         DateTime @default(now())
 }
 
+model Organization {
+  id            String          @id @default(cuid())
+  name          String
+  slug          String          @unique
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  members       OrgMembership[]
+  swarmSessions SwarmSession[]
+}
+
+model OrgMembership {
+  id           String       @id @default(cuid())
+  orgId        String
+  userId       String
+  role         String       @default("MEMBER") // OWNER, ADMIN, MEMBER
+  createdAt    DateTime     @default(now())
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([userId])
+}
+
 model SwarmSession {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   userId         String
+  orgId          String?
   objective      String
-  resultMarkdown String   @db.Text
-  kernelLogs     String   @db.Text
-  status         String   @default("COMPLETED")
-  createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resultMarkdown String        @db.Text
+  kernelLogs     String        @db.Text
+  status         String        @default("COMPLETED")
+  createdAt      DateTime      @default(now())
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([orgId])
   @@index([createdAt])
 }

@@ -12,6 +12,7 @@ import {
   type ToolExecutionResult,
 } from "@/lib/agents/geminiOrchestrator";
 import { resolveRequestUser } from "@/lib/auth/requestUser";
+import { resolveOrgContext } from "@/lib/org/orgScope";
 import { evaluateStreamAccess } from "@/lib/auth/subscriptionGating";
 import { persistSwarmSession } from "@/lib/agents/persistSwarmSession";
 import { NextResponse } from "next/server";
@@ -187,6 +188,20 @@ async function runToolStep(
 
 export async function GET(request: Request) {
   const profile = await resolveRequestUser(request);
+  const org = await resolveOrgContext(request, profile.id);
+  const orgIdHeader = request.headers.get("x-org-id")?.trim();
+  const orgSlugHeader = request.headers.get("x-org-slug")?.trim();
+
+  if ((orgIdHeader || orgSlugHeader) && profile.id && !org) {
+    return NextResponse.json(
+      {
+        error: "Forbidden",
+        message: "Organization not found or access denied.",
+      },
+      { status: 403 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const forceExceeded =
     searchParams.get("quotaExceeded") === "1" ||
@@ -243,6 +258,7 @@ export async function GET(request: Request) {
           persisted = true;
           await persistSwarmSession({
             userId: profile.id,
+            orgId: org?.orgId ?? null,
             objective,
             events: recordedEvents,
             status: sessionStatus,
