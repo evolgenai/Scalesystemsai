@@ -285,6 +285,30 @@ function emitToolOutcome(
     );
   }
 
+  if (toolResult.tool === "codeSandbox" && toolResult.sandbox) {
+    const stdout = toolResult.sandbox.stdout.join("\n");
+    const stderr = toolResult.sandbox.stderr.join("\n");
+    push(
+      createStreamEvent({
+        type: "sandbox_execution",
+        message: toolResult.success
+          ? `[sandbox] execution complete (exit ${toolResult.sandbox.exitCode})`
+          : `[sandbox] execution failed (exit ${toolResult.sandbox.exitCode})`,
+        agentId: step.agentId,
+        agentName: step.agentName,
+        status: toolResult.success ? "SUCCESS" : "ERROR",
+        progress: Math.max(progress, 16),
+        stage: `${step.stage}:sandbox`,
+        prismaStatus: toolResult.success ? "EXECUTING" : "ERROR",
+        language: toolResult.sandbox.language,
+        stdout,
+        stderr,
+        exitCode: toolResult.sandbox.exitCode,
+        sandboxStatus: toolResult.success ? "success" : "error",
+      })
+    );
+  }
+
   // Tool digests stay in the Verbose Kernel Feed. User-facing answers are
   // emitted once at the end via synthesizeObjectiveAnswer → type:"result".
   const geminiDigest = toolResult.logLines

@@ -41,6 +41,18 @@ export type RecalledMemory = {
   score: number;
 };
 
+export type SandboxExecutionFrame = {
+  id: string;
+  status: "idle" | "running" | "success" | "error";
+  language?: string;
+  code?: string;
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  timestamp: string;
+  message?: string;
+};
+
 export type UseAgentStreamOptions = {
   /** When false, the stream is not opened automatically. */
   enabled?: boolean;
@@ -74,6 +86,8 @@ export type UseAgentStreamResult = {
   debateVote: DebateVote | null;
   /** Memories recalled for the active swarm run (memory_recalled SSE). */
   recalledMemories: RecalledMemory[];
+  /** Live sandbox_execution SSE frames for the current run. */
+  sandboxFrames: SandboxExecutionFrame[];
   start: (objectiveOverride?: string) => void;
   stop: () => void;
   pause: () => void;
@@ -174,7 +188,8 @@ export function consumeSseBuffer(buffer: string): {
       const isSpecial =
         type === "debate_turn" ||
         type === "consensus_pending" ||
-        type === "memory_recalled";
+        type === "memory_recalled" ||
+        type === "sandbox_execution";
       if (typeof parsed.message === "string" || isSpecial) {
         events.push({
           ...parsed,
@@ -283,6 +298,9 @@ export function useAgentStream(
   const [recalledMemories, setRecalledMemories] = useState<RecalledMemory[]>(
     []
   );
+  const [sandboxFrames, setSandboxFrames] = useState<SandboxExecutionFrame[]>(
+    []
+  );
 
   const abortRef = useRef<AbortController | null>(null);
   const pausedRef = useRef(false);
@@ -302,6 +320,7 @@ export function useAgentStream(
     setConsensusPending(false);
     setDebateVote(null);
     setRecalledMemories([]);
+    setSandboxFrames([]);
   }, []);
 
   const hydrateFromHistory = useCallback(
@@ -315,6 +334,7 @@ export function useAgentStream(
       setConsensusPending(false);
       setDebateVote(null);
       setRecalledMemories([]);
+      setSandboxFrames([]);
       setConnection("closed");
       setOverallProgress(100);
       setAgents(initialAgents());
@@ -377,6 +397,7 @@ export function useAgentStream(
       setConsensusPending(false);
       setDebateVote(null);
       setRecalledMemories([]);
+      setSandboxFrames([]);
 
       const streamUrl = buildStreamUrl(
         endpoint,
@@ -475,6 +496,7 @@ export function useAgentStream(
               const newDebateTurns: DebateTurn[] = [];
               let hitConsensus = false;
               let nextRecalled: RecalledMemory[] | null = null;
+              const newSandboxFrames: SandboxExecutionFrame[] = [];
               for (const event of events) {
                 if (event.type === "debate_turn") {
                   const role: DebateRole =
@@ -513,6 +535,37 @@ export function useAgentStream(
                     })
                     .filter((item): item is RecalledMemory => item !== null);
                 }
+                if (event.type === "sandbox_execution") {
+                  const exitCode =
+                    typeof event.exitCode === "number" ? event.exitCode : null;
+                  const sandboxStatus =
+                    event.sandboxStatus === "idle" ||
+                    event.sandboxStatus === "running" ||
+                    event.sandboxStatus === "success" ||
+                    event.sandboxStatus === "error"
+                      ? event.sandboxStatus
+                      : exitCode === null
+                        ? event.stderr
+                          ? "error"
+                          : event.stdout
+                            ? "success"
+                            : "running"
+                        : exitCode === 0
+                          ? "success"
+                          : "error";
+
+                  newSandboxFrames.push({
+                    id: `${event.timestamp}-sandbox-${newSandboxFrames.length}`,
+                    status: sandboxStatus,
+                    language: event.language,
+                    code: event.code,
+                    stdout: event.stdout ?? event.message ?? "",
+                    stderr: event.stderr ?? "",
+                    exitCode,
+                    timestamp: event.timestamp,
+                    message: event.message,
+                  });
+                }
               }
 
               if (newDebateTurns.length > 0) {
@@ -523,6 +576,12 @@ export function useAgentStream(
 
               if (nextRecalled) {
                 setRecalledMemories(nextRecalled.slice(0, 24));
+              }
+
+              if (newSandboxFrames.length > 0) {
+                setSandboxFrames((prev) =>
+                  [...prev, ...newSandboxFrames].slice(-40)
+                );
               }
 
               if (hitConsensus) {
@@ -538,7 +597,8 @@ export function useAgentStream(
                 (event) =>
                   event.type !== "debate_turn" &&
                   event.type !== "consensus_pending" &&
-                  event.type !== "memory_recalled"
+                  event.type !== "memory_recalled" &&
+                  event.type !== "sandbox_execution"
               );
               if (nonDebate.length === 0) continue;
 
@@ -635,6 +695,7 @@ export function useAgentStream(
     consensusPending,
     debateVote,
     recalledMemories,
+    sandboxFrames,
     start,
     stop,
     pause,

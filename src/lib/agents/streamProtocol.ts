@@ -21,13 +21,22 @@ export type AgentStreamEventType =
   | "resumed"
   | "debate_turn"
   | "consensus_pending"
-  | "memory_recalled";
+  | "memory_recalled"
+  | "sandbox_execution";
 
 export type RecalledMemoryItem = {
   id: string;
   text: string;
   score: number;
 };
+
+export type SandboxLanguage = "python" | "javascript";
+
+export type SandboxExecutionStatus =
+  | "idle"
+  | "running"
+  | "success"
+  | "error";
 
 export type AgentStreamEvent = {
   type: AgentStreamEventType;
@@ -51,6 +60,13 @@ export type AgentStreamEvent = {
   text?: string;
   /** Semantic memory hits for `memory_recalled` events */
   memories?: RecalledMemoryItem[];
+  /** Sandbox runner fields for `sandbox_execution` events */
+  language?: SandboxLanguage | string;
+  code?: string;
+  stdout?: string;
+  stderr?: string;
+  exitCode?: number;
+  sandboxStatus?: SandboxExecutionStatus;
   timestamp: string;
 };
 

@@ -20,12 +20,15 @@ import type {
   DebateTurn,
   DebateVote,
   RecalledMemory,
+  SandboxExecutionFrame,
   StreamConnectionState,
   StreamResultItem,
 } from "@/lib/agents/useAgentStream";
 import CapacityLimitModal from "@/components/dashboard/CapacityLimitModal";
 import DebateArena from "@/components/dashboard/DebateArena";
 import RecalledMemoriesIndicator from "@/components/dashboard/RecalledMemoriesIndicator";
+import ResultMarkdown from "@/components/dashboard/ResultMarkdown";
+import SandboxConsole from "@/components/dashboard/SandboxConsole";
 import WorkspaceActivityFeed from "@/components/org/WorkspaceActivityFeed";
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 
@@ -39,6 +42,7 @@ type LiveStreamTerminalProps = {
   consensusPending?: boolean;
   debateVote?: DebateVote | null;
   recalledMemories?: RecalledMemory[];
+  sandboxFrames?: SandboxExecutionFrame[];
   onDebateVoteRegistered?: (vote: DebateVote) => void;
   paymentRequired?: boolean;
   onDismissPaymentRequired?: () => void;
@@ -86,7 +90,8 @@ function verbosify(event: AgentStreamEvent): string[] {
   if (
     event.type === "debate_turn" ||
     event.type === "consensus_pending" ||
-    event.type === "memory_recalled"
+    event.type === "memory_recalled" ||
+    event.type === "sandbox_execution"
   ) {
     return [];
   }
@@ -175,6 +180,7 @@ function ResultsPane({
   consensusPending,
   sessionId,
   debateVote,
+  sandboxFrames,
   onDebateVoteRegistered,
 }: {
   results: StreamResultItem[];
@@ -182,6 +188,7 @@ function ResultsPane({
   consensusPending: boolean;
   sessionId: string | null;
   debateVote: DebateVote | null;
+  sandboxFrames: SandboxExecutionFrame[];
   onDebateVoteRegistered?: (vote: DebateVote) => void;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -197,7 +204,7 @@ function ResultsPane({
     const el = scrollerRef.current;
     if (!el || leftTab !== "results") return;
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [results, leftTab]);
+  }, [results, sandboxFrames, leftTab]);
 
   return (
     <div className="flex h-full min-h-0 flex-col border-r border-white/10">
@@ -246,7 +253,7 @@ function ResultsPane({
           ref={scrollerRef}
           className="terminal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain p-4"
         >
-          {results.length === 0 ? (
+          {results.length === 0 && sandboxFrames.length === 0 ? (
             <p className="text-sm text-slate-dim">
               Human-readable outcomes will appear here — greetings, scrape
               summaries, and sandbox digests.
@@ -263,11 +270,28 @@ function ResultsPane({
                       {item.agent}
                     </p>
                   ) : null}
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed text-slate-200">
-                    {item.markdown}
-                  </div>
+                  <ResultMarkdown markdown={item.markdown} />
                 </article>
               ))}
+
+              {sandboxFrames.length > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/80">
+                    Live sandbox telemetry
+                  </p>
+                  {sandboxFrames.map((frame) => (
+                    <SandboxConsole
+                      key={frame.id}
+                      status={frame.status}
+                      language={frame.language}
+                      stdout={frame.stdout}
+                      stderr={frame.stderr}
+                      exitCode={frame.exitCode}
+                      title="Agent Sandbox Execution"
+                    />
+                  ))}
+                </div>
+              ) : null}
             </div>
           )}
         </div>
@@ -359,6 +383,7 @@ export default function LiveStreamTerminal({
   consensusPending = false,
   debateVote = null,
   recalledMemories = [],
+  sandboxFrames = [],
   onDebateVoteRegistered,
   paymentRequired = false,
   onDismissPaymentRequired,
@@ -603,6 +628,7 @@ export default function LiveStreamTerminal({
           consensusPending={consensusPending}
           sessionId={sessionId}
           debateVote={debateVote}
+          sandboxFrames={sandboxFrames}
           onDebateVoteRegistered={onDebateVoteRegistered}
         />
         <VerbosePane verboseLines={verboseLines} connection={connection} />

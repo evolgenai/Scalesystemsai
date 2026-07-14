@@ -47,6 +47,7 @@ export default function DashboardClient() {
     consensusPending,
     debateVote,
     recalledMemories,
+    sandboxFrames,
     start,
     stop,
     pause,
@@ -291,6 +292,7 @@ export default function DashboardClient() {
                 consensusPending={consensusPending}
                 debateVote={debateVote}
                 recalledMemories={recalledMemories}
+                sandboxFrames={sandboxFrames}
                 onDebateVoteRegistered={registerDebateVote}
                 paymentRequired={paymentRequired}
                 onDismissPaymentRequired={dismissPaymentRequired}

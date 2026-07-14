@@ -973,9 +973,16 @@ export async function executePlanStepTool(
     extractCodeFromText(objective) ||
     synthesizeDemoSnippet(objective);
 
-  const sandbox = await runCodeInSandbox(code, { signal });
+  const languageHint = /\bpython\b|\bprint\s*\(|\bdef\s+/i.test(code)
+    ? "python"
+    : "javascript";
+
+  const sandbox = await runCodeInSandbox(code, {
+    signal,
+    languageHint,
+  });
   const logLines = [
-    `[codeSandbox] language=${sandbox.language} loc=${sandbox.metrics.linesOfCode}`,
+    `[codeSandbox] language=${sandbox.language} loc=${sandbox.metrics.linesOfCode} exit=${sandbox.exitCode}`,
     ...sandbox.stdout.map((line) => `[codeSandbox:stdout] ${line}`),
     ...sandbox.stderr.map((line) => `[codeSandbox:stderr] ${line}`),
   ];
@@ -988,10 +995,18 @@ export async function executePlanStepTool(
     );
   }
 
+  // Feed console output back into LLM context for final synthesis digests.
+  const consoleDigest = [
+    sandbox.stdout.length ? `stdout:\n${sandbox.stdout.join("\n")}` : "",
+    sandbox.stderr.length ? `stderr:\n${sandbox.stderr.join("\n")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n") || sandbox.preview;
+
   const geminiDigest = await digestToolOutputWithGemini(
     objective,
     "codeSandbox",
-    sandbox.preview,
+    consoleDigest,
     signal,
     systemInstruction
   );

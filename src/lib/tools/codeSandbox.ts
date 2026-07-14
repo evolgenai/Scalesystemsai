@@ -1,9 +1,15 @@
+import {
+  executeCodeInSandbox,
+  type SandboxLanguage,
+} from "@/lib/agents/codeSandbox";
+
 export type CodeSandboxResult = {
   success: boolean;
   blocked: boolean;
   language: string;
   stdout: string[];
   stderr: string[];
+  exitCode: number;
   metrics: {
     durationMs: number;
     linesOfCode: number;
@@ -80,32 +86,6 @@ export function extractCodeFromText(text: string): string | null {
   return null;
 }
 
-function synthesizeStdout(code: string, language: string): string[] {
-  const lines = code
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .slice(0, 8);
-
-  const logs: string[] = [
-    `[sandbox] boot language=${language}`,
-    "[sandbox] isolating worker heap…",
-  ];
-
-  for (const line of lines.slice(0, 4)) {
-    logs.push(`[trace] ${line.slice(0, 96)}`);
-  }
-
-  if (/console\.log|print\(|println!|System\.out/.test(code)) {
-    logs.push("[stdout] hello from ScaleSystems sandbox");
-  } else {
-    logs.push("[stdout] execution completed with exit code 0");
-  }
-
-  logs.push("[sandbox] tearing down ephemeral isolate");
-  return logs;
-}
-
 /**
  * Safe mock/sandboxed code runner for serverless environments.
  * Never executes untrusted code against the host; simulates stdout/stderr and metrics,
@@ -125,6 +105,7 @@ export async function runCodeInSandbox(
       language: options?.languageHint ?? "typescript",
       stdout: [],
       stderr: ["No code provided to sandbox."],
+      exitCode: 1,
       metrics: { durationMs: 0, linesOfCode: 0, simulatedOps: 0 },
       preview: "Sandbox refused empty payload.",
     };
@@ -137,6 +118,7 @@ export async function runCodeInSandbox(
       language: options.languageHint ?? detectLanguage(code),
       stdout: [],
       stderr: ["Sandbox aborted by client signal."],
+      exitCode: 130,
       metrics: {
         durationMs: Date.now() - started,
         linesOfCode: countLines(code),
@@ -155,6 +137,7 @@ export async function runCodeInSandbox(
         language: options?.languageHint ?? detectLanguage(code),
         stdout: ["[sandbox] scanning payload…", "[sandbox] threat signature matched"],
         stderr: [warning],
+        exitCode: 1,
         metrics: {
           durationMs: Date.now() - started,
           linesOfCode: countLines(code),
@@ -166,41 +149,67 @@ export async function runCodeInSandbox(
     }
   }
 
-  // Artificial scheduling delay so the SSE timeline feels like a real worker.
-  await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, 350 + Math.min(code.length / 40, 500));
-    const onAbort = () => {
-      clearTimeout(timer);
-      reject(new DOMException("Aborted", "AbortError"));
-    };
-    if (options?.signal) {
-      if (options.signal.aborted) {
-        clearTimeout(timer);
-        reject(new DOMException("Aborted", "AbortError"));
-        return;
-      }
-      options.signal.addEventListener("abort", onAbort, { once: true });
-    }
-  }).catch(() => undefined);
-
   const language = options?.languageHint ?? detectLanguage(code);
-  const stdout = synthesizeStdout(code, language);
   const linesOfCode = countLines(code);
-  const simulatedOps = Math.max(12, linesOfCode * 17);
-  const durationMs = Date.now() - started;
 
+  const sandboxLang: SandboxLanguage | null =
+    language === "python" || language === "py"
+      ? "python"
+      : /javascript|typescript|js|ts/.test(language)
+        ? "javascript"
+        : /console\.|=>|const |let |var /.test(code)
+          ? "javascript"
+          : /\bprint\s*\(|\bdef\s+/.test(code)
+            ? "python"
+            : "javascript";
+
+  const isolated = await executeCodeInSandbox(code, sandboxLang, {
+    signal: options?.signal,
+  });
+
+  const durationMs = Date.now() - started;
+  const blocked = isolated.stderr.startsWith("SECURITY INTERCEPT");
+  const stdout = isolated.stdout
+    ? isolated.stdout.split(/\r?\n/)
+    : [];
+  const stderr = isolated.stderr
+    ? isolated.stderr.split(/\r?\n/)
+    : [];
+
+  if (blocked) {
+    return {
+      success: false,
+      blocked: true,
+      language: sandboxLang,
+      stdout: ["[sandbox] scanning payload…", "[sandbox] threat signature matched"],
+      stderr,
+      exitCode: isolated.exitCode,
+      metrics: {
+        durationMs,
+        linesOfCode,
+        simulatedOps: 0,
+      },
+      securityWarning: isolated.stderr,
+      preview: isolated.stderr,
+    };
+  }
+
+  const success = isolated.exitCode === 0;
   return {
-    success: true,
+    success,
     blocked: false,
-    language,
-    stdout,
-    stderr: [],
+    language: sandboxLang,
+    stdout: stdout.length ? stdout : success ? ["[stdout] (empty)"] : [],
+    stderr,
+    exitCode: isolated.exitCode,
     metrics: {
       durationMs,
       linesOfCode,
-      simulatedOps,
+      simulatedOps: Math.max(12, linesOfCode * 17),
     },
-    preview: `Sandbox ok — ${language} · ${linesOfCode} loc · ${simulatedOps} ops · ${durationMs}ms`,
+    preview: success
+      ? `Sandbox ok — ${sandboxLang} · exit ${isolated.exitCode} · ${durationMs}ms\n${isolated.stdout.slice(0, 500)}`
+      : `Sandbox error — ${sandboxLang} · exit ${isolated.exitCode}\n${isolated.stderr.slice(0, 500)}`,
   };
 }
 
