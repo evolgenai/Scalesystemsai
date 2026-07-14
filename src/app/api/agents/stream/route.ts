@@ -505,7 +505,7 @@ export async function GET(request: Request) {
     searchParams.get("personalityId")?.trim() ||
     searchParams.get("persona")?.trim() ||
     undefined;
-  let customSystemPromptRaw =
+  const customSystemPromptRaw =
     searchParams.get("customSystemPrompt") ??
     searchParams.get("customPrompt") ??
     searchParams.get("systemInstruction");
