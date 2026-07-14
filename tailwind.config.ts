@@ -13,6 +13,10 @@ const config: Config = {
         cyan: {
           accent: "#00f2fe",
         },
+        amber: {
+          accent: "#f59e0b",
+          glow: "#fbbf24",
+        },
         slate: {
           muted: "#94a3b8",
           dim: "#64748b",
@@ -25,6 +29,8 @@ const config: Config = {
       boxShadow: {
         glow: "0 0 40px rgba(0, 242, 254, 0.15)",
         "glow-sm": "0 0 20px rgba(0, 242, 254, 0.25)",
+        "glow-amber": "0 0 32px rgba(245, 158, 11, 0.18)",
+        "glow-amber-sm": "0 0 16px rgba(251, 191, 36, 0.28)",
       },
       animation: {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",

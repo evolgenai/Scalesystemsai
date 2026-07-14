@@ -25,6 +25,18 @@
     @apply bg-gradient-to-r from-cyan-accent to-blue-400 bg-clip-text text-transparent;
   }
 
+  .text-gradient-amber {
+    @apply bg-gradient-to-r from-amber-accent to-amber-glow bg-clip-text text-transparent;
+  }
+
+  .accent-ring {
+    @apply ring-1 ring-cyan-accent/30;
+  }
+
+  .accent-ring-amber {
+    @apply ring-1 ring-amber-accent/35;
+  }
+
   .roi-range::-webkit-slider-thumb {
     appearance: none;
     height: 18px;
