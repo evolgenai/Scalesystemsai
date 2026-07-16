@@ -5,6 +5,12 @@ import { createPortal } from "react-dom";
 import { Building2, Check, ChevronDown, Plus, UserRound } from "lucide-react";
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 import { getActiveOrgId, setActiveOrgId } from "@/lib/org/activeOrg";
+import {
+  WORKSPACE_PRESETS,
+  getActiveWorkspaceKey,
+  getWorkspacePreset,
+  setActiveWorkspaceKey,
+} from "@/lib/org/workspacePresets";
 import type { OrgSummary } from "@/lib/org/types";
 
 type WorkspaceSwitcherProps = {
@@ -15,6 +21,7 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
   const [open, setOpen] = useState(false);
   const [orgs, setOrgs] = useState<OrgSummary[]>([]);
   const [activeOrgId, setActive] = useState<string | null>(null);
+  const [workspaceKey, setWorkspaceKey] = useState("personal");
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [pending, setPending] = useState(false);
@@ -48,15 +55,28 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
 
   useEffect(() => {
     setActive(getActiveOrgId());
+    setWorkspaceKey(getActiveWorkspaceKey());
     void loadOrgs();
 
     const onOrgChanged = () => {
       setActive(getActiveOrgId());
       void loadOrgs();
     };
+    const onWorkspaceChanged = () => {
+      setWorkspaceKey(getActiveWorkspaceKey());
+    };
     window.addEventListener("scalesystems:org-changed", onOrgChanged);
-    return () =>
+    window.addEventListener(
+      "scalesystems:workspace-changed",
+      onWorkspaceChanged
+    );
+    return () => {
       window.removeEventListener("scalesystems:org-changed", onOrgChanged);
+      window.removeEventListener(
+        "scalesystems:workspace-changed",
+        onWorkspaceChanged
+      );
+    };
   }, [loadOrgs]);
 
   useEffect(() => {
@@ -83,10 +103,17 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
   }, [createOpen]);
 
   const activeOrg = orgs.find((org) => org.id === activeOrgId) ?? null;
+  const activePreset = getWorkspacePreset(workspaceKey);
+  const label = activeOrg ? activeOrg.name : activePreset.name;
 
-  const selectPersonal = () => {
-    setActiveOrgId(null);
-    setActive(null);
+  const selectPreset = (key: string) => {
+    setActiveWorkspaceKey(key);
+    setWorkspaceKey(key);
+    // Preset tenancy is orthogonal to org membership — clear org scope for personal.
+    if (key === "personal") {
+      setActiveOrgId(null);
+      setActive(null);
+    }
     setOpen(false);
   };
 
@@ -148,18 +175,18 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex max-w-[14rem] items-center gap-2 rounded-xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] px-2.5 py-1.5 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-cyan-accent/40 hover:shadow-[0_0_20px_rgba(0,242,254,0.08)]"
+        className="inline-flex max-w-[14rem] items-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-2.5 py-1.5 text-left transition hover:border-emerald-500/30"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Switch workspace"
       >
         {activeOrg ? (
-          <Building2 className="h-3.5 w-3.5 shrink-0 text-cyan-accent" aria-hidden />
+          <Building2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
         ) : (
           <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-muted" aria-hidden />
         )}
         <span className="min-w-0 truncate text-xs font-medium text-white">
-          {activeOrg ? activeOrg.name : "Personal Account"}
+          {label}
         </span>
         <ChevronDown
           className={`h-3.5 w-3.5 shrink-0 text-slate-dim transition ${open ? "rotate-180" : ""}`}
@@ -170,35 +197,59 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
       {open ? (
         <div
           role="listbox"
-          className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-2xl border border-cyan-accent/20 bg-[#0b0f17] shadow-[0_0_48px_rgba(0,242,254,0.14)]"
+          className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-lg border border-white/5 bg-[#121212] shadow-2xl"
         >
-          <div className="border-b border-white/10 bg-gradient-to-r from-cyan-accent/[0.08] to-transparent px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-cyan-accent/80">
-              Workspace
+          <div className="border-b border-white/5 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
+              Tenancy workspace
             </p>
           </div>
 
-          <button
-            type="button"
-            role="option"
-            aria-selected={!activeOrgId}
-            onClick={selectPersonal}
-            className={`flex w-full items-center gap-2 px-3 py-2.5 text-left text-xs transition ${
-              !activeOrgId
-                ? "bg-cyan-accent/10 text-white"
-                : "hover:bg-white/[0.04]"
-            }`}
-          >
-            <UserRound className="h-3.5 w-3.5 text-slate-muted" aria-hidden />
-            <span className="flex-1 text-slate-100">Personal Account</span>
-            {!activeOrgId ? (
-              <Check className="h-3.5 w-3.5 text-cyan-accent" aria-hidden />
-            ) : null}
-          </button>
+          <div className="px-2 py-1.5">
+            <p className="px-1 py-1 text-[10px] uppercase tracking-wider text-zinc-500">
+              Isolated scopes
+            </p>
+            {WORKSPACE_PRESETS.map((preset) => {
+              const selected =
+                !activeOrgId && workspaceKey === preset.key;
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  onClick={() => selectPreset(preset.key)}
+                  className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${
+                    selected
+                      ? "border-l-2 border-l-emerald-400 bg-emerald-500/10 text-white"
+                      : "hover:bg-white/[0.04]"
+                  }`}
+                >
+                  <UserRound
+                    className={`h-3.5 w-3.5 ${
+                      selected ? "text-emerald-400" : "text-slate-muted"
+                    }`}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-slate-100">
+                      {preset.name}
+                    </span>
+                    <span className="block truncate text-[10px] text-zinc-500">
+                      {preset.blurb}
+                    </span>
+                  </span>
+                  {selected ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
 
           {orgs.length > 0 ? (
-            <div className="border-t border-white/10 px-2 py-1.5">
-              <p className="px-1 py-1 text-[10px] uppercase tracking-wider text-slate-dim">
+            <div className="border-t border-white/5 px-2 py-1.5">
+              <p className="px-1 py-1 text-[10px] uppercase tracking-wider text-zinc-500">
                 Organizations
               </p>
               {orgs.map((org) => (
@@ -210,36 +261,30 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
                   onClick={() => selectOrg(org.id)}
                   className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${
                     activeOrgId === org.id
-                      ? "bg-cyan-accent/15 text-white"
-                      : "hover:bg-cyan-accent/10"
+                      ? "border-l-2 border-l-emerald-400 bg-emerald-500/10 text-white"
+                      : "hover:bg-white/[0.04]"
                   }`}
                 >
-                  <Building2 className="h-3.5 w-3.5 text-cyan-accent" aria-hidden />
+                  <Building2 className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
                   <span className="min-w-0 flex-1 truncate text-slate-100">
                     {org.name}
                   </span>
-                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-slate-dim">
+                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-500">
                     {org.role}
                   </span>
                   {activeOrgId === org.id ? (
-                    <Check className="h-3.5 w-3.5 text-cyan-accent" aria-hidden />
+                    <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
                   ) : null}
                 </button>
               ))}
             </div>
-          ) : (
-            <div className="border-t border-white/10 px-3 py-3">
-              <p className="text-[11px] leading-relaxed text-slate-dim">
-                No team workspaces yet. Create one to collaborate and share credits.
-              </p>
-            </div>
-          )}
+          ) : null}
 
-          <div className="border-t border-white/10 p-2">
+          <div className="border-t border-white/5 p-2">
             <button
               type="button"
               onClick={openCreateModal}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl border border-cyan-accent/40 bg-cyan-accent/10 px-3 py-2 text-xs font-semibold text-cyan-accent transition hover:bg-cyan-accent/20 hover:shadow-[0_0_20px_rgba(0,242,254,0.15)]"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden />
               Create Organization

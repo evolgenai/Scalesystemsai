@@ -64,7 +64,7 @@ function AgentToggle({
       onClick={() => onChange(!active)}
       className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors duration-300 ${
         active
-          ? "border-cyan-accent/50 bg-cyan-accent/20"
+          ? "border-emerald-500/50 bg-emerald-500/20"
           : "border-white/10 bg-white/5"
       }`}
     >
@@ -72,7 +72,7 @@ function AgentToggle({
         layout
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
         className={`absolute top-0.5 h-5 w-5 rounded-full shadow-sm ${
-          active ? "bg-cyan-accent" : "bg-slate-500"
+          active ? "bg-emerald-400" : "bg-slate-500"
         }`}
         style={{ left: active ? "22px" : "2px" }}
       />
@@ -98,32 +98,23 @@ function AgentCard({
       layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative overflow-hidden rounded-2xl border p-5 transition-all duration-300 ${
-        active
-          ? "border-cyan-accent/25 bg-white/[0.04] shadow-glow-sm"
-          : "border-white/5 bg-black/20"
+      className={`relative overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4 transition-all duration-300 ${
+        active ? "border-l-2 border-l-emerald-400" : ""
       }`}
     >
-      <div
-        className={`pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full blur-3xl ${
-          active ? "bg-cyan-accent/10" : "bg-purple-500/5"
-        }`}
-        aria-hidden
-      />
-
-      <div className="relative space-y-4">
+      <div className="relative space-y-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
+          <div className="flex min-w-0 items-start gap-2.5">
             <div
-              className={`rounded-xl border border-white/10 bg-black/40 p-2.5 ${agent.iconColor}`}
+              className={`rounded-md border border-white/5 bg-black/40 p-2 ${agent.iconColor}`}
             >
-              <Icon className="h-5 w-5" aria-hidden />
+              <Icon className="h-4 w-4" aria-hidden />
             </div>
-            <div>
-              <h3 className="font-display text-base font-semibold text-white">
+            <div className="min-w-0">
+              <h3 className="break-words font-display text-sm font-semibold text-white">
                 {agent.shortName}
               </h3>
-              <p className="mt-0.5 text-xs text-slate-dim line-clamp-1">
+              <p className="mt-0.5 break-words text-xs text-slate-dim line-clamp-2">
                 {agent.tagline}
               </p>
             </div>
@@ -137,7 +128,7 @@ function AgentCard({
 
         <div className="flex flex-wrap items-center gap-3">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[11px] font-medium ${health.text}`}
+            className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${health.text}`}
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${health.dot} ${health.pulse ? "animate-pulse" : ""}`}
@@ -152,16 +143,16 @@ function AgentCard({
           </span>
           <span className="text-[11px] text-slate-dim">
             Tasks today:{" "}
-            <span className="font-mono text-cyan-accent">
+            <span className="font-mono text-emerald-400">
               {active ? agent.tasksToday.toLocaleString() : "0"}
             </span>
           </span>
         </div>
 
-        <div className="flex items-center justify-between border-t border-white/5 pt-4">
+        <div className="flex items-center justify-between border-t border-white/5 pt-3">
           <span
             className={`text-xs font-semibold uppercase tracking-wider ${
-              active ? "text-cyan-accent" : "text-slate-dim"
+              active ? "text-emerald-400" : "text-slate-dim"
             }`}
           >
             {active ? "Deployed" : "Paused"}
@@ -169,7 +160,7 @@ function AgentCard({
           <button
             type="button"
             onClick={() => setConfigOpen((o) => !o)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-muted transition-colors hover:border-cyan-accent/30 hover:text-cyan-accent"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-xs font-medium text-slate-muted transition-colors hover:border-emerald-500/30 hover:text-emerald-400"
           >
             <Settings2 className="h-3.5 w-3.5" aria-hidden />
             Configure
@@ -230,8 +221,8 @@ export default function AgentWorkforceGrid({
             Manage deployed agents across your cloud runtime
           </p>
         </div>
-        <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-slate-muted sm:flex">
-          <Bot className="h-3.5 w-3.5 text-cyan-accent" aria-hidden />
+        <div className="hidden items-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-3 py-1.5 text-xs text-slate-muted sm:flex">
+          <Bot className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
           {activeCount} of {AGENTS.length} agents active
         </div>
       </div>

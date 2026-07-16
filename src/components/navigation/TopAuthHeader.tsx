@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Settings, UserRound } from "lucide-react";
+import { Menu, Settings, UserRound, X } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import AuthModal from "@/components/auth/AuthModal";
 import WorkspaceSwitcher from "@/components/navigation/WorkspaceSwitcher";
+import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
 import TeamPresenceBar from "@/components/org/TeamPresenceBar";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
@@ -32,6 +33,7 @@ export default function TopAuthHeader() {
   const { user, ready } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const { open: navOpen, toggle: toggleNav } = useNavDrawer();
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
 
@@ -91,28 +93,49 @@ export default function TopAuthHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-white/10 bg-[#09090b]/80 px-4 backdrop-blur-xl md:px-6">
-        <div className="hidden items-center gap-5 text-xs text-slate-dim md:flex">
-          <Link href="/" className="hover:text-cyan-accent">
+      <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-3 border-b border-white/5 bg-[#121212]/90 px-3 backdrop-blur-xl sm:px-4 md:px-6">
+        <button
+          type="button"
+          onClick={toggleNav}
+          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/[0.03] p-2 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400 xl:hidden"
+          aria-label={navOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={navOpen}
+        >
+          {navOpen ? (
+            <X className="h-5 w-5" aria-hidden />
+          ) : (
+            <Menu className="h-5 w-5" aria-hidden />
+          )}
+        </button>
+
+        <Link
+          href="/"
+          className="shrink-0 font-display text-sm font-bold text-white xl:hidden"
+        >
+          Scale<span className="text-emerald-400">Systems</span>
+        </Link>
+
+        <div className="hidden items-center gap-5 text-xs text-slate-dim xl:flex">
+          <Link href="/" className="hover:text-emerald-400">
             Home
           </Link>
-          <Link href="/features" className="hover:text-cyan-accent">
+          <Link href="/features" className="hover:text-emerald-400">
             Features
           </Link>
-          <Link href="/pricing" className="hover:text-cyan-accent">
+          <Link href="/pricing" className="hover:text-emerald-400">
             Pricing
           </Link>
-          <Link href="/docs" className="hover:text-cyan-accent">
+          <Link href="/docs" className="hover:text-emerald-400">
             Docs
           </Link>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex min-w-0 items-center gap-2">
+          <WorkspaceSwitcher enabled={ready} />
           {!ready ? (
             <div className="h-8 w-28 animate-pulse rounded-lg bg-white/5" />
           ) : user ? (
             <>
               <TeamPresenceBar />
-              <WorkspaceSwitcher enabled />
               <Link
                 href="/settings"
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-2.5 py-1.5 transition hover:border-cyan-accent/30"

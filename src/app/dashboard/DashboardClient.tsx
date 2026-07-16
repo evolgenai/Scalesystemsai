@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -8,12 +9,33 @@ import {
   Server,
   CircleDot,
   Activity,
+  PanelsTopLeft,
+  X,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
 import AgentPersonaSelector from "@/components/dashboard/AgentPersonaSelector";
 import LiveStreamTerminal from "@/components/dashboard/LiveStreamTerminal";
 import WorkspaceHistorySidebar from "@/components/dashboard/WorkspaceHistorySidebar";
+import McpManager from "@/components/dashboard/McpManager";
+import HealerConsole from "@/components/dashboard/HealerConsole";
+
+const AgentCardStack3D = dynamic(
+  () => import("@/components/dashboard/AgentCardStack3D"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-24 animate-pulse rounded-lg border border-white/5 bg-[#121212]"
+          />
+        ))}
+      </div>
+    ),
+  }
+);
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
@@ -42,6 +64,9 @@ export default function DashboardClient({
   );
   const [mountedPluginIds, setMountedPluginIds] = useState<string[]>([]);
   const [historyRefreshToken, setHistoryRefreshToken] = useState(0);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
+  const [troubleshootActive, setTroubleshootActive] = useState(false);
+  const [crashAlert, setCrashAlert] = useState<string | null>(null);
   const typingIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -57,6 +82,15 @@ export default function DashboardClient({
     if (!authReady) return;
     setPersonasLocked(!(isSuperAdmin || Boolean(user)));
   }, [authReady, isSuperAdmin, user]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const onChange = () => {
+      if (mq.matches) setWorkspaceOpen(false);
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   const {
     lines,
@@ -184,7 +218,7 @@ export default function DashboardClient({
         <div className="absolute bottom-0 left-0 h-[360px] w-[520px] rounded-full bg-slate-500/[0.08] blur-[120px]" />
       </div>
 
-      <div className="mx-auto flex max-w-[90rem] gap-4 py-2 sm:py-4">
+      <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-0 py-2 sm:py-4 lg:flex-row lg:gap-4">
         <WorkspaceHistorySidebar
           selectedId={selectedSessionId}
           refreshToken={historyRefreshToken}
@@ -192,7 +226,7 @@ export default function DashboardClient({
           onRerun={handleRerun}
         />
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 w-full flex-1">
           <motion.header
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -265,28 +299,44 @@ export default function DashboardClient({
             </div>
           </motion.header>
 
+          {crashAlert ? (
+            <div
+              role="alert"
+              className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-400/30 border-l-2 border-l-rose-400 bg-[#121212] px-3.5 py-2.5"
+            >
+              <p className="min-w-0 break-words text-xs font-medium text-amber-200">
+                {crashAlert}
+              </p>
+              <button
+                type="button"
+                onClick={() => setCrashAlert(null)}
+                className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-500 hover:text-white"
+              >
+                Dismiss
+              </button>
+            </div>
+          ) : null}
+
           <section aria-labelledby="visualizer-heading" className="mb-8">
             <h2 id="visualizer-heading" className="sr-only">
               Agent visualizer cards
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-              {agents.map((agent, index) => (
-                <motion.div
-                  key={agent.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, delay: index * 0.05 }}
-                >
-                  <AgentVisualizerCard agent={agent} />
-                </motion.div>
-              ))}
-            </div>
+            <AgentCardStack3D
+              agents={agents}
+              troubleshootActive={troubleshootActive}
+            />
+            {agents.length > 4 ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {agents.slice(4).map((agent) => (
+                  <AgentVisualizerCard key={agent.id} agent={agent} />
+                ))}
+              </div>
+            ) : null}
           </section>
 
-          {/* Always mounted for guests + authenticated — same slot above spawn/stream */}
           <section
             aria-labelledby="persona-heading"
-            className="mb-6 w-full rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5"
+            className="mb-6 w-full rounded-lg border border-white/5 bg-[#121212] p-3.5 sm:p-4"
           >
             <h2 id="persona-heading" className="sr-only">
               Agent personality templates
@@ -303,12 +353,54 @@ export default function DashboardClient({
 
           <section
             aria-labelledby="split-heading"
-            className="grid items-start gap-4 lg:grid-cols-5 lg:gap-6"
+            className="grid w-full items-start gap-4 lg:grid-cols-5 lg:gap-6"
           >
             <h2 id="split-heading" className="sr-only">
               Spawn controls and live terminal
             </h2>
-            <div className="lg:col-span-2">
+
+            {/* Mobile/tablet: middle workspace behind a drawer trigger */}
+            <div className="lg:hidden">
+              <button
+                type="button"
+                onClick={() => setWorkspaceOpen(true)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-3 py-2.5 text-xs font-semibold text-emerald-400 transition hover:border-emerald-500/30"
+                aria-expanded={workspaceOpen}
+              >
+                <PanelsTopLeft className="h-4 w-4" aria-hidden />
+                Open workspace controls
+              </button>
+            </div>
+
+            {workspaceOpen ? (
+              <button
+                type="button"
+                className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
+                aria-label="Close workspace overlay"
+                onClick={() => setWorkspaceOpen(false)}
+              />
+            ) : null}
+
+            <div
+              className={`lg:col-span-2 ${
+                workspaceOpen
+                  ? "fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-white/5 bg-[#121212] p-4 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+                  : "hidden lg:block"
+              }`}
+            >
+              <div className="mb-3 flex items-center justify-between gap-2 lg:hidden">
+                <p className="font-display text-sm font-semibold text-white">
+                  Workspace controls
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setWorkspaceOpen(false)}
+                  className="rounded-lg border border-white/5 p-1.5 text-slate-muted hover:text-white"
+                  aria-label="Close workspace controls"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
               <AgentSpawnPanel
                 objective={objective}
                 onObjectiveChange={handleObjectiveChange}
@@ -320,8 +412,13 @@ export default function DashboardClient({
                 mountedPluginIds={mountedPluginIds}
                 onMountedPluginIdsChange={setMountedPluginIds}
               />
+              <McpManager />
+              <HealerConsole
+                onTroubleshootChange={setTroubleshootActive}
+                onCrashAlert={setCrashAlert}
+              />
             </div>
-            <div className="lg:col-span-3">
+            <div className="w-full min-w-0 lg:col-span-3">
               <LiveStreamTerminal
                 lines={lines}
                 results={results}

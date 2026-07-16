@@ -109,6 +109,10 @@ model User {
 
   workspaceMemories WorkspaceMemory[]
 
+  agentTokens  AgentTokenVault[]
+
+  mcpHosts     McpHost[]
+
   subscription Subscription?
 
   createdAt    DateTime         @default(now())
@@ -223,6 +227,76 @@ model Organization {
   sessions    SwarmSession[]
   memories    WorkspaceMemory[]
   plugins     WorkspacePlugin[]
+  agentTokens AgentTokenVault[]
+  mcpHosts    McpHost[]
+}
+
+enum AgentTokenKind {
+  LIVE
+  TEST
+  SERVICE
+}
+
+/**
+ * Token Vault — store keyPrefix + keyHash + sealed Edge claims only.
+ * Never persist raw ss_live_* secrets. sealedPayload uses ss:iv:tag:cipher.
+ */
+model AgentTokenVault {
+  id            String         @id @default(cuid())
+  keyPrefix     String
+  keyHash       String         @unique
+  sealedPayload String
+  kind          AgentTokenKind @default(LIVE)
+  label         String?
+  scopes        String[]
+  ownerId       String?
+  owner         User?          @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  orgId         String?
+  organization  Organization?  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  workspaceId   String?
+  workspace     Workspace?     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime?
+  revokedAt     DateTime?
+  lastUsedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([ownerId])
+  @@index([orgId])
+  @@index([keyPrefix])
+  @@index([revokedAt])
+  @@index([workspaceId])
+}
+
+enum McpTransportKind {
+  HTTP
+  SSE
+}
+
+/**
+ * Registered remote MCP hosts (streamable HTTP / SSE).
+ * authTokenCipher uses the same AES-GCM envelope as WorkspacePlugin.authToken.
+ */
+model McpHost {
+  id              String           @id @default(cuid())
+  name            String
+  url             String
+  transport       McpTransportKind @default(HTTP)
+  authTokenCipher String?
+  isActive        Boolean          @default(true)
+  orgId           String?
+  organization    Organization?    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  ownerId         String?
+  owner           User?            @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  workspaceId     String?
+  workspace       Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lastToolListAt  DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([orgId, isActive])
+  @@index([ownerId])
+  @@index([workspaceId, isActive])
 }
 
 /**
@@ -279,4 +353,97 @@ model OrgMembership {
   @@unique([orgId, userId])
   @@index([userId])
   @@index([orgId])
+}
+
+/**
+ * Multi-tenant heal / MCP scope. apiKey authenticates workspace-scoped telemetry + heal.
+ */
+model Workspace {
+  id        String           @id @default(uuid())
+  name      String
+  apiKey    String           @unique
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  logs      AppErrorLog[]
+  hosts     McpHost[]
+  tokens    AgentTokenVault[]
+  devices   EstateDevice[]
+
+  @@index([createdAt])
+}
+
+/**
+ * Physical estate IoT / relay endpoints (LAN-only).
+ * kind: gate_power | parking_lights | generic
+ * protocol: SHELLY | SONOFF | GENERIC
+ */
+enum EstateDeviceProtocol {
+  SHELLY
+  SONOFF
+  GENERIC
+}
+
+model EstateDevice {
+  id          String               @id @default(uuid())
+  name        String
+  kind        String
+  /** Preferred LAN IPv4, e.g. 192.168.1.50 */
+  targetIp    String?
+  /** SHELLY | SONOFF | GENERIC driver selection */
+  protocol    EstateDeviceProtocol @default(GENERIC)
+  /** Relay / switch channel index (Shelly id / Gen1 relay N) */
+  channelId   Int                  @default(0)
+  /** Legacy alias — prefer targetIp */
+  ipAddress   String?
+  /** Optional full override URL for GENERIC drivers */
+  endpointUrl String?
+  isActive    Boolean              @default(true)
+  workspaceId String?
+  workspace   Workspace?           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([workspaceId, kind, isActive])
+  @@index([workspaceId, isActive])
+  @@index([workspaceId, protocol])
+}
+
+/**
+ * Runtime failure telemetry for the autonomous self-healing pipeline.
+ * patchApplied / explanation filled by POST /api/agents/heal.
+ */
+model AppErrorLog {
+  id           String     @id @default(uuid())
+  route        String
+  errorMessage String     @db.Text
+  stackTrace   String?    @db.Text
+  resolved     Boolean    @default(false)
+  /** Unified diff patch proposed by the AI healer. */
+  patchApplied String?    @db.Text
+  /** Architectural explanation of the proposed fix. */
+  explanation  String?    @db.Text
+  workspaceId  String?
+  workspace    Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@index([resolved, createdAt])
+  @@index([createdAt])
+  @@index([route])
+  @@index([workspaceId, resolved, createdAt])
+}
+
+/**
+ * Physical IoT hardware endpoints for estate tenancies (Meerendal, etc.).
+ */
+model EstateIotDevice {
+  id           String   @id
+  name         String
+  endpointUrl  String
+  /** rest | shelly | sonoff */
+  protocol     String   @default("rest")
+  workspaceKey String   @default("meerendal")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([workspaceKey])
 }

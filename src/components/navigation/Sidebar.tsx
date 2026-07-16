@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -19,69 +19,46 @@ const NAV_LINKS = [
 function linkClassName(active: boolean): string {
   return `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
     active
-      ? "bg-cyan-accent/10 text-cyan-accent"
+      ? "bg-emerald-500/15 text-emerald-400"
       : "text-slate-muted hover:bg-white/5 hover:text-white"
   }`;
 }
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const { open, setOpen } = useNavDrawer();
 
-  const closeDrawer = () => setIsMobileOpen(false);
+  const closeDrawer = () => setOpen(false);
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-xl md:hidden">
-        <Link
-          href="/"
-          className="font-display text-lg font-bold text-white"
-          onClick={closeDrawer}
-        >
-          Scale<span className="text-cyan-accent">Systems</span>
-        </Link>
+      {open && (
         <button
           type="button"
-          onClick={() => setIsMobileOpen((open) => !open)}
-          className="rounded-lg border border-white/10 bg-black/30 p-2 text-slate-muted transition-colors hover:border-cyan-accent/30 hover:text-cyan-accent"
-          aria-label={isMobileOpen ? "Close navigation menu" : "Open navigation menu"}
-          aria-expanded={isMobileOpen}
-        >
-          {isMobileOpen ? (
-            <X className="h-5 w-5" aria-hidden />
-          ) : (
-            <Menu className="h-5 w-5" aria-hidden />
-          )}
-        </button>
-      </header>
-
-      {isMobileOpen && (
-        <button
-          type="button"
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm xl:hidden"
           onClick={closeDrawer}
           aria-label="Close navigation overlay"
         />
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/10 bg-white/[0.03] backdrop-blur-xl transition-transform duration-300 ease-out md:static md:z-auto md:flex md:w-64 md:shrink-0 md:translate-x-0 md:bg-black/40 ${
-          isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,88vw)] flex-col border-r border-white/5 bg-[#121212] transition-transform duration-300 ease-out xl:static xl:z-auto xl:w-64 xl:shrink-0 xl:translate-x-0 xl:border-white/10 xl:bg-black/40 ${
+          open ? "translate-x-0 shadow-2xl" : "-translate-x-full xl:translate-x-0"
         }`}
       >
-        <div className="border-b border-white/10 px-5 py-6">
-          <div className="flex items-center justify-between">
+        <div className="border-b border-white/5 px-5 py-5">
+          <div className="flex items-center justify-between gap-2">
             <Link
               href="/"
               className="font-display text-lg font-bold text-white"
               onClick={closeDrawer}
             >
-              Scale<span className="text-cyan-accent">Systems</span>
+              Scale<span className="text-emerald-400">Systems</span>
             </Link>
             <button
               type="button"
               onClick={closeDrawer}
-              className="rounded-lg p-1.5 text-slate-muted hover:text-white md:hidden"
+              className="rounded-lg p-1.5 text-slate-muted transition hover:bg-white/5 hover:text-white xl:hidden"
               aria-label="Close drawer"
             >
               <X className="h-4 w-4" aria-hidden />
@@ -91,7 +68,7 @@ export default function Sidebar() {
         </div>
 
         <nav
-          className="flex-1 space-y-1 overflow-y-auto p-4"
+          className="flex-1 space-y-0.5 overflow-y-auto p-3"
           aria-label="Sidebar navigation"
         >
           {NAV_LINKS.map((link) => {

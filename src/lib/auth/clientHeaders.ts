@@ -3,6 +3,7 @@
  * Matches `resolveRequestUser` (x-user-id / x-user-email) and optional org scope.
  */
 import { getActiveOrgId } from "@/lib/org/activeOrg";
+import { getActiveWorkspaceKey } from "@/lib/org/workspacePresets";
 
 export function getClientAuthHeaders(
   customHeaders?: Record<string, string>
@@ -26,6 +27,8 @@ export function getClientAuthHeaders(
 
     const orgId = getActiveOrgId();
     if (orgId) headers["x-org-id"] = orgId;
+
+    headers["x-workspace-key"] = getActiveWorkspaceKey();
 
     return headers;
   } catch {

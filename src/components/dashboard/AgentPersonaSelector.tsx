@@ -120,17 +120,17 @@ export default function AgentPersonaSelector({
                       onCustomSystemPromptChange("");
                     }
                   }}
-                  className={`group relative min-w-[240px] flex-1 overflow-hidden rounded-xl border bg-black/35 p-4 text-left transition-all duration-300 ${accent.border} ${accent.glow} ${
+                  className={`group relative min-w-0 w-full flex-1 basis-[min(100%,16rem)] overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-3.5 text-left transition-all duration-300 sm:min-w-[200px] ${
                     selected
-                      ? `${accent.borderActive} bg-white/[0.04] ring-1 ${accent.ring} shadow-[0_0_24px_rgba(0,242,254,0.12)]`
-                      : "opacity-90"
+                      ? "border-l-2 border-l-emerald-400 bg-[#161616]"
+                      : "opacity-90 hover:bg-[#161616]"
                   } ${customOverrideActive ? "opacity-55" : ""}`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2.5">
                     <span
-                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${accent.iconWrap}`}
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-white/5 ${accent.iconWrap}`}
                     >
-                      <Icon className={`h-4 w-4 ${accent.icon}`} aria-hidden />
+                      <Icon className={`h-3.5 w-3.5 ${accent.icon}`} aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1 overflow-hidden">
                       <div className="flex items-start justify-between gap-2">
@@ -160,7 +160,7 @@ export default function AgentPersonaSelector({
             })}
           </div>
 
-          <div className="mt-3 overflow-hidden rounded-xl border border-white/10 bg-black/30">
+          <div className="mt-3 overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
             <button
               type="button"
               aria-expanded={customOpen && !locked}

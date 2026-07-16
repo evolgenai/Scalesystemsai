@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/navigation/Sidebar";
 import TopAuthHeader from "@/components/navigation/TopAuthHeader";
+import { NavDrawerProvider } from "@/components/navigation/NavDrawerContext";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 
 const inter = Inter({
@@ -122,15 +123,17 @@ export default function RootLayout({
           }}
         />
         <AuthProvider>
-          <div className="flex min-h-screen bg-obsidian text-white">
-            <Sidebar />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <TopAuthHeader />
-              <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-                {children}
-              </main>
+          <NavDrawerProvider>
+            <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-obsidian text-white">
+              <Sidebar />
+              <div className="flex min-w-0 w-full flex-1 flex-col">
+                <TopAuthHeader />
+                <main className="w-full min-w-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 md:p-6 lg:p-8">
+                  {children}
+                </main>
+              </div>
             </div>
-          </div>
+          </NavDrawerProvider>
         </AuthProvider>
       </body>
     </html>
