@@ -6,6 +6,7 @@ import {
   type AgentCardState,
   type AgentStreamEvent,
   type DebateRole,
+  type SelfRefiningLoopState,
   type VisualizerStatus,
 } from "@/lib/agents/streamProtocol";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
@@ -88,6 +89,8 @@ export type UseAgentStreamResult = {
   recalledMemories: RecalledMemory[];
   /** Live sandbox_execution SSE frames for the current run. */
   sandboxFrames: SandboxExecutionFrame[];
+  /** Validator ↔ Writer self-refining compiler loop state. */
+  selfRefiningLoop: SelfRefiningLoopState;
   start: (objectiveOverride?: string) => void;
   stop: () => void;
   pause: () => void;
@@ -101,6 +104,38 @@ export type UseAgentStreamResult = {
     results: StreamResultItem[];
   }) => void;
 };
+
+function initialSelfRefiningLoop(): SelfRefiningLoopState {
+  return { phase: "idle", attempt: 0, maxAttempts: 3 };
+}
+
+function applySelfRefiningLoop(
+  prev: SelfRefiningLoopState,
+  event: AgentStreamEvent
+): SelfRefiningLoopState {
+  if (event.type !== "self_refining_loop") return prev;
+
+  const maxAttempts =
+    typeof event.refineMaxAttempts === "number" && event.refineMaxAttempts > 0
+      ? event.refineMaxAttempts
+      : prev.maxAttempts;
+  const attempt =
+    typeof event.refineAttempt === "number" && event.refineAttempt > 0
+      ? event.refineAttempt
+      : prev.attempt;
+
+  if (event.refinePhase === "passed") {
+    return { phase: "passed", attempt, maxAttempts };
+  }
+  if (event.refinePhase === "cycling") {
+    return { phase: "cycling", attempt, maxAttempts };
+  }
+  if (event.refinePhase === "idle") {
+    return { phase: "idle", attempt: 0, maxAttempts };
+  }
+
+  return { ...prev, attempt, maxAttempts };
+}
 
 function initialAgents(): AgentCardState[] {
   return VISUALIZER_AGENTS.map((agent) => ({
@@ -311,6 +346,8 @@ export function useAgentStream(
   const [sandboxFrames, setSandboxFrames] = useState<SandboxExecutionFrame[]>(
     []
   );
+  const [selfRefiningLoop, setSelfRefiningLoop] =
+    useState<SelfRefiningLoopState>(initialSelfRefiningLoop);
 
   const abortRef = useRef<AbortController | null>(null);
   const pausedRef = useRef(false);
@@ -331,6 +368,7 @@ export function useAgentStream(
     setDebateVote(null);
     setRecalledMemories([]);
     setSandboxFrames([]);
+    setSelfRefiningLoop(initialSelfRefiningLoop());
   }, []);
 
   const hydrateFromHistory = useCallback(
@@ -345,6 +383,7 @@ export function useAgentStream(
       setDebateVote(null);
       setRecalledMemories([]);
       setSandboxFrames([]);
+      setSelfRefiningLoop(initialSelfRefiningLoop());
       setConnection("closed");
       setOverallProgress(100);
       setAgents(initialAgents());
@@ -408,6 +447,7 @@ export function useAgentStream(
       setDebateVote(null);
       setRecalledMemories([]);
       setSandboxFrames([]);
+      setSelfRefiningLoop(initialSelfRefiningLoop());
 
       const streamUrl = buildStreamUrl(
         endpoint,
@@ -546,6 +586,9 @@ export function useAgentStream(
                     })
                     .filter((item): item is RecalledMemory => item !== null);
                 }
+                if (event.type === "self_refining_loop") {
+                  setSelfRefiningLoop((prev) => applySelfRefiningLoop(prev, event));
+                }
                 if (event.type === "sandbox_execution") {
                   const exitCode =
                     typeof event.exitCode === "number" ? event.exitCode : null;
@@ -580,6 +623,18 @@ export function useAgentStream(
                     timestamp: event.timestamp,
                     message: event.message,
                   });
+
+                  if (sandboxStatus === "success") {
+                    setSelfRefiningLoop((prev) =>
+                      prev.phase === "cycling"
+                        ? {
+                            ...prev,
+                            phase: "passed",
+                            attempt: Math.max(prev.attempt, 1),
+                          }
+                        : prev
+                    );
+                  }
 
                   // Direct runner stdout belongs in Actual Results, not only stealth/console.
                   if (primaryOut) {
@@ -627,6 +682,7 @@ export function useAgentStream(
                 for (const event of events) {
                   if (
                     event.type === "sandbox_execution" ||
+                    event.type === "self_refining_loop" ||
                     event.type === "debate_turn" ||
                     event.type === "consensus_pending" ||
                     event.type === "memory_recalled"
@@ -649,7 +705,8 @@ export function useAgentStream(
                   event.type !== "debate_turn" &&
                   event.type !== "consensus_pending" &&
                   event.type !== "memory_recalled" &&
-                  event.type !== "sandbox_execution"
+                  event.type !== "sandbox_execution" &&
+                  event.type !== "self_refining_loop"
               );
               if (nonDebate.length === 0) continue;
 
@@ -747,6 +804,7 @@ export function useAgentStream(
     debateVote,
     recalledMemories,
     sandboxFrames,
+    selfRefiningLoop,
     start,
     stop,
     pause,

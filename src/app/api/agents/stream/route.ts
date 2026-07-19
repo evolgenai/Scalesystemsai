@@ -294,6 +294,24 @@ function emitToolOutcome(
   if (toolResult.tool === "codeSandbox" && toolResult.sandbox) {
     const stdout = toolResult.sandbox.stdout.join("\n");
     const stderr = toolResult.sandbox.stderr.join("\n");
+    if (!toolResult.success) {
+      push(
+        createStreamEvent({
+          type: "self_refining_loop",
+          message:
+            "Validator flagged compilation errors — Writer patching payload…",
+          agentId: "validator-agent",
+          agentName: "Validator Agent",
+          status: "THINKING",
+          progress: Math.max(progress, 14),
+          stage: `${step.stage}:self-refine`,
+          prismaStatus: "REFLECTING",
+          refinePhase: "cycling",
+          refineAttempt: 1,
+          refineMaxAttempts: 3,
+        })
+      );
+    }
     push(
       createStreamEvent({
         type: "sandbox_execution",

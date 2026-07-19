@@ -12,7 +12,9 @@ import {
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
 import AgentPersonaSelector from "@/components/dashboard/AgentPersonaSelector";
+import HealerConsole from "@/components/dashboard/HealerConsole";
 import LiveStreamTerminal from "@/components/dashboard/LiveStreamTerminal";
+import OrchestratorFeed from "@/components/dashboard/OrchestratorFeed";
 import WorkspaceHistorySidebar from "@/components/dashboard/WorkspaceHistorySidebar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
@@ -71,6 +73,7 @@ export default function DashboardClient({
     debateVote,
     recalledMemories,
     sandboxFrames,
+    selfRefiningLoop,
     start,
     stop,
     pause,
@@ -281,6 +284,20 @@ export default function DashboardClient({
                 </motion.div>
               ))}
             </div>
+          </section>
+
+          <section
+            aria-labelledby="refinement-heading"
+            className="mb-8 grid gap-4 lg:grid-cols-2"
+          >
+            <h2 id="refinement-heading" className="sr-only">
+              Orchestrator refinement feed and healer console
+            </h2>
+            <OrchestratorFeed
+              agents={agents}
+              selfRefiningLoop={selfRefiningLoop}
+            />
+            <HealerConsole selfRefiningLoop={selfRefiningLoop} />
           </section>
 
           {/* Always mounted for guests + authenticated — same slot above spawn/stream */}

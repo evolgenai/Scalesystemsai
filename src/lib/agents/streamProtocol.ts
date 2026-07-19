@@ -22,7 +22,16 @@ export type AgentStreamEventType =
   | "debate_turn"
   | "consensus_pending"
   | "memory_recalled"
-  | "sandbox_execution";
+  | "sandbox_execution"
+  | "self_refining_loop";
+
+export type SelfRefiningLoopPhase = "idle" | "cycling" | "passed";
+
+export type SelfRefiningLoopState = {
+  phase: SelfRefiningLoopPhase;
+  attempt: number;
+  maxAttempts: number;
+};
 
 export type RecalledMemoryItem = {
   id: string;
@@ -67,6 +76,10 @@ export type AgentStreamEvent = {
   stderr?: string;
   exitCode?: number;
   sandboxStatus?: SandboxExecutionStatus;
+  /** Self-refining compiler loop telemetry */
+  refinePhase?: SelfRefiningLoopPhase;
+  refineAttempt?: number;
+  refineMaxAttempts?: number;
   timestamp: string;
 };
 
