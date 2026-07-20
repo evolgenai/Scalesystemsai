@@ -13,6 +13,7 @@ import {
   Store,
   Zap,
   Radio,
+  Plug,
   X,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
@@ -31,6 +32,7 @@ import {
   MarketplaceSkeleton,
   TokenVaultSkeleton,
   ChaosConsoleSkeleton,
+  PluginAnalyticsSkeleton,
 } from "@/components/ui/DashboardSkeletons";
 
 const AgentCardStack3D = dynamic(
@@ -74,6 +76,11 @@ const ChaosConsole = dynamic(
   () => import("@/components/dashboard/ChaosConsole"),
   { ssr: false, loading: () => <ChaosConsoleSkeleton /> }
 );
+
+const PluginAnalytics = dynamic(
+  () => import("@/components/dashboard/PluginAnalytics"),
+  { ssr: false, loading: () => <PluginAnalyticsSkeleton /> }
+);
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
@@ -106,7 +113,7 @@ export default function DashboardClient({
   const [troubleshootActive, setTroubleshootActive] = useState(false);
   const [crashAlert, setCrashAlert] = useState<string | null>(null);
   const [consoleView, setConsoleView] = useState<
-    "workforce" | "marketplace" | "chaos" | "teletraffic"
+    "workforce" | "marketplace" | "chaos" | "teletraffic" | "plugins"
   >("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -128,16 +135,25 @@ export default function DashboardClient({
     if (view === "marketplace") setConsoleView("marketplace");
     else if (view === "chaos") setConsoleView("chaos");
     else if (view === "teletraffic") setConsoleView("teletraffic");
+    else if (view === "plugins") setConsoleView("plugins");
     else setConsoleView("workforce");
   }, [searchParams]);
 
   const setView = useCallback(
-    (next: "workforce" | "marketplace" | "chaos" | "teletraffic") => {
+    (
+      next:
+        | "workforce"
+        | "marketplace"
+        | "chaos"
+        | "teletraffic"
+        | "plugins"
+    ) => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
       if (next === "marketplace") params.set("view", "marketplace");
       else if (next === "chaos") params.set("view", "chaos");
       else if (next === "teletraffic") params.set("view", "teletraffic");
+      else if (next === "plugins") params.set("view", "plugins");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -408,6 +424,22 @@ export default function DashboardClient({
                 <button
                   type="button"
                   role="tab"
+                  aria-selected={consoleView === "plugins"}
+                  onClick={() => setView("plugins")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    consoleView === "plugins"
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-slate-muted hover:text-white"
+                  }`}
+                >
+                  <Hover3DIcon intensity={12}>
+                    <Plug className="h-3.5 w-3.5" aria-hidden />
+                  </Hover3DIcon>
+                  Plugins
+                </button>
+                <button
+                  type="button"
+                  role="tab"
                   aria-selected={consoleView === "teletraffic"}
                   onClick={() => setView("teletraffic")}
                   className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -474,6 +506,10 @@ export default function DashboardClient({
                 <span className="text-xs text-slate-dim">
                   Edge latency · KV scratchpad cache · live user stream
                 </span>
+              ) : consoleView === "plugins" ? (
+                <span className="text-xs text-slate-dim">
+                  Extension leases · invocations · revenue/run · latency
+                </span>
               ) : (
                 <span className="text-xs text-slate-dim">
                   Browse agent templates &amp; MCP servers for your workspace
@@ -485,6 +521,10 @@ export default function DashboardClient({
           {consoleView === "marketplace" ? (
             <ErrorBoundary label="Marketplace">
               <Marketplace />
+            </ErrorBoundary>
+          ) : consoleView === "plugins" ? (
+            <ErrorBoundary label="Plugin Analytics">
+              <PluginAnalytics />
             </ErrorBoundary>
           ) : consoleView === "teletraffic" ? (
             <ErrorBoundary label="Teletraffic Board">

@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Building2, Check, ChevronDown, Plus, UserRound } from "lucide-react";
+import {
+  Building2,
+  Check,
+  ChevronDown,
+  Cpu,
+  Plus,
+  UserRound,
+} from "lucide-react";
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 import { getActiveOrgId, setActiveOrgId } from "@/lib/org/activeOrg";
 import {
@@ -16,6 +23,55 @@ import type { OrgSummary } from "@/lib/org/types";
 type WorkspaceSwitcherProps = {
   enabled: boolean;
 };
+
+/** Demo compute consumption keyed by preset / org slug — UI-only. */
+const PRESET_COMPUTE: Record<
+  string,
+  { loadPct: number; label: string; tone: "idle" | "moderate" | "hot" }
+> = {
+  personal: { loadPct: 12, label: "12% CPU", tone: "idle" },
+  meerendal: { loadPct: 68, label: "68% CPU", tone: "moderate" },
+  production: { loadPct: 91, label: "91% CPU", tone: "hot" },
+};
+
+function computeForOrg(slug: string): {
+  loadPct: number;
+  label: string;
+  tone: "idle" | "moderate" | "hot";
+} {
+  const hash = slug.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  const loadPct = 18 + (hash % 72);
+  const tone =
+    loadPct >= 80 ? "hot" : loadPct >= 45 ? "moderate" : "idle";
+  return { loadPct, label: `${loadPct}% CPU`, tone };
+}
+
+function ComputeBadge({
+  loadPct,
+  label,
+  tone,
+}: {
+  loadPct: number;
+  label: string;
+  tone: "idle" | "moderate" | "hot";
+}) {
+  const toneClass =
+    tone === "hot"
+      ? "border-amber-400/35 bg-amber-400/10 text-amber-300"
+      : tone === "moderate"
+        ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-400"
+        : "border-white/10 bg-white/[0.04] text-zinc-400";
+
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-wide ${toneClass}`}
+      title={`Active compute · ${loadPct}%`}
+    >
+      <Cpu className="h-2.5 w-2.5" aria-hidden />
+      {label}
+    </span>
+  );
+}
 
 export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
   const [open, setOpen] = useState(false);
@@ -212,6 +268,8 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
             {WORKSPACE_PRESETS.map((preset) => {
               const selected =
                 !activeOrgId && workspaceKey === preset.key;
+              const compute =
+                PRESET_COMPUTE[preset.key] ?? PRESET_COMPUTE.personal!;
               return (
                 <button
                   key={preset.key}
@@ -226,21 +284,24 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
                   }`}
                 >
                   <UserRound
-                    className={`h-3.5 w-3.5 ${
+                    className={`h-3.5 w-3.5 shrink-0 ${
                       selected ? "text-emerald-400" : "text-slate-muted"
                     }`}
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-slate-100">
-                      {preset.name}
+                    <span className="flex items-center gap-2">
+                      <span className="block min-w-0 truncate text-slate-100">
+                        {preset.name}
+                      </span>
+                      <ComputeBadge {...compute} />
                     </span>
-                    <span className="block truncate text-[10px] text-zinc-500">
+                    <span className="mt-0.5 block truncate text-[10px] text-zinc-500">
                       {preset.blurb}
                     </span>
                   </span>
                   {selected ? (
-                    <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
                   ) : null}
                 </button>
               );
@@ -252,31 +313,45 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
               <p className="px-1 py-1 text-[10px] uppercase tracking-wider text-zinc-500">
                 Organizations
               </p>
-              {orgs.map((org) => (
-                <button
-                  key={org.id}
-                  type="button"
-                  role="option"
-                  aria-selected={activeOrgId === org.id}
-                  onClick={() => selectOrg(org.id)}
-                  className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${
-                    activeOrgId === org.id
-                      ? "border-l-2 border-l-emerald-400 bg-emerald-500/10 text-white"
-                      : "hover:bg-white/[0.04]"
-                  }`}
-                >
-                  <Building2 className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate text-slate-100">
-                    {org.name}
-                  </span>
-                  <span className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-500">
-                    {org.role}
-                  </span>
-                  {activeOrgId === org.id ? (
-                    <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
-                  ) : null}
-                </button>
-              ))}
+              {orgs.map((org) => {
+                const compute = computeForOrg(org.slug);
+                return (
+                  <button
+                    key={org.id}
+                    type="button"
+                    role="option"
+                    aria-selected={activeOrgId === org.id}
+                    onClick={() => selectOrg(org.id)}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${
+                      activeOrgId === org.id
+                        ? "border-l-2 border-l-emerald-400 bg-emerald-500/10 text-white"
+                        : "hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <Building2
+                      className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="block min-w-0 truncate text-slate-100">
+                          {org.name}
+                        </span>
+                        <ComputeBadge {...compute} />
+                      </span>
+                      <span className="mt-0.5 block text-[10px] uppercase tracking-wide text-zinc-500">
+                        {org.role}
+                      </span>
+                    </span>
+                    {activeOrgId === org.id ? (
+                      <Check
+                        className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                        aria-hidden
+                      />
+                    ) : null}
+                  </button>
+                );
+              })}
             </div>
           ) : null}
 

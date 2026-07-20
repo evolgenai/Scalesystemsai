@@ -115,6 +115,38 @@ export function ChaosConsoleSkeleton() {
   );
 }
 
+export function PluginAnalyticsSkeleton() {
+  return (
+    <div className="space-y-5" aria-busy aria-label="Loading plugin analytics">
+      <div className="space-y-2">
+        <Bone className="h-5 w-40 rounded-full" />
+        <Bone className="h-8 w-64" />
+        <Bone className="h-3 w-80 max-w-full" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex items-center gap-3 rounded-lg border border-white/5 bg-[#121212] px-3.5 py-3"
+          >
+            <Bone className="h-8 w-8 rounded-lg" />
+            <div className="flex-1 space-y-2">
+              <Bone className="h-2.5 w-16" />
+              <Bone className="h-4 w-24" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4">
+        <Bone className="mb-4 h-3 w-full" />
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Bone key={i} className="mb-3 h-10 w-full last:mb-0" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function EconomySkeleton() {
   return (
     <div className="mb-8 space-y-3" aria-busy aria-label="Loading economy">
