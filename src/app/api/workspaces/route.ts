@@ -8,6 +8,11 @@ import {
   extractAgentToken,
   verifyAgentEdgeToken,
 } from "@/lib/security/edgeToken";
+import {
+  isUsingVaultDevFallback,
+  maskApiKey,
+  sealWorkspaceCredentials,
+} from "@/lib/crypto/vault";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -58,10 +63,17 @@ export async function POST(request: Request) {
   }
 
   const apiKey = generateWorkspaceApiKey();
+  const sealed = sealWorkspaceCredentials({ apiKey });
+
   const row = await getPrisma().workspace.create({
-    data: { name: parsed.data.name, apiKey },
+    data: {
+      name: parsed.data.name,
+      apiKey,
+      credentialCipher: sealed.cipher,
+    },
   });
 
+  // Creation response is the only time plaintext apiKey is returned.
   return NextResponse.json(
     {
       success: true,
@@ -69,23 +81,58 @@ export async function POST(request: Request) {
         id: row.id,
         name: row.name,
         apiKey: row.apiKey,
+        apiKeyMasked: maskApiKey(row.apiKey),
+        hasCredentialCipher: true,
+        meterBalanceUsd: row.meterBalanceUsd,
+        meterSpendUsd: row.meterSpendUsd,
         createdAt: row.createdAt,
       },
+      warnings: isUsingVaultDevFallback()
+        ? [
+            "VAULT_ENCRYPTION_KEY unset — using development vault fallback. Set a 64-char hex key before production.",
+          ]
+        : undefined,
     },
     { status: 201 }
   );
 }
 
-/** GET /api/workspaces — list workspaces (no apiKey secrets). */
+/** GET /api/workspaces — list workspaces (no apiKey / cipher secrets). */
 export async function GET(request: Request) {
   const denied = await requireAgentAuth(request);
   if (denied) return denied;
 
   const rows = await getPrisma().workspace.findMany({
     orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, createdAt: true, updatedAt: true },
+    select: {
+      id: true,
+      name: true,
+      apiKey: true,
+      credentialCipher: true,
+      meterBalanceUsd: true,
+      meterSpendUsd: true,
+      meterLastAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
     take: 100,
   });
 
-  return NextResponse.json({ success: true, count: rows.length, workspaces: rows });
+  const workspaces = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    apiKeyMasked: maskApiKey(row.apiKey),
+    hasCredentialCipher: Boolean(row.credentialCipher),
+    meterBalanceUsd: row.meterBalanceUsd,
+    meterSpendUsd: row.meterSpendUsd,
+    meterLastAt: row.meterLastAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  }));
+
+  return NextResponse.json({
+    success: true,
+    count: workspaces.length,
+    workspaces,
+  });
 }

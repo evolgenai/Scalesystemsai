@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
+import TokenVault from "@/components/dashboard/TokenVault";
 import MemoryBankCard from "@/components/org/MemoryBankCard";
 import OpenApiPluginsCard from "@/components/org/OpenApiPluginsCard";
 import TeamMembersInviteCard from "@/components/org/TeamMembersInviteCard";
@@ -55,6 +56,8 @@ export default function SettingsPage() {
       </div>
 
       <TeamMembersInviteCard />
+
+      <TokenVault />
 
       <OpenApiPluginsCard />
 

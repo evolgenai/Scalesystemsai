@@ -21,6 +21,8 @@ import WorkspaceHistorySidebar from "@/components/dashboard/WorkspaceHistorySide
 import McpManager from "@/components/dashboard/McpManager";
 import HealerConsole from "@/components/dashboard/HealerConsole";
 import Marketplace from "@/components/dashboard/Marketplace";
+import EconomyMetricsDashboard from "@/components/dashboard/EconomyMetricsDashboard";
+import TokenVault from "@/components/dashboard/TokenVault";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
 
 const AgentCardStack3D = dynamic(
@@ -36,6 +38,16 @@ const AgentCardStack3D = dynamic(
           />
         ))}
       </div>
+    ),
+  }
+);
+
+const IsometricFlowMap = dynamic(
+  () => import("@/components/dashboard/IsometricFlowMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mb-8 h-[260px] animate-pulse rounded-lg border border-white/5 bg-[#121212] sm:h-[300px]" />
     ),
   }
 );
@@ -232,6 +244,15 @@ export default function DashboardClient({
     (a) => a.status === "THINKING" || a.status === "EXECUTING"
   ).length;
 
+  const flowHealth =
+    troubleshootActive && crashAlert
+      ? ("incident" as const)
+      : troubleshootActive
+        ? ("healing" as const)
+        : crashAlert
+          ? ("incident" as const)
+          : ("healthy" as const);
+
   return (
     <div className="relative min-h-full bg-obsidian text-white">
       <div
@@ -393,6 +414,10 @@ export default function DashboardClient({
                 </div>
               ) : null}
 
+              <EconomyMetricsDashboard />
+
+              <IsometricFlowMap health={flowHealth} />
+
               <section aria-labelledby="visualizer-heading" className="mb-8">
                 <h2 id="visualizer-heading" className="sr-only">
                   Agent visualizer cards
@@ -489,6 +514,7 @@ export default function DashboardClient({
                     onMountedPluginIdsChange={setMountedPluginIds}
                   />
                   <McpManager />
+                  <TokenVault />
                   <HealerConsole
                     onTroubleshootChange={setTroubleshootActive}
                     onCrashAlert={setCrashAlert}

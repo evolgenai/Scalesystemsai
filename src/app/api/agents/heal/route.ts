@@ -3,6 +3,13 @@ import type { AppErrorLog } from "@prisma/client";
 import { z } from "zod";
 import { proposeHealPatch } from "@/lib/agents/healAgent";
 import {
+  countPluginInvokes,
+  countSentNotifications,
+  estimateInputTokens,
+  recordWorkspaceMeterUsage,
+  type MeterRecordResult,
+} from "@/lib/billing/meterEngine";
+import {
   extractAgentToken,
   verifyAgentEdgeToken,
 } from "@/lib/security/edgeToken";
@@ -19,6 +26,16 @@ type HealHealthy = {
   success: true;
   healthy: true;
   message: string;
+};
+
+type HealMeterPublic = {
+  recorded: boolean;
+  feeUsd: number | null;
+  balanceAfterUsd: number | null;
+  eventId: string | null;
+  platformShareUsd: number | null;
+  developerShareUsd: number | null;
+  creditedPlugins: number;
 };
 
 type HealRemediated = {
@@ -42,6 +59,7 @@ type HealRemediated = {
   workspaceName: string | null;
   estateToolsEnabled: boolean;
   notifications: string[];
+  meter: HealMeterPublic;
 };
 
 const OptionalBodySchema = z
@@ -75,9 +93,33 @@ async function requireHealAuth(request: Request): Promise<NextResponse | null> {
   );
 }
 
+function toMeterPublic(result: MeterRecordResult | null): HealMeterPublic {
+  if (!result || !result.ok) {
+    return {
+      recorded: false,
+      feeUsd: result?.fee.totalUsd ?? null,
+      balanceAfterUsd: null,
+      eventId: null,
+      platformShareUsd: result?.split.platformShareUsd ?? null,
+      developerShareUsd: result?.split.developerShareUsd ?? null,
+      creditedPlugins: result?.split.creditedPlugins ?? 0,
+    };
+  }
+  return {
+    recorded: true,
+    feeUsd: result.fee.totalUsd,
+    balanceAfterUsd: result.balanceAfterUsd,
+    eventId: result.eventId,
+    platformShareUsd: result.split.platformShareUsd,
+    developerShareUsd: result.split.developerShareUsd,
+    creditedPlugins: result.split.creditedPlugins,
+  };
+}
+
 /**
  * POST /api/agents/heal — multi-agent supervisor → writer → validator.
  * Optional workspace scope via x-workspace-key / x-workspace-id / body.workspaceId.
+ * Meters tokens, correction cycles, notifications, and plugin invokes against Workspace.
  */
 export async function POST(
   request: Request
@@ -186,6 +228,53 @@ export async function POST(
       }
     }
 
+    const scopedWorkspaceId = latest.workspaceId ?? workspaceId;
+    let meterResult: MeterRecordResult | null = null;
+    if (scopedWorkspaceId) {
+      try {
+        const inputTokens = estimateInputTokens([
+          latest.route,
+          latest.errorMessage,
+          latest.stackTrace,
+          proposal.patch,
+          proposal.explanation,
+        ]);
+
+        const activePlugins = await prisma.agentPlugin.findMany({
+          where: { workspaceId: scopedWorkspaceId, isActive: true },
+          select: { id: true, name: true },
+          take: 50,
+        });
+        const pluginRuns = activePlugins
+          .map((p) => {
+            const runs = proposal.toolCalls.filter((line) =>
+              line.toLowerCase().includes(p.name.toLowerCase())
+            ).length;
+            return runs > 0 ? { pluginId: p.id, runs } : null;
+          })
+          .filter((r): r is { pluginId: string; runs: number } => r !== null);
+
+        meterResult = await recordWorkspaceMeterUsage({
+          workspaceId: scopedWorkspaceId,
+          source: "heal",
+          inputTokens,
+          correctionCycles: proposal.correctionCycles,
+          notificationsSent: countSentNotifications(notifications),
+          pluginsInvoked: countPluginInvokes(proposal.toolCalls),
+          pluginRuns,
+          referenceId: latest.id,
+          metadata: {
+            phases: proposal.phases,
+            validatorApproved: proposal.validatorApproved,
+            targetFile: proposal.targetFile,
+          },
+        });
+      } catch (err) {
+        console.error("[agents/heal] meter failed:", err);
+        meterResult = null;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       healthy: false,
@@ -203,10 +292,11 @@ export async function POST(
       validationExhausted: proposal.validationExhausted,
       mcpHostsConnected: proposal.mcpHostsConnected,
       toolsAvailable: proposal.toolsAvailable,
-      workspaceId: latest.workspaceId ?? workspaceId,
+      workspaceId: scopedWorkspaceId,
       workspaceName: proposal.workspaceName,
       estateToolsEnabled: proposal.estateToolsEnabled,
       notifications,
+      meter: toMeterPublic(meterResult),
     });
   } catch (err) {
     console.error("[agents/heal] failed:", err);

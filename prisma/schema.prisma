@@ -357,20 +357,60 @@ model OrgMembership {
 
 /**
  * Multi-tenant heal / MCP scope. apiKey authenticates workspace-scoped telemetry + heal.
+ * credentialCipher holds AES-256-GCM sealed injection secrets (ssv1:…); never return raw.
  */
 model Workspace {
-  id        String           @id @default(uuid())
-  name      String
-  apiKey    String           @unique
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  logs      AppErrorLog[]
-  hosts     McpHost[]
-  tokens    AgentTokenVault[]
-  devices   EstateDevice[]
-  plugins   AgentPlugin[]
+  id                String               @id @default(uuid())
+  name              String
+  apiKey            String               @unique
+  /** Sealed tenant credential blob (vault AES-256-GCM). */
+  credentialCipher  String?              @db.Text
+  /** Prepaid utility balance in USD for metered agent execution. */
+  meterBalanceUsd   Float                @default(25)
+  /** Lifetime metered spend in USD. */
+  meterSpendUsd     Float                @default(0)
+  meterLastAt       DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  logs              AppErrorLog[]
+  hosts             McpHost[]
+  tokens            AgentTokenVault[]
+  devices           EstateDevice[]
+  plugins           AgentPlugin[]
+  meterEvents       WorkspaceMeterEvent[]
 
   @@index([createdAt])
+  @@index([meterLastAt])
+}
+
+/**
+ * Micro-transaction log for utility-metered execution (heal, sandbox, plugins).
+ * No credential material — fee breakdown only.
+ */
+model WorkspaceMeterEvent {
+  id                 String    @id @default(uuid())
+  workspaceId        String
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /** heal | sandbox | manual | plugin */
+  source             String
+  referenceId        String?
+  inputTokens        Int       @default(0)
+  correctionCycles   Int       @default(0)
+  notificationsSent  Int       @default(0)
+  pluginsInvoked     Int       @default(0)
+  feeUsd             Float
+  /** Platform cut of plugin monetization (USD). */
+  platformShareUsd   Float     @default(0)
+  /** Developer cut credited to wallet (USD). */
+  developerShareUsd  Float     @default(0)
+  breakdownJson      Json
+  metadataJson       Json      @default("{}")
+  balanceAfterUsd    Float
+  createdAt          DateTime  @default(now())
+
+  @@index([workspaceId, createdAt])
+  @@index([source, createdAt])
+  @@index([referenceId])
 }
 
 /**
@@ -381,9 +421,16 @@ model AgentPlugin {
   id          String     @id @default(uuid())
   name        String
   developerId String
+  /** Developer payout wallet / account id (public handle — not a secret key). */
+  walletId    String?
   pricePerRun Float      @default(0.001)
   /** JSON description of custom tool capabilities (MCP schema). */
   mcpSchema   String     @db.Text
+  version     String     @default("1.0.0")
+  description String?    @db.Text
+  /** Lifetime developer revenue credited from splits (USD). */
+  revenueUsd  Float      @default(0)
+  runCount    Int        @default(0)
   isActive    Boolean    @default(true)
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -391,8 +438,26 @@ model AgentPlugin {
   updatedAt   DateTime   @updatedAt
 
   @@index([developerId])
+  @@index([walletId])
   @@index([workspaceId, isActive])
   @@index([isActive, createdAt])
+  @@index([workspaceId, name, developerId])
+}
+
+/**
+ * Developer marketplace wallet — accumulates split revenue across tenants.
+ * Isolated from Workspace balances; never stores API secrets.
+ */
+model DeveloperWallet {
+  id            String   @id @default(uuid())
+  developerId   String   @unique
+  walletId      String
+  balanceUsd    Float    @default(0)
+  lifetimeUsd   Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([walletId])
 }
 
 /**

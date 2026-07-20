@@ -16,12 +16,23 @@ import {
   Database,
   Cpu,
   Sparkles,
+  Upload,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
 
 type ListingKind = "agent" | "mcp";
 type Pricing = "lease" | "purchase";
+type PublishKind = "agent" | "mcp";
+type PublishState = "idle" | "submitting" | "done";
+
+const SCHEMA_PLACEHOLDER = `{
+  "name": "my-extension",
+  "tools": [{ "name": "run", "inputSchema": { "type": "object" } }]
+}`;
+
 
 type MarketplaceListing = {
   id: string;
@@ -142,6 +153,12 @@ type Filter = "all" | ListingKind;
 export default function Marketplace() {
   const [filter, setFilter] = useState<Filter>("all");
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  const [publishKind, setPublishKind] = useState<PublishKind>("agent");
+  const [publishName, setPublishName] = useState("");
+  const [pricePerRun, setPricePerRun] = useState("0.05");
+  const [schemaJson, setSchemaJson] = useState("");
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+  const [publishState, setPublishState] = useState<PublishState>("idle");
 
   const visible =
     filter === "all" ? LISTINGS : LISTINGS.filter((l) => l.kind === filter);
@@ -156,6 +173,29 @@ export default function Marketplace() {
     } catch {
       /* clipboard may be blocked in some embeds */
     }
+  };
+
+  const handlePublish = async () => {
+    setSchemaError(null);
+    if (!publishName.trim()) {
+      setSchemaError("Name is required.");
+      return;
+    }
+    const price = Number(pricePerRun);
+    if (!Number.isFinite(price) || price < 0) {
+      setSchemaError("Pricing per run must be a non-negative number.");
+      return;
+    }
+    try {
+      JSON.parse(schemaJson || "{}");
+    } catch {
+      setSchemaError("Capability schema must be valid JSON.");
+      return;
+    }
+    setPublishState("submitting");
+    await new Promise((r) => setTimeout(r, 900));
+    setPublishState("done");
+    setTimeout(() => setPublishState("idle"), 2200);
   };
 
   return (
@@ -278,6 +318,156 @@ export default function Marketplace() {
             );
           })}
         </AnimatePresence>
+      </div>
+
+      {/* Developer plugin publisher */}
+      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
+        <div className="flex flex-col gap-3 border-b border-white/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
+              <Hover3DIcon intensity={16}>
+                <Upload className="h-5 w-5" aria-hidden />
+              </Hover3DIcon>
+            </div>
+            <div>
+              <h3 className="font-display text-sm font-semibold text-white">
+                Publish Extension
+              </h3>
+              <p className="text-xs text-slate-muted">
+                Register agent templates or MCP tool schemas
+              </p>
+            </div>
+          </div>
+          <div
+            className="inline-flex rounded-lg border border-white/5 bg-black/40 p-0.5"
+            role="tablist"
+            aria-label="Publish type"
+          >
+            {(
+              [
+                { id: "agent" as const, label: "Agent template" },
+                { id: "mcp" as const, label: "MCP schema" },
+              ]
+            ).map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={publishKind === tab.id}
+                onClick={() => setPublishKind(tab.id)}
+                className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${
+                  publishKind === tab.id
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "text-slate-muted hover:text-white"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <form
+          className="grid gap-4 p-4 sm:p-5 lg:grid-cols-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handlePublish();
+          }}
+        >
+          <div className="space-y-3">
+            <div>
+              <label
+                htmlFor="pub-name"
+                className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-dim"
+              >
+                Name
+              </label>
+              <input
+                id="pub-name"
+                value={publishName}
+                onChange={(e) => setPublishName(e.target.value)}
+                placeholder={
+                  publishKind === "agent"
+                    ? "Fleet Log Scrubber"
+                    : "modbus-relay-mcp"
+                }
+                className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-slate-dim/50 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="pub-price"
+                className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-dim"
+              >
+                Pricing per run (USD)
+              </label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-emerald-400">
+                  $
+                </span>
+                <input
+                  id="pub-price"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={pricePerRun}
+                  onChange={(e) => setPricePerRun(e.target.value)}
+                  className="w-full rounded-lg border border-white/5 bg-black/40 py-2.5 pl-7 pr-3 font-mono text-xs text-white focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col">
+            <label
+              htmlFor="pub-schema"
+              className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-dim"
+            >
+              JSON capability schema
+            </label>
+            <textarea
+              id="pub-schema"
+              value={schemaJson}
+              onChange={(e) => setSchemaJson(e.target.value)}
+              placeholder={SCHEMA_PLACEHOLDER}
+              spellCheck={false}
+              rows={8}
+              className="min-h-[9rem] flex-1 resize-y rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-emerald-300/90 placeholder:text-slate-dim/40 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
+            />
+          </div>
+
+          <div className="flex flex-col gap-2 lg:col-span-2 lg:flex-row lg:items-center lg:justify-between">
+            {schemaError ? (
+              <p className="text-[11px] text-rose-400">{schemaError}</p>
+            ) : (
+              <p className="text-[11px] text-slate-dim">
+                Submissions are staged for marketplace review.
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={publishState === "submitting"}
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-60"
+            >
+              {publishState === "submitting" ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                  Publishing…
+                </>
+              ) : publishState === "done" ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+                  Queued
+                </>
+              ) : (
+                <>
+                  <Upload className="h-3.5 w-3.5" aria-hidden />
+                  Submit for review
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Developer DevKit */}
