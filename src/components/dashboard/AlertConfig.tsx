@@ -7,6 +7,7 @@ import {
   BellRing,
   Fuel,
   Gauge,
+  HelpCircle,
   Radio,
   Save,
   ShieldAlert,
@@ -21,6 +22,7 @@ type AlertRule = {
   id: MetricId;
   label: string;
   description: string;
+  tooltip: string;
   unit: string;
   min: number;
   max: number;
@@ -35,6 +37,8 @@ const RULES: AlertRule[] = [
     id: "computeGas",
     label: "Compute Gas Costs",
     description: "Notify when swarm token burn exceeds this ceiling.",
+    tooltip:
+      "Cumulative Gemini + sandbox token spend across Supervisor, Writer, and Validator lanes. Breach fires when rolling 15m burn crosses the slider ceiling.",
     unit: "tokens",
     min: 10_000,
     max: 500_000,
@@ -48,6 +52,8 @@ const RULES: AlertRule[] = [
     id: "healLatency",
     label: "Self-Heal Latency",
     description: "Alert if a heal cycle overruns this micro-SLA.",
+    tooltip:
+      "End-to-end µs loop from chaos ACK → quorum → sandbox snapshot → circuit rebind. Values above this SLA mark the heal cycle as degraded.",
     unit: "ms",
     min: 50,
     max: 2000,
@@ -60,6 +66,8 @@ const RULES: AlertRule[] = [
     id: "notifyCost",
     label: "Notification Dispatch Spend",
     description: "Cap outbound WhatsApp / Telegram / email spend.",
+    tooltip:
+      "Daily outbound channel cost (WhatsApp Business + Telegram + email). Includes per-message fees after Validator-approved heal dispatch.",
     unit: "USD",
     min: 1,
     max: 100,
@@ -72,6 +80,8 @@ const RULES: AlertRule[] = [
     id: "errorRate",
     label: "Chaos Error Rate",
     description: "Trigger when incident density crosses this percentage.",
+    tooltip:
+      "Incident density = stressed flow nodes / total nodes over a 5m window. Cascade + partition injects raise this meter until emerald restore.",
     unit: "%",
     min: 1,
     max: 40,
@@ -258,13 +268,29 @@ export default function AlertConfig() {
                     }`}
                   >
                     <div className="mb-2 flex items-baseline justify-between gap-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-dim">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-dim">
                         Threshold
+                        <MetricTooltip text={rule.tooltip} />
                       </span>
-                      <span className="font-mono text-sm font-semibold text-emerald-400">
+                      <span className="group/value relative font-mono text-sm font-semibold text-emerald-400">
                         {rule.format(state.threshold)}
                         <span className="ml-1 text-[10px] font-medium text-zinc-500">
                           {rule.unit}
+                        </span>
+                        <span
+                          role="tooltip"
+                          className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 w-52 rounded-lg border border-emerald-500/25 bg-[#0a0a0a] px-2.5 py-2 text-left text-[10px] font-normal normal-case tracking-normal text-zinc-300 opacity-0 shadow-xl shadow-black/50 transition duration-150 group-hover/value:opacity-100"
+                        >
+                          Live ceiling ·{" "}
+                          <span className="text-emerald-400">
+                            {rule.format(state.threshold)} {rule.unit}
+                          </span>
+                          <br />
+                          Range {rule.format(rule.min)} – {rule.format(rule.max)}
+                          <span
+                            className="absolute right-3 top-full h-0 w-0 border-x-4 border-t-4 border-x-transparent border-t-[#0a0a0a]"
+                            aria-hidden
+                          />
                         </span>
                       </span>
                     </div>
@@ -320,6 +346,30 @@ export default function AlertConfig() {
         </div>
       </div>
     </section>
+  );
+}
+
+function MetricTooltip({ text }: { text: string }) {
+  return (
+    <span className="group/tip relative inline-flex">
+      <button
+        type="button"
+        className="rounded-full text-zinc-500 transition hover:text-emerald-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/50"
+        aria-label="Metric help"
+      >
+        <HelpCircle className="h-3 w-3" aria-hidden />
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-56 -translate-x-1/2 rounded-lg border border-white/10 bg-[#0a0a0a] px-2.5 py-2 text-left text-[10px] font-normal normal-case leading-relaxed tracking-normal text-zinc-300 opacity-0 shadow-xl shadow-black/60 transition duration-150 group-hover/tip:opacity-100 group-focus-within/tip:opacity-100"
+      >
+        {text}
+        <span
+          className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-x-4 border-t-4 border-x-transparent border-t-[#0a0a0a]"
+          aria-hidden
+        />
+      </span>
+    </span>
   );
 }
 

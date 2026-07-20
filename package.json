@@ -11,6 +11,7 @@
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:verify-indexes": "node --env-file=.env scripts/verify-db-indexes.mjs",
     "db:seed:mcp": "node --env-file=.env scripts/seed-mcp-hosts.mjs",
     "snapshot": "node ./scripts/system-snapshot.js",
     "close-session": "npm run snapshot && git add . && git commit -m \"Dev Session Sync\" --allow-empty && git push origin development"

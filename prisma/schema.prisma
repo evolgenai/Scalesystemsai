@@ -379,6 +379,7 @@ model Workspace {
   plugins           AgentPlugin[]
   meterEvents       WorkspaceMeterEvent[]
   alertRules        TelemetryAlertRule[]
+  auditLogs         TelemetryAuditLog[]
 
   @@index([createdAt])
   @@index([meterLastAt])
@@ -409,8 +410,9 @@ model WorkspaceMeterEvent {
   balanceAfterUsd    Float
   createdAt          DateTime  @default(now())
 
-  @@index([workspaceId, createdAt])
-  @@index([source, createdAt])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, source, createdAt(sort: Desc)])
+  @@index([source, createdAt(sort: Desc)])
   @@index([referenceId])
 }
 
@@ -528,6 +530,38 @@ model TelemetryAlertRule {
 }
 
 /**
+ * Persistent tenant security / compliance audit trail.
+ * High-volume append-only; indexed for workspace-scoped time-series reads.
+ */
+model TelemetryAuditLog {
+  id           String    @id @default(uuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /** Dot-namespaced action, e.g. auth.api_key.rotate, alert.rule.upsert */
+  action       String
+  /** user | api_key | system | agent */
+  actorType    String
+  actorId      String?
+  /** Resource kind, e.g. workspace, alert_rule, mcp_host */
+  resource     String?
+  resourceId   String?
+  /** success | denied | failed */
+  outcome      String    @default("success")
+  /** Optional SHA-256 of client IP — never store raw IP. */
+  ipHash       String?
+  userAgent    String?   @db.VarChar(512)
+  metadataJson Json      @default("{}")
+  createdAt    DateTime  @default(now())
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, action, createdAt(sort: Desc)])
+  @@index([workspaceId, outcome, createdAt(sort: Desc)])
+  @@index([workspaceId, actorType, createdAt(sort: Desc)])
+  @@index([workspaceId, resource, resourceId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+}
+
+/**
  * Runtime failure telemetry for the autonomous self-healing pipeline.
  * patchApplied / explanation filled by POST /api/agents/heal.
  */
@@ -545,10 +579,11 @@ model AppErrorLog {
   workspace    Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt    DateTime   @default(now())
 
-  @@index([resolved, createdAt])
-  @@index([createdAt])
-  @@index([route])
-  @@index([workspaceId, resolved, createdAt])
+  @@index([resolved, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([route, createdAt(sort: Desc)])
+  @@index([workspaceId, resolved, createdAt(sort: Desc)])
+  @@index([workspaceId, createdAt(sort: Desc)])
 }
 
 /**

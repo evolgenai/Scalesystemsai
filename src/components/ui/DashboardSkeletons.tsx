@@ -181,6 +181,35 @@ export function AlertConfigSkeleton() {
   );
 }
 
+export function AuditLogSkeleton() {
+  return (
+    <div className="space-y-5" aria-busy aria-label="Loading audit log">
+      <div className="space-y-2">
+        <Bone className="h-5 w-44 rounded-full" />
+        <Bone className="h-8 w-72" />
+        <Bone className="h-3 w-80 max-w-full" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="space-y-2 rounded-lg border border-white/5 bg-[#121212] px-3.5 py-3"
+          >
+            <Bone className="h-2.5 w-20" />
+            <Bone className="h-4 w-16" />
+          </div>
+        ))}
+      </div>
+      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
+        <Bone className="m-4 mb-0 h-3 w-full" />
+        {Array.from({ length: 7 }).map((_, i) => (
+          <Bone key={i} className="mx-4 my-3 h-10 w-[calc(100%-2rem)]" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function EconomySkeleton() {
   return (
     <div className="mb-8 space-y-3" aria-busy aria-label="Loading economy">
