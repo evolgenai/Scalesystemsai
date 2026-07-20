@@ -147,6 +147,40 @@ export function PluginAnalyticsSkeleton() {
   );
 }
 
+export function AlertConfigSkeleton() {
+  return (
+    <div className="space-y-5" aria-busy aria-label="Loading alert configuration">
+      <div className="space-y-2">
+        <Bone className="h-5 w-36 rounded-full" />
+        <Bone className="h-8 w-72" />
+        <Bone className="h-3 w-80 max-w-full" />
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="space-y-2 rounded-lg border border-white/5 bg-[#121212] px-3.5 py-3"
+          >
+            <Bone className="h-2.5 w-20" />
+            <Bone className="h-4 w-16" />
+          </div>
+        ))}
+      </div>
+      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex flex-col gap-3 border-b border-white/[0.04] px-4 py-4 last:border-b-0 sm:flex-row"
+          >
+            <Bone className="h-10 w-full sm:w-56" />
+            <Bone className="h-8 w-full flex-1" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function EconomySkeleton() {
   return (
     <div className="mb-8 space-y-3" aria-busy aria-label="Loading economy">

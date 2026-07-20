@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Store,
   Plug,
+  BellRing,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -17,7 +18,7 @@ const NAV_LINKS: {
   href: string;
   label: string;
   icon?: LucideIcon;
-  match?: "exact" | "dashboard" | "marketplace" | "plugins";
+  match?: "exact" | "dashboard" | "marketplace" | "plugins" | "alerts";
 }[] = [
   { href: "/", label: "Home", match: "exact" },
   { href: "/features", label: "Features" },
@@ -40,6 +41,12 @@ const NAV_LINKS: {
     label: "Plugins",
     icon: Plug,
     match: "plugins",
+  },
+  {
+    href: "/dashboard?view=alerts",
+    label: "Alerts",
+    icon: BellRing,
+    match: "alerts",
   },
   { href: "/analytics", label: "Analytics" },
   { href: "/checkout", label: "Checkout" },
@@ -64,6 +71,9 @@ function SidebarNav() {
   const pluginsOpen =
     pathname.startsWith("/dashboard") &&
     searchParams.get("view") === "plugins";
+  const alertsOpen =
+    pathname.startsWith("/dashboard") &&
+    searchParams.get("view") === "alerts";
 
   const closeDrawer = () => setOpen(false);
 
@@ -71,9 +81,13 @@ function SidebarNav() {
     if (link.match === "exact") return pathname === "/";
     if (link.match === "marketplace") return marketplaceOpen;
     if (link.match === "plugins") return pluginsOpen;
+    if (link.match === "alerts") return alertsOpen;
     if (link.match === "dashboard") {
       return (
-        pathname.startsWith("/dashboard") && !marketplaceOpen && !pluginsOpen
+        pathname.startsWith("/dashboard") &&
+        !marketplaceOpen &&
+        !pluginsOpen &&
+        !alertsOpen
       );
     }
     const pathOnly = link.href.split("?")[0] ?? link.href;

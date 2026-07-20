@@ -14,6 +14,7 @@ import {
   Zap,
   Radio,
   Plug,
+  BellRing,
   X,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
@@ -33,6 +34,7 @@ import {
   TokenVaultSkeleton,
   ChaosConsoleSkeleton,
   PluginAnalyticsSkeleton,
+  AlertConfigSkeleton,
 } from "@/components/ui/DashboardSkeletons";
 
 const AgentCardStack3D = dynamic(
@@ -81,7 +83,13 @@ const PluginAnalytics = dynamic(
   () => import("@/components/dashboard/PluginAnalytics"),
   { ssr: false, loading: () => <PluginAnalyticsSkeleton /> }
 );
+
+const AlertConfig = dynamic(
+  () => import("@/components/dashboard/AlertConfig"),
+  { ssr: false, loading: () => <AlertConfigSkeleton /> }
+);
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useAlertToasts } from "@/components/dashboard/AlertToastContext";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import { DEFAULT_PERSONA_ID } from "@/lib/agents/personaPresets";
@@ -101,6 +109,7 @@ export default function DashboardClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, ready: authReady } = useAuth();
+  const { pushAlert } = useAlertToasts();
   const [objective, setObjective] = useState(DEFAULT_OBJECTIVE);
   const [personaId, setPersonaId] = useState(DEFAULT_PERSONA_ID);
   const [customSystemPrompt, setCustomSystemPrompt] = useState("");
@@ -113,7 +122,12 @@ export default function DashboardClient({
   const [troubleshootActive, setTroubleshootActive] = useState(false);
   const [crashAlert, setCrashAlert] = useState<string | null>(null);
   const [consoleView, setConsoleView] = useState<
-    "workforce" | "marketplace" | "chaos" | "teletraffic" | "plugins"
+    | "workforce"
+    | "marketplace"
+    | "chaos"
+    | "teletraffic"
+    | "plugins"
+    | "alerts"
   >("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -136,6 +150,7 @@ export default function DashboardClient({
     else if (view === "chaos") setConsoleView("chaos");
     else if (view === "teletraffic") setConsoleView("teletraffic");
     else if (view === "plugins") setConsoleView("plugins");
+    else if (view === "alerts") setConsoleView("alerts");
     else setConsoleView("workforce");
   }, [searchParams]);
 
@@ -147,6 +162,7 @@ export default function DashboardClient({
         | "chaos"
         | "teletraffic"
         | "plugins"
+        | "alerts"
     ) => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
@@ -154,6 +170,7 @@ export default function DashboardClient({
       else if (next === "chaos") params.set("view", "chaos");
       else if (next === "teletraffic") params.set("view", "teletraffic");
       else if (next === "plugins") params.set("view", "plugins");
+      else if (next === "alerts") params.set("view", "alerts");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -307,8 +324,13 @@ export default function DashboardClient({
       setChaosOverrideHealth("incident");
       setCrashAlert(payload.label);
       setTroubleshootActive(true);
+      pushAlert({
+        tone: "incident",
+        title: "Chaos incident detected",
+        detail: payload.label,
+      });
     },
-    []
+    [pushAlert]
   );
 
   const handleChaosHealComplete = useCallback(() => {
@@ -316,8 +338,13 @@ export default function DashboardClient({
     setChaosOverrideHealth("healing");
     setTroubleshootActive(false);
     setCrashAlert(null);
+    pushAlert({
+      tone: "heal",
+      title: "Self-healing cycle complete",
+      detail: "Telemetry green · emerald restored across stressed nodes",
+    });
     window.setTimeout(() => setChaosOverrideHealth(null), 1200);
-  }, []);
+  }, [pushAlert]);
 
   return (
     <div className="relative min-h-full bg-obsidian text-white">
@@ -440,6 +467,22 @@ export default function DashboardClient({
                 <button
                   type="button"
                   role="tab"
+                  aria-selected={consoleView === "alerts"}
+                  onClick={() => setView("alerts")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    consoleView === "alerts"
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-slate-muted hover:text-white"
+                  }`}
+                >
+                  <Hover3DIcon intensity={12}>
+                    <BellRing className="h-3.5 w-3.5" aria-hidden />
+                  </Hover3DIcon>
+                  Alerts
+                </button>
+                <button
+                  type="button"
+                  role="tab"
                   aria-selected={consoleView === "teletraffic"}
                   onClick={() => setView("teletraffic")}
                   className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -510,6 +553,10 @@ export default function DashboardClient({
                 <span className="text-xs text-slate-dim">
                   Extension leases · invocations · revenue/run · latency
                 </span>
+              ) : consoleView === "alerts" ? (
+                <span className="text-xs text-slate-dim">
+                  Threshold rules · gas ceilings · live toast dispatch
+                </span>
               ) : (
                 <span className="text-xs text-slate-dim">
                   Browse agent templates &amp; MCP servers for your workspace
@@ -525,6 +572,10 @@ export default function DashboardClient({
           ) : consoleView === "plugins" ? (
             <ErrorBoundary label="Plugin Analytics">
               <PluginAnalytics />
+            </ErrorBoundary>
+          ) : consoleView === "alerts" ? (
+            <ErrorBoundary label="Alert Configuration">
+              <AlertConfig />
             </ErrorBoundary>
           ) : consoleView === "teletraffic" ? (
             <ErrorBoundary label="Teletraffic Board">

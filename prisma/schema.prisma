@@ -378,6 +378,7 @@ model Workspace {
   devices           EstateDevice[]
   plugins           AgentPlugin[]
   meterEvents       WorkspaceMeterEvent[]
+  alertRules        TelemetryAlertRule[]
 
   @@index([createdAt])
   @@index([meterLastAt])
@@ -494,6 +495,36 @@ model EstateDevice {
   @@index([workspaceId, kind, isActive])
   @@index([workspaceId, isActive])
   @@index([workspaceId, protocol])
+}
+
+/**
+ * Tenant-scoped telemetry warning rules (threshold / channel config).
+ * Evaluated by alertRuleProcessor against workspace meter + error signals.
+ */
+model TelemetryAlertRule {
+  id           String    @id @default(uuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /** Operator-facing label, unique per workspace. */
+  name         String
+  /** compute_gas_cost | meter_spend_usd | meter_balance_usd | unresolved_errors | plugin_fee_usd_1h */
+  metric       String
+  /** gt | gte | lt | lte | eq */
+  operator     String    @default("gt")
+  threshold    Float
+  /** Channel targets: { webhook?: string, telegram?: boolean, whatsapp?: boolean } */
+  channelsJson Json      @default("{}")
+  enabled      Boolean   @default(true)
+  /** Minimum seconds between fires for the same rule. */
+  cooldownSec  Int       @default(300)
+  lastFiredAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, enabled])
+  @@index([workspaceId, metric])
+  @@index([lastFiredAt])
 }
 
 /**

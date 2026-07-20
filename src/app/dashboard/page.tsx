@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import DashboardClient from "./DashboardClient";
+import { AlertToastProvider } from "@/components/dashboard/AlertToastContext";
 
 export const metadata: Metadata = {
   title: "Client Agent Dashboard",
@@ -24,7 +25,9 @@ export default function DashboardRoutePage() {
         </div>
       }
     >
-      <DashboardClient isSuperAdmin={isSuperAdmin} />
+      <AlertToastProvider>
+        <DashboardClient isSuperAdmin={isSuperAdmin} />
+      </AlertToastProvider>
     </Suspense>
   );
 }
