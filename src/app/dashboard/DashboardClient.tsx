@@ -21,12 +21,15 @@ import LiveStreamTerminal from "@/components/dashboard/LiveStreamTerminal";
 import WorkspaceHistorySidebar from "@/components/dashboard/WorkspaceHistorySidebar";
 import McpManager from "@/components/dashboard/McpManager";
 import HealerConsole from "@/components/dashboard/HealerConsole";
-import Marketplace from "@/components/dashboard/Marketplace";
 import EconomyMetricsDashboard from "@/components/dashboard/EconomyMetricsDashboard";
-import TokenVault from "@/components/dashboard/TokenVault";
-import ChaosConsole from "@/components/dashboard/ChaosConsole";
 import type { FlowNodeId } from "@/components/dashboard/IsometricFlowMap";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
+import {
+  MarketplaceSkeleton,
+  TokenVaultSkeleton,
+  ChaosConsoleSkeleton,
+} from "@/components/ui/DashboardSkeletons";
 
 const AgentCardStack3D = dynamic(
   () => import("@/components/dashboard/AgentCardStack3D"),
@@ -53,6 +56,21 @@ const IsometricFlowMap = dynamic(
       <div className="mb-8 h-[260px] animate-pulse rounded-lg border border-white/5 bg-[#121212] sm:h-[300px]" />
     ),
   }
+);
+
+const Marketplace = dynamic(
+  () => import("@/components/dashboard/Marketplace"),
+  { ssr: false, loading: () => <MarketplaceSkeleton /> }
+);
+
+const TokenVault = dynamic(
+  () => import("@/components/dashboard/TokenVault"),
+  { ssr: false, loading: () => <TokenVaultSkeleton /> }
+);
+
+const ChaosConsole = dynamic(
+  () => import("@/components/dashboard/ChaosConsole"),
+  { ssr: false, loading: () => <ChaosConsoleSkeleton /> }
 );
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
@@ -441,17 +459,23 @@ export default function DashboardClient({
           </motion.header>
 
           {consoleView === "marketplace" ? (
-            <Marketplace />
+            <ErrorBoundary label="Marketplace">
+              <Marketplace />
+            </ErrorBoundary>
           ) : consoleView === "chaos" ? (
             <div className="space-y-6">
-              <IsometricFlowMap
-                health={flowHealth}
-                stressedNodeIds={stressedNodeIds}
-              />
-              <ChaosConsole
-                onChaosEvent={handleChaosEvent}
-                onHealComplete={handleChaosHealComplete}
-              />
+              <ErrorBoundary label="Telemetry Flow">
+                <IsometricFlowMap
+                  health={flowHealth}
+                  stressedNodeIds={stressedNodeIds}
+                />
+              </ErrorBoundary>
+              <ErrorBoundary label="Chaos Console">
+                <ChaosConsole
+                  onChaosEvent={handleChaosEvent}
+                  onHealComplete={handleChaosHealComplete}
+                />
+              </ErrorBoundary>
             </div>
           ) : (
             <>
@@ -473,21 +497,27 @@ export default function DashboardClient({
                 </div>
               ) : null}
 
-              <EconomyMetricsDashboard />
+              <ErrorBoundary label="Economy Metrics" compact>
+                <EconomyMetricsDashboard />
+              </ErrorBoundary>
 
-              <IsometricFlowMap
-                health={flowHealth}
-                stressedNodeIds={stressedNodeIds}
-              />
+              <ErrorBoundary label="Telemetry Flow">
+                <IsometricFlowMap
+                  health={flowHealth}
+                  stressedNodeIds={stressedNodeIds}
+                />
+              </ErrorBoundary>
 
               <section aria-labelledby="visualizer-heading" className="mb-8">
                 <h2 id="visualizer-heading" className="sr-only">
                   Agent visualizer cards
                 </h2>
-                <AgentCardStack3D
-                  agents={agents}
-                  troubleshootActive={troubleshootActive}
-                />
+                <ErrorBoundary label="Agent Card Stack">
+                  <AgentCardStack3D
+                    agents={agents}
+                    troubleshootActive={troubleshootActive}
+                  />
+                </ErrorBoundary>
                 {agents.length > 4 ? (
                   <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {agents.slice(4).map((agent) => (
@@ -576,7 +606,9 @@ export default function DashboardClient({
                     onMountedPluginIdsChange={setMountedPluginIds}
                   />
                   <McpManager />
-                  <TokenVault />
+                  <ErrorBoundary label="Token Vault" compact>
+                    <TokenVault />
+                  </ErrorBoundary>
                   <HealerConsole
                     onTroubleshootChange={setTroubleshootActive}
                     onCrashAlert={setCrashAlert}

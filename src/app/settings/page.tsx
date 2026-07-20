@@ -1,11 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useAuth } from "@/components/auth/AuthProvider";
-import TokenVault from "@/components/dashboard/TokenVault";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { TokenVaultSkeleton } from "@/components/ui/DashboardSkeletons";
 import MemoryBankCard from "@/components/org/MemoryBankCard";
 import OpenApiPluginsCard from "@/components/org/OpenApiPluginsCard";
 import TeamMembersInviteCard from "@/components/org/TeamMembersInviteCard";
+
+const TokenVault = dynamic(
+  () => import("@/components/dashboard/TokenVault"),
+  { ssr: false, loading: () => <TokenVaultSkeleton /> }
+);
 
 export default function SettingsPage() {
   const { user, signOut, ready } = useAuth();
@@ -57,7 +64,9 @@ export default function SettingsPage() {
 
       <TeamMembersInviteCard />
 
-      <TokenVault />
+      <ErrorBoundary label="Token Vault">
+        <TokenVault />
+      </ErrorBoundary>
 
       <OpenApiPluginsCard />
 
