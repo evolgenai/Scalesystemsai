@@ -11,6 +11,7 @@ import {
   Activity,
   PanelsTopLeft,
   Store,
+  Zap,
   X,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
@@ -23,6 +24,8 @@ import HealerConsole from "@/components/dashboard/HealerConsole";
 import Marketplace from "@/components/dashboard/Marketplace";
 import EconomyMetricsDashboard from "@/components/dashboard/EconomyMetricsDashboard";
 import TokenVault from "@/components/dashboard/TokenVault";
+import ChaosConsole from "@/components/dashboard/ChaosConsole";
+import type { FlowNodeId } from "@/components/dashboard/IsometricFlowMap";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
 
 const AgentCardStack3D = dynamic(
@@ -82,9 +85,13 @@ export default function DashboardClient({
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [troubleshootActive, setTroubleshootActive] = useState(false);
   const [crashAlert, setCrashAlert] = useState<string | null>(null);
-  const [consoleView, setConsoleView] = useState<"workforce" | "marketplace">(
-    "workforce"
-  );
+  const [consoleView, setConsoleView] = useState<
+    "workforce" | "marketplace" | "chaos"
+  >("workforce");
+  const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
+  const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
+    "healthy" | "incident" | "healing" | null
+  >(null);
   const typingIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -97,16 +104,18 @@ export default function DashboardClient({
   const [personasLocked, setPersonasLocked] = useState(!isSuperAdmin);
 
   useEffect(() => {
-    setConsoleView(
-      searchParams.get("view") === "marketplace" ? "marketplace" : "workforce"
-    );
+    const view = searchParams.get("view");
+    if (view === "marketplace") setConsoleView("marketplace");
+    else if (view === "chaos") setConsoleView("chaos");
+    else setConsoleView("workforce");
   }, [searchParams]);
 
   const setView = useCallback(
-    (next: "workforce" | "marketplace") => {
+    (next: "workforce" | "marketplace" | "chaos") => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
       if (next === "marketplace") params.set("view", "marketplace");
+      else if (next === "chaos") params.set("view", "chaos");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -245,13 +254,32 @@ export default function DashboardClient({
   ).length;
 
   const flowHealth =
-    troubleshootActive && crashAlert
+    chaosOverrideHealth ??
+    (troubleshootActive && crashAlert
       ? ("incident" as const)
       : troubleshootActive
         ? ("healing" as const)
         : crashAlert
           ? ("incident" as const)
-          : ("healthy" as const);
+          : ("healthy" as const));
+
+  const handleChaosEvent = useCallback(
+    (payload: { nodeIds: FlowNodeId[]; label: string }) => {
+      setStressedNodeIds(payload.nodeIds);
+      setChaosOverrideHealth("incident");
+      setCrashAlert(payload.label);
+      setTroubleshootActive(true);
+    },
+    []
+  );
+
+  const handleChaosHealComplete = useCallback(() => {
+    setStressedNodeIds([]);
+    setChaosOverrideHealth("healing");
+    setTroubleshootActive(false);
+    setCrashAlert(null);
+    window.setTimeout(() => setChaosOverrideHealth(null), 1200);
+  }, []);
 
   return (
     <div className="relative min-h-full bg-obsidian text-white">
@@ -355,6 +383,22 @@ export default function DashboardClient({
                   </Hover3DIcon>
                   Marketplace
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={consoleView === "chaos"}
+                  onClick={() => setView("chaos")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    consoleView === "chaos"
+                      ? "bg-rose-500/15 text-rose-300"
+                      : "text-slate-muted hover:text-white"
+                  }`}
+                >
+                  <Hover3DIcon intensity={12} glow={false}>
+                    <Zap className="h-3.5 w-3.5" aria-hidden />
+                  </Hover3DIcon>
+                  Chaos
+                </button>
               </div>
               {consoleView === "workforce" ? (
                 <>
@@ -384,6 +428,10 @@ export default function DashboardClient({
                     </span>
                   </span>
                 </>
+              ) : consoleView === "chaos" ? (
+                <span className="text-xs text-slate-dim">
+                  Admin chaos inject · stress isometric flow nodes
+                </span>
               ) : (
                 <span className="text-xs text-slate-dim">
                   Browse agent templates &amp; MCP servers for your workspace
@@ -394,6 +442,17 @@ export default function DashboardClient({
 
           {consoleView === "marketplace" ? (
             <Marketplace />
+          ) : consoleView === "chaos" ? (
+            <div className="space-y-6">
+              <IsometricFlowMap
+                health={flowHealth}
+                stressedNodeIds={stressedNodeIds}
+              />
+              <ChaosConsole
+                onChaosEvent={handleChaosEvent}
+                onHealComplete={handleChaosHealComplete}
+              />
+            </div>
           ) : (
             <>
               {crashAlert ? (
@@ -416,7 +475,10 @@ export default function DashboardClient({
 
               <EconomyMetricsDashboard />
 
-              <IsometricFlowMap health={flowHealth} />
+              <IsometricFlowMap
+                health={flowHealth}
+                stressedNodeIds={stressedNodeIds}
+              />
 
               <section aria-labelledby="visualizer-heading" className="mb-8">
                 <h2 id="visualizer-heading" className="sr-only">

@@ -1,12 +1,18 @@
 /**
  * Utility-metered execution engine — fee calc, Workspace deduction, plugin revenue splits.
+ * Concurrent-safe: row locks + increment ops + Serializable retries (max 3).
  */
 
+import { Prisma } from "@prisma/client";
 import { getPrisma } from "@/lib/prisma";
 import { computePluginRevenueSplit } from "@/lib/marketplace/revenueSplit";
 import { METER_RATES } from "@/lib/billing/meterRates";
 
 export { METER_RATES };
+
+const MAX_TX_RETRIES = 3 as const;
+const TX_TIMEOUT_MS = 15_000;
+const TX_MAX_WAIT_MS = 5_000;
 
 export type PluginRunCharge = {
   pluginId: string;
@@ -52,6 +58,13 @@ export type MeterRecordResult = {
   balanceAfterUsd: number | null;
   spendTotalUsd: number | null;
   eventId: string | null;
+  retries: number;
+};
+
+type LockedWorkspaceRow = {
+  id: string;
+  meterBalanceUsd: number;
+  meterSpendUsd: number;
 };
 
 function clampNonNeg(n: number): number {
@@ -126,9 +139,40 @@ export function countSentNotifications(logs: string[]): number {
   return logs.filter((l) => /:\s*sent\b/i.test(l)).length;
 }
 
+function isRetryableTxError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    // P2034 serialization failure; P2028 transaction API error / timeout
+    return err.code === "P2034" || err.code === "P2028";
+  }
+  if (err instanceof Error) {
+    const m = err.message.toLowerCase();
+    return (
+      m.includes("serialization") ||
+      m.includes("deadlock") ||
+      m.includes("could not serialize") ||
+      m.includes("write conflict")
+    );
+  }
+  return false;
+}
+
+async function lockWorkspaceRow(
+  tx: Prisma.TransactionClient,
+  workspaceId: string
+): Promise<LockedWorkspaceRow | null> {
+  const rows = await tx.$queryRaw<LockedWorkspaceRow[]>`
+    SELECT id, "meterBalanceUsd", "meterSpendUsd"
+    FROM "Workspace"
+    WHERE id = ${workspaceId}
+    FOR UPDATE
+  `;
+  return rows[0] ?? null;
+}
+
 /**
  * Calculate fee, deduct Workspace balance, split marketplace plugin revenue to developer wallets.
  * Multi-tenant: only AgentPlugin rows matching workspaceId are credited.
+ * Atomic under FOR UPDATE + Serializable isolation with bounded retries.
  */
 export async function recordWorkspaceMeterUsage(
   input: MeterUsageInput
@@ -140,43 +184,9 @@ export async function recordWorkspaceMeterUsage(
     creditedPlugins: 0,
   };
 
-  const ws = await prisma.workspace.findUnique({
-    where: { id: input.workspaceId },
-    select: {
-      id: true,
-      meterBalanceUsd: true,
-      meterSpendUsd: true,
-    },
-  });
-
-  if (!ws) {
-    const fee = calculateMeterFee({
-      inputTokens: input.inputTokens,
-      correctionCycles: input.correctionCycles,
-      notificationsSent: input.notificationsSent,
-      pluginsInvoked: input.pluginsInvoked,
-    });
-    return {
-      ok: false,
-      skipped: true,
-      reason: "workspace_not_found",
-      fee,
-      split: emptySplit,
-      balanceBeforeUsd: null,
-      balanceAfterUsd: null,
-      spendTotalUsd: null,
-      eventId: null,
-    };
-  }
-
   const pluginRuns = (input.pluginRuns ?? []).filter(
     (p) => p.pluginId && p.runs > 0
   );
-
-  let marketplaceGrossUsd = 0;
-  let platformShareUsd = 0;
-  let developerShareUsd = 0;
-  let creditedPlugins = 0;
 
   type CreditOp = {
     pluginId: string;
@@ -187,6 +197,12 @@ export async function recordWorkspaceMeterUsage(
     platformShareUsd: number;
     grossUsd: number;
   };
+
+  // Resolve plugin pricing outside the lock to shrink critical section.
+  let marketplaceGrossUsd = 0;
+  let platformShareUsd = 0;
+  let developerShareUsd = 0;
+  let creditedPlugins = 0;
   const credits: CreditOp[] = [];
 
   if (pluginRuns.length > 0) {
@@ -195,7 +211,7 @@ export async function recordWorkspaceMeterUsage(
       where: {
         id: { in: ids },
         isActive: true,
-        workspaceId: ws.id,
+        workspaceId: input.workspaceId,
       },
       select: {
         id: true,
@@ -239,90 +255,169 @@ export async function recordWorkspaceMeterUsage(
     marketplaceGrossUsd,
   });
 
-  const balanceBefore = ws.meterBalanceUsd;
-  const balanceAfter = round6(Math.max(0, balanceBefore - fee.totalUsd));
-  const spendTotal = round6(ws.meterSpendUsd + fee.totalUsd);
+  // Stable lock order: workspace → plugins (id ASC) → wallets (developerId ASC)
+  credits.sort((a, b) => a.pluginId.localeCompare(b.pluginId));
+  const walletCredits = [...credits].sort((a, b) =>
+    a.developerId.localeCompare(b.developerId)
+  );
 
-  const event = await prisma.$transaction(async (tx) => {
-    const created = await tx.workspaceMeterEvent.create({
-      data: {
-        workspaceId: ws.id,
-        source: input.source,
-        referenceId: input.referenceId ?? null,
-        inputTokens: Math.floor(clampNonNeg(input.inputTokens)),
-        correctionCycles: Math.floor(clampNonNeg(input.correctionCycles)),
-        notificationsSent: Math.floor(clampNonNeg(input.notificationsSent)),
-        pluginsInvoked: Math.floor(clampNonNeg(input.pluginsInvoked)),
-        feeUsd: fee.totalUsd,
-        platformShareUsd,
-        developerShareUsd,
-        breakdownJson: fee,
-        metadataJson: {
-          ...(input.metadata ?? {}),
-          revenueCredits: credits.map((c) => ({
-            pluginId: c.pluginId,
-            developerId: c.developerId,
-            walletId: c.walletId,
-            runs: c.runs,
-            developerShareUsd: c.developerShareUsd,
-            platformShareUsd: c.platformShareUsd,
-            grossUsd: c.grossUsd,
-          })),
-        },
-        balanceAfterUsd: balanceAfter,
-      },
-      select: { id: true },
-    });
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_TX_RETRIES; attempt += 1) {
+    try {
+      const result = await prisma.$transaction(
+        async (tx) => {
+          const locked = await lockWorkspaceRow(tx, input.workspaceId);
+          if (!locked) {
+            return { kind: "missing" as const };
+          }
 
-    await tx.workspace.update({
-      where: { id: ws.id },
-      data: {
-        meterBalanceUsd: balanceAfter,
-        meterSpendUsd: spendTotal,
-        meterLastAt: new Date(),
-      },
-    });
+          const balanceBefore = locked.meterBalanceUsd;
+          const balanceAfter = round6(
+            Math.max(0, balanceBefore - fee.totalUsd)
+          );
+          const spendTotal = round6(locked.meterSpendUsd + fee.totalUsd);
 
-    for (const credit of credits) {
-      await tx.agentPlugin.update({
-        where: { id: credit.pluginId },
-        data: {
-          revenueUsd: { increment: credit.developerShareUsd },
-          runCount: { increment: credit.runs },
-        },
-      });
+          const created = await tx.workspaceMeterEvent.create({
+            data: {
+              workspaceId: locked.id,
+              source: input.source,
+              referenceId: input.referenceId ?? null,
+              inputTokens: Math.floor(clampNonNeg(input.inputTokens)),
+              correctionCycles: Math.floor(clampNonNeg(input.correctionCycles)),
+              notificationsSent: Math.floor(
+                clampNonNeg(input.notificationsSent)
+              ),
+              pluginsInvoked: Math.floor(clampNonNeg(input.pluginsInvoked)),
+              feeUsd: fee.totalUsd,
+              platformShareUsd,
+              developerShareUsd,
+              breakdownJson: fee,
+              metadataJson: {
+                ...(input.metadata ?? {}),
+                txAttempt: attempt,
+                revenueCredits: credits.map((c) => ({
+                  pluginId: c.pluginId,
+                  developerId: c.developerId,
+                  walletId: c.walletId,
+                  runs: c.runs,
+                  developerShareUsd: c.developerShareUsd,
+                  platformShareUsd: c.platformShareUsd,
+                  grossUsd: c.grossUsd,
+                })),
+              },
+              balanceAfterUsd: balanceAfter,
+            },
+            select: { id: true },
+          });
 
-      await tx.developerWallet.upsert({
-        where: { developerId: credit.developerId },
-        create: {
-          developerId: credit.developerId,
-          walletId: credit.walletId,
-          balanceUsd: credit.developerShareUsd,
-          lifetimeUsd: credit.developerShareUsd,
+          await tx.workspace.update({
+            where: { id: locked.id },
+            data: {
+              meterBalanceUsd: balanceAfter,
+              meterSpendUsd: spendTotal,
+              meterLastAt: new Date(),
+            },
+          });
+
+          for (const credit of credits) {
+            await tx.agentPlugin.update({
+              where: { id: credit.pluginId },
+              data: {
+                revenueUsd: { increment: credit.developerShareUsd },
+                runCount: { increment: credit.runs },
+              },
+            });
+          }
+
+          for (const credit of walletCredits) {
+            await tx.developerWallet.upsert({
+              where: { developerId: credit.developerId },
+              create: {
+                developerId: credit.developerId,
+                walletId: credit.walletId,
+                balanceUsd: credit.developerShareUsd,
+                lifetimeUsd: credit.developerShareUsd,
+              },
+              update: {
+                walletId: credit.walletId,
+                balanceUsd: { increment: credit.developerShareUsd },
+                lifetimeUsd: { increment: credit.developerShareUsd },
+              },
+            });
+          }
+
+          return {
+            kind: "ok" as const,
+            eventId: created.id,
+            balanceBefore,
+            balanceAfter,
+            spendTotal,
+          };
         },
-        update: {
-          walletId: credit.walletId,
-          balanceUsd: { increment: credit.developerShareUsd },
-          lifetimeUsd: { increment: credit.developerShareUsd },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          maxWait: TX_MAX_WAIT_MS,
+          timeout: TX_TIMEOUT_MS,
+        }
+      );
+
+      if (result.kind === "missing") {
+        return {
+          ok: false,
+          skipped: true,
+          reason: "workspace_not_found",
+          fee,
+          split: emptySplit,
+          balanceBeforeUsd: null,
+          balanceAfterUsd: null,
+          spendTotalUsd: null,
+          eventId: null,
+          retries: attempt,
+        };
+      }
+
+      return {
+        ok: true,
+        skipped: false,
+        fee,
+        split: {
+          platformShareUsd,
+          developerShareUsd,
+          creditedPlugins,
         },
-      });
+        balanceBeforeUsd: result.balanceBefore,
+        balanceAfterUsd: result.balanceAfter,
+        spendTotalUsd: result.spendTotal,
+        eventId: result.eventId,
+        retries: attempt,
+      };
+    } catch (err) {
+      lastError = err;
+      if (attempt + 1 >= MAX_TX_RETRIES || !isRetryableTxError(err)) {
+        break;
+      }
+      // Brief jittered backoff before retry
+      await new Promise((r) =>
+        setTimeout(r, 25 * (attempt + 1) + Math.floor(Math.random() * 40))
+      );
     }
+  }
 
-    return created;
-  });
-
+  console.error("[meterEngine] atomic write failed after retries:", lastError);
   return {
-    ok: true,
-    skipped: false,
+    ok: false,
+    skipped: true,
+    reason: "meter_tx_failed",
     fee,
     split: {
       platformShareUsd,
       developerShareUsd,
       creditedPlugins,
     },
-    balanceBeforeUsd: balanceBefore,
-    balanceAfterUsd: balanceAfter,
-    spendTotalUsd: spendTotal,
-    eventId: event.id,
+    balanceBeforeUsd: null,
+    balanceAfterUsd: null,
+    spendTotalUsd: null,
+    eventId: null,
+    retries: MAX_TX_RETRIES,
   };
 }
