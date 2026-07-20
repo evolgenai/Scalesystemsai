@@ -74,6 +74,14 @@ enum OrgRole {
 
 
 
+/** Navigation / viewport mode for tenant dashboards (edge-mirrored). */
+enum UiPreference {
+  USER
+  DEVELOPER
+}
+
+
+
 model User {
 
   id           String           @id @default(cuid())
@@ -370,6 +378,8 @@ model Workspace {
   /** Lifetime metered spend in USD. */
   meterSpendUsd     Float                @default(0)
   meterLastAt       DateTime?
+  /** Tenant navigation / viewport mode — mirrored to Edge KV on write. */
+  uiPreference      UiPreference         @default(USER)
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   logs              AppErrorLog[]
@@ -384,6 +394,7 @@ model Workspace {
 
   @@index([createdAt])
   @@index([meterLastAt])
+  @@index([uiPreference])
 }
 
 /**

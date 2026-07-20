@@ -11,12 +11,15 @@ import {
   BellRing,
   ClipboardList,
   Settings2,
+  Radio,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
+import { useWorkspaceModeOptional } from "@/components/dashboard/ModeWrapper";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
 
-const NAV_LINKS: {
+type NavLink = {
   href: string;
   label: string;
   icon?: LucideIcon;
@@ -27,8 +30,14 @@ const NAV_LINKS: {
     | "plugins"
     | "alerts"
     | "audit"
-    | "settings";
-}[] = [
+    | "settings"
+    | "teletraffic"
+    | "chaos";
+  /** Only shown in Developer mode on dashboard surfaces. */
+  developerOnly?: boolean;
+};
+
+const NAV_LINKS: NavLink[] = [
   { href: "/", label: "Home", match: "exact" },
   { href: "/features", label: "Features" },
   { href: "/pricing", label: "Pricing" },
@@ -50,6 +59,7 @@ const NAV_LINKS: {
     label: "Plugins",
     icon: Plug,
     match: "plugins",
+    developerOnly: true,
   },
   {
     href: "/dashboard?view=alerts",
@@ -58,10 +68,25 @@ const NAV_LINKS: {
     match: "alerts",
   },
   {
+    href: "/dashboard?view=teletraffic",
+    label: "Teletraffic",
+    icon: Radio,
+    match: "teletraffic",
+    developerOnly: true,
+  },
+  {
+    href: "/dashboard?view=chaos",
+    label: "Chaos",
+    icon: Zap,
+    match: "chaos",
+    developerOnly: true,
+  },
+  {
     href: "/dashboard?view=audit",
     label: "Audit",
     icon: ClipboardList,
     match: "audit",
+    developerOnly: true,
   },
   {
     href: "/dashboard?view=settings",
@@ -86,39 +111,45 @@ function SidebarNav() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { setOpen } = useNavDrawer();
-  const marketplaceOpen =
-    pathname.startsWith("/dashboard") &&
-    searchParams.get("view") === "marketplace";
-  const pluginsOpen =
-    pathname.startsWith("/dashboard") &&
-    searchParams.get("view") === "plugins";
-  const alertsOpen =
-    pathname.startsWith("/dashboard") &&
-    searchParams.get("view") === "alerts";
-  const auditOpen =
-    pathname.startsWith("/dashboard") &&
-    searchParams.get("view") === "audit";
-  const settingsOpen =
-    pathname.startsWith("/dashboard") &&
-    searchParams.get("view") === "settings";
+  const { isDeveloper, mode } = useWorkspaceModeOptional();
+  const onDashboard = pathname.startsWith("/dashboard");
+  const view = searchParams.get("view");
+
+  const marketplaceOpen = onDashboard && view === "marketplace";
+  const pluginsOpen = onDashboard && view === "plugins";
+  const alertsOpen = onDashboard && view === "alerts";
+  const auditOpen = onDashboard && view === "audit";
+  const settingsOpen = onDashboard && view === "settings";
+  const teletrafficOpen = onDashboard && view === "teletraffic";
+  const chaosOpen = onDashboard && view === "chaos";
 
   const closeDrawer = () => setOpen(false);
 
-  const isActive = (link: (typeof NAV_LINKS)[number]): boolean => {
+  const visibleLinks = NAV_LINKS.filter((link) => {
+    if (!link.developerOnly) return true;
+    if (!onDashboard) return false;
+    return isDeveloper;
+  });
+
+  const isActive = (link: NavLink): boolean => {
     if (link.match === "exact") return pathname === "/";
     if (link.match === "marketplace") return marketplaceOpen;
     if (link.match === "plugins") return pluginsOpen;
     if (link.match === "alerts") return alertsOpen;
     if (link.match === "audit") return auditOpen;
     if (link.match === "settings") return settingsOpen;
+    if (link.match === "teletraffic") return teletrafficOpen;
+    if (link.match === "chaos") return chaosOpen;
     if (link.match === "dashboard") {
       return (
-        pathname.startsWith("/dashboard") &&
+        onDashboard &&
         !marketplaceOpen &&
         !pluginsOpen &&
         !alertsOpen &&
         !auditOpen &&
-        !settingsOpen
+        !settingsOpen &&
+        !teletrafficOpen &&
+        !chaosOpen
       );
     }
     const pathOnly = link.href.split("?")[0] ?? link.href;
@@ -130,7 +161,12 @@ function SidebarNav() {
       className="flex-1 space-y-0.5 overflow-y-auto p-3"
       aria-label="Sidebar navigation"
     >
-      {NAV_LINKS.map((link) => {
+      {onDashboard ? (
+        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">
+          {mode === "USER" ? "User nav" : "Developer nav"}
+        </p>
+      ) : null}
+      {visibleLinks.map((link) => {
         const Icon = link.icon;
         return (
           <Link
@@ -154,6 +190,7 @@ function SidebarNav() {
 
 export default function Sidebar() {
   const { open, setOpen } = useNavDrawer();
+  const { isUser } = useWorkspaceModeOptional();
 
   const closeDrawer = () => setOpen(false);
 
@@ -191,16 +228,18 @@ export default function Sidebar() {
               <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
-          <p className="mt-1 text-xs text-slate-dim">Agent control plane</p>
+          <p className="mt-1 text-xs text-slate-dim">
+            {isUser ? "Simple automation plane" : "Agent control plane"}
+          </p>
         </div>
 
         <Suspense
           fallback={
             <nav className="flex-1 space-y-0.5 p-3" aria-hidden>
-              {NAV_LINKS.map((link) => (
+              {Array.from({ length: 6 }).map((_, i) => (
                 <div
-                  key={link.href}
-                  className="h-9 animate-pulse rounded-lg bg-white/[0.03]"
+                  key={i}
+                  className="h-9 animate-pulse rounded-lg bg-white/5"
                 />
               ))}
             </nav>

@@ -7,11 +7,13 @@ import {
   encodeFlagsHeader,
   getWorkspaceFlagsFromKv,
 } from "@/lib/workspace/settingsCache";
+import { getWorkspaceUiPreferenceFromKv } from "@/lib/workspace/uiPreferenceCache";
 
 /**
  * Edge gate — geo regional routing + quick auth before origin/DB.
  * Runtime: Edge (`experimental-edge` / `edge`).
  * Feature flags: read from Edge KV (`ws:flags:{workspaceId}`) — no Postgres.
+ * UI preference: read from Edge KV (`ws:ui-pref:{workspaceId}`) — no Postgres.
  */
 
 const SESSION_COOKIE_HINTS = [
@@ -141,7 +143,7 @@ function applyGeoHeaders(
   headers.set("x-scale-edge-runtime", "1");
 }
 
-async function attachFeatureFlagsFromKv(
+async function attachWorkspaceEdgeStateFromKv(
   request: NextRequest,
   requestHeaders: Headers,
   responseHeaders: Headers
@@ -152,24 +154,38 @@ async function attachFeatureFlagsFromKv(
     "";
   if (!workspaceId) {
     responseHeaders.set("x-scale-flags-source", "none");
+    responseHeaders.set("x-scale-ui-pref-source", "none");
     return;
   }
 
-  const cached = await getWorkspaceFlagsFromKv(workspaceId);
-  if (!cached) {
+  const [cachedFlags, cachedPref] = await Promise.all([
+    getWorkspaceFlagsFromKv(workspaceId),
+    getWorkspaceUiPreferenceFromKv(workspaceId),
+  ]);
+
+  if (!cachedFlags) {
     responseHeaders.set("x-scale-flags-source", "miss");
-    return;
+  } else {
+    const encoded = encodeFlagsHeader(cachedFlags.flags);
+    requestHeaders.set("x-scale-feature-flags", encoded);
+    requestHeaders.set("x-scale-flags-workspace", cachedFlags.workspaceId);
+    responseHeaders.set("x-scale-feature-flags", encoded);
+    responseHeaders.set("x-scale-flags-source", "kv");
+    responseHeaders.set(
+      "x-scale-flag-edge-regional-affinity",
+      cachedFlags.flags.edge_regional_affinity === false ? "0" : "1"
+    );
   }
 
-  const encoded = encodeFlagsHeader(cached.flags);
-  requestHeaders.set("x-scale-feature-flags", encoded);
-  requestHeaders.set("x-scale-flags-workspace", cached.workspaceId);
-  responseHeaders.set("x-scale-feature-flags", encoded);
-  responseHeaders.set("x-scale-flags-source", "kv");
-  responseHeaders.set(
-    "x-scale-flag-edge-regional-affinity",
-    cached.flags.edge_regional_affinity === false ? "0" : "1"
-  );
+  if (!cachedPref) {
+    responseHeaders.set("x-scale-ui-pref-source", "miss");
+  } else {
+    const mode = cachedPref.uiPreference;
+    requestHeaders.set("x-scale-ui-preference", mode);
+    requestHeaders.set("x-scale-ui-pref-workspace", cachedPref.workspaceId);
+    responseHeaders.set("x-scale-ui-preference", mode);
+    responseHeaders.set("x-scale-ui-pref-source", "kv");
+  }
 }
 
 async function passThrough(
@@ -180,7 +196,7 @@ async function passThrough(
   applyGeoHeaders(requestHeaders, geo);
 
   const responseHeaders = new Headers();
-  await attachFeatureFlagsFromKv(request, requestHeaders, responseHeaders);
+  await attachWorkspaceEdgeStateFromKv(request, requestHeaders, responseHeaders);
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
