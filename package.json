@@ -23,6 +23,8 @@
     "@prisma/client": "^7.8.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@vercel/blob": "^2.6.1",
+    "@vercel/kv": "^3.0.0",
     "ai": "^7.0.29",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",

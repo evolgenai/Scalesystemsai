@@ -1,6 +1,18 @@
 export { createScaleMcpClient, connectAndListMcpTools, listMcpToolDescriptors } from "@/lib/mcp/createClient";
 export type { CreateScaleMcpClientOptions } from "@/lib/mcp/createClient";
 export {
+  ScaleMcpClient,
+  ingestCommunityMcpSchemas,
+  openSreMcpSession,
+  McpClientConnectSchema,
+} from "@/lib/mcp/mcpClient";
+export type {
+  McpClientConnectInput,
+  ScaleMcpSessionState,
+  CallMcpToolResult,
+  IngestCommunityMcpOptions,
+} from "@/lib/mcp/mcpClient";
+export {
   issueVaultToken,
   hashAgentKey,
   agentKeyPrefix,

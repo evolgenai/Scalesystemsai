@@ -1,7 +1,5 @@
-import {
-  executeCodeInSandbox,
-  type SandboxLanguage,
-} from "@/lib/agents/codeSandbox";
+import type { SandboxLanguage } from "@/lib/agents/codeSandbox";
+import { executeUntrustedAgentCode } from "@/lib/sandbox/containerRegistry";
 
 export type CodeSandboxResult = {
   success: boolean;
@@ -87,13 +85,18 @@ export function extractCodeFromText(text: string): string | null {
 }
 
 /**
- * Safe mock/sandboxed code runner for serverless environments.
- * Never executes untrusted code against the host; simulates stdout/stderr and metrics,
- * while intercepting malicious filesystem / credential patterns.
+ * Isolated code runner — prefers ephemeral Docker containers via the registry,
+ * with local sandbox fallback when CONTAINER_REGISTRY_URL is unset.
  */
 export async function runCodeInSandbox(
   codeInput: string,
-  options?: { signal?: AbortSignal; languageHint?: string }
+  options?: {
+    signal?: AbortSignal;
+    languageHint?: string;
+    preferredRegion?: string;
+    agentId?: string;
+    sessionId?: string;
+  }
 ): Promise<CodeSandboxResult> {
   const started = Date.now();
   const code = codeInput.trim();
@@ -163,18 +166,21 @@ export async function runCodeInSandbox(
             ? "python"
             : "javascript";
 
-  const isolated = await executeCodeInSandbox(code, sandboxLang, {
+  const isolated = await executeUntrustedAgentCode({
+    code,
+    language: sandboxLang,
     signal: options?.signal,
+    preferredRegion: options?.preferredRegion,
+    agentId: options?.agentId,
+    sessionId: options?.sessionId,
   });
 
-  const durationMs = Date.now() - started;
-  const blocked = isolated.stderr.startsWith("SECURITY INTERCEPT");
-  const stdout = isolated.stdout
-    ? isolated.stdout.split(/\r?\n/)
-    : [];
-  const stderr = isolated.stderr
-    ? isolated.stderr.split(/\r?\n/)
-    : [];
+  const durationMs = isolated.durationMs || Date.now() - started;
+  const blocked =
+    isolated.mode === "blocked" ||
+    isolated.stderr.startsWith("SECURITY INTERCEPT");
+  const stdout = isolated.stdout ? isolated.stdout.split(/\r?\n/) : [];
+  const stderr = isolated.stderr ? isolated.stderr.split(/\r?\n/) : [];
 
   if (blocked) {
     return {
@@ -195,6 +201,8 @@ export async function runCodeInSandbox(
   }
 
   const success = isolated.exitCode === 0;
+  const modeTag =
+    isolated.mode === "remote-container" ? "container" : "local";
   return {
     success,
     blocked: false,
@@ -208,8 +216,8 @@ export async function runCodeInSandbox(
       simulatedOps: Math.max(12, linesOfCode * 17),
     },
     preview: success
-      ? `Sandbox ok — ${sandboxLang} · exit ${isolated.exitCode} · ${durationMs}ms\n${isolated.stdout.slice(0, 500)}`
-      : `Sandbox error — ${sandboxLang} · exit ${isolated.exitCode}\n${isolated.stderr.slice(0, 500)}`,
+      ? `Sandbox ok (${modeTag}) — ${sandboxLang} · exit ${isolated.exitCode} · ${durationMs}ms\n${isolated.stdout.slice(0, 500)}`
+      : `Sandbox error (${modeTag}) — ${sandboxLang} · exit ${isolated.exitCode}\n${isolated.stderr.slice(0, 500)}`,
   };
 }
 
