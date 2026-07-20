@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import {
@@ -14,6 +14,10 @@ import {
   Radio,
   Zap,
   Box,
+  Shield,
+  ShoppingBag,
+  Package,
+  HeartPulse,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -34,9 +38,15 @@ type NavLink = {
     | "settings"
     | "teletraffic"
     | "chaos"
-    | "universe";
+    | "universe"
+    | "sre-control"
+    | "catalog"
+    | "inventory"
+    | "sre-health";
   /** Only shown in Developer mode on dashboard surfaces. */
   developerOnly?: boolean;
+  /** Only shown when Super-Admin env bypass is armed. */
+  superAdminOnly?: boolean;
 };
 
 const NAV_LINKS: NavLink[] = [
@@ -91,6 +101,33 @@ const NAV_LINKS: NavLink[] = [
     developerOnly: true,
   },
   {
+    href: "/dashboard?view=sre-control",
+    label: "SRE Control",
+    icon: Shield,
+    match: "sre-control",
+    superAdminOnly: true,
+  },
+  {
+    href: "/dashboard?view=catalog",
+    label: "Item Catalog",
+    icon: ShoppingBag,
+    match: "catalog",
+  },
+  {
+    href: "/dashboard?view=inventory",
+    label: "Inventory",
+    icon: Package,
+    match: "inventory",
+    superAdminOnly: true,
+  },
+  {
+    href: "/dashboard?view=sre-health",
+    label: "SRE Health",
+    icon: HeartPulse,
+    match: "sre-health",
+    superAdminOnly: true,
+  },
+  {
     href: "/dashboard?view=audit",
     label: "Audit",
     icon: ClipboardList,
@@ -123,6 +160,17 @@ function SidebarNav() {
   const { isDeveloper, mode } = useWorkspaceModeOptional();
   const onDashboard = pathname.startsWith("/dashboard");
   const view = searchParams.get("view");
+  const [superAdminUi, setSuperAdminUi] = useState(false);
+
+  useEffect(() => {
+    try {
+      setSuperAdminUi(
+        window.localStorage.getItem("scalesystems.ui.superAdmin") === "1"
+      );
+    } catch {
+      setSuperAdminUi(false);
+    }
+  }, [pathname, view]);
 
   const marketplaceOpen = onDashboard && view === "marketplace";
   const pluginsOpen = onDashboard && view === "plugins";
@@ -132,10 +180,18 @@ function SidebarNav() {
   const teletrafficOpen = onDashboard && view === "teletraffic";
   const chaosOpen = onDashboard && view === "chaos";
   const universeOpen = onDashboard && view === "universe";
+  const sreControlOpen = onDashboard && view === "sre-control";
+  const catalogOpen = onDashboard && view === "catalog";
+  const inventoryOpen = onDashboard && view === "inventory";
+  const sreHealthOpen = onDashboard && view === "sre-health";
 
   const closeDrawer = () => setOpen(false);
 
   const visibleLinks = NAV_LINKS.filter((link) => {
+    if (link.superAdminOnly) {
+      if (!onDashboard) return false;
+      return superAdminUi;
+    }
     if (!link.developerOnly) return true;
     if (!onDashboard) return false;
     return isDeveloper;
@@ -151,6 +207,10 @@ function SidebarNav() {
     if (link.match === "teletraffic") return teletrafficOpen;
     if (link.match === "chaos") return chaosOpen;
     if (link.match === "universe") return universeOpen;
+    if (link.match === "sre-control") return sreControlOpen;
+    if (link.match === "catalog") return catalogOpen;
+    if (link.match === "inventory") return inventoryOpen;
+    if (link.match === "sre-health") return sreHealthOpen;
     if (link.match === "dashboard") {
       return (
         onDashboard &&
@@ -161,7 +221,11 @@ function SidebarNav() {
         !settingsOpen &&
         !teletrafficOpen &&
         !chaosOpen &&
-        !universeOpen
+        !universeOpen &&
+        !sreControlOpen &&
+        !catalogOpen &&
+        !inventoryOpen &&
+        !sreHealthOpen
       );
     }
     const pathOnly = link.href.split("?")[0] ?? link.href;

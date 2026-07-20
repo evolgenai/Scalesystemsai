@@ -450,6 +450,7 @@ model Workspace {
   auditLogs         TelemetryAuditLog[]
   settings          WorkspaceSettings?
   sandboxMetrics    SandboxRuntimeMetric[]
+  catalogItems      CatalogItem[]
 
   @@index([createdAt])
   @@index([meterLastAt])
@@ -721,4 +722,73 @@ model EstateIotDevice {
   updatedAt    DateTime @updatedAt
 
   @@index([workspaceKey])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// E-Commerce Catalog
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Lifecycle status for tenant catalog items.
+ * DELETED is a soft-delete tombstone; never hard-removed from the table.
+ */
+enum CatalogItemStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+  DELETED
+}
+
+/**
+ * Multi-tenant e-commerce catalog item.
+ * Strictly scoped to a single Workspace — cross-tenant access is blocked at API layer.
+ * SKU uniqueness is enforced per workspace (not globally).
+ */
+model CatalogItem {
+  id            String            @id @default(uuid())
+  workspaceId   String
+  workspace     Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?           @db.Text
+  /** Price in minor units expressed as a float (e.g. 149.99 = ZAR 149.99). */
+  price         Float
+  sku           String
+  category      String
+  stockQuantity Int               @default(0)
+  /** Ordered array of public image URLs. */
+  images        String[]
+  status        CatalogItemStatus @default(ACTIVE)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@unique([workspaceId, sku])
+  @@index([workspaceId, status])
+  @@index([workspaceId, category, status])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, status, createdAt(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SRE Telemetry
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Append-only SRE telemetry log — one row per health-check tick or pipeline probe.
+ * status: healthy | degraded | critical | unknown
+ * fixedBySre: true when the autonomous SRE pipeline applied a remediation patch.
+ */
+model SreSystemLog {
+  id          String   @id @default(uuid())
+  serviceName String
+  /** healthy | degraded | critical | unknown */
+  status      String   @default("healthy")
+  latencyMs   Int      @default(0)
+  errorStack  String?  @db.Text
+  fixedBySre  Boolean  @default(false)
+  timestamp   DateTime @default(now())
+
+  @@index([serviceName, timestamp(sort: Desc)])
+  @@index([status, timestamp(sort: Desc)])
+  @@index([fixedBySre, timestamp(sort: Desc)])
+  @@index([timestamp(sort: Desc)])
 }

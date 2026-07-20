@@ -17,7 +17,11 @@ import {
   ClipboardList,
   Settings2,
   Box,
+  Shield,
   X,
+  ShoppingBag,
+  Package,
+  HeartPulse,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
@@ -118,6 +122,95 @@ const UniverseDeck = dynamic(
     ),
   }
 );
+
+const MetaSreCommandDeck = dynamic(
+  () => import("@/components/admin/MetaSreCommandDeck"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading SRE command deck">
+        <div className="h-24 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="min-h-[280px] animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+          <div className="min-h-[280px] animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        </div>
+      </div>
+    ),
+  }
+);
+
+const DiscordWebhookConfig = dynamic(
+  () => import("@/components/admin/DiscordWebhookConfig"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="h-40 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl"
+        aria-busy
+        aria-label="Loading Discord webhook config"
+      />
+    ),
+  }
+);
+
+const ItemsCatalog = dynamic(
+  () => import("@/components/shop/ItemsCatalog"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading items catalog">
+        <div className="h-16 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="h-64 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+          ))}
+        </div>
+      </div>
+    ),
+  }
+);
+
+const ItemsManager = dynamic(
+  () => import("@/components/admin/ItemsManager"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading inventory manager">
+        <div className="h-16 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="grid gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-20 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+          ))}
+        </div>
+        <div className="h-80 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+      </div>
+    ),
+  }
+);
+
+const SreHealthMonitor = dynamic(
+  () => import("@/components/admin/SreHealthMonitor"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading SRE health monitor">
+        <div className="h-16 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="grid gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+          ))}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="h-96 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+          <div className="space-y-4">
+            <div className="h-56 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+            <div className="h-32 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+          </div>
+        </div>
+      </div>
+    ),
+  }
+);
 import ModeWrapper, {
   useWorkspaceMode,
 } from "@/components/dashboard/ModeWrapper";
@@ -165,6 +258,10 @@ export default function DashboardClient({
     | "audit"
     | "settings"
     | "universe"
+    | "sre-control"
+    | "catalog"
+    | "inventory"
+    | "sre-health"
   >("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -189,6 +286,22 @@ export default function DashboardClient({
       view === "plugins" ||
       view === "audit" ||
       view === "universe";
+    if (view === "sre-control" && !isSuperAdmin) {
+      setConsoleView("workforce");
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("view");
+      const qs = params.toString();
+      router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+      return;
+    }
+    if ((view === "inventory" || view === "sre-health") && !isSuperAdmin) {
+      setConsoleView("workforce");
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("view");
+      const qs = params.toString();
+      router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+      return;
+    }
     if (isUser && developerOnly) {
       setConsoleView("workforce");
       const params = new URLSearchParams(searchParams.toString());
@@ -205,8 +318,12 @@ export default function DashboardClient({
     else if (view === "audit") setConsoleView("audit");
     else if (view === "settings") setConsoleView("settings");
     else if (view === "universe") setConsoleView("universe");
+    else if (view === "sre-control") setConsoleView("sre-control");
+    else if (view === "catalog") setConsoleView("catalog");
+    else if (view === "inventory") setConsoleView("inventory");
+    else if (view === "sre-health") setConsoleView("sre-health");
     else setConsoleView("workforce");
-  }, [searchParams, isUser, router]);
+  }, [searchParams, isUser, isSuperAdmin, router]);
 
   const setView = useCallback(
     (
@@ -220,6 +337,10 @@ export default function DashboardClient({
         | "audit"
         | "settings"
         | "universe"
+        | "sre-control"
+        | "catalog"
+        | "inventory"
+        | "sre-health"
     ) => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
@@ -231,6 +352,10 @@ export default function DashboardClient({
       else if (next === "audit") params.set("view", "audit");
       else if (next === "settings") params.set("view", "settings");
       else if (next === "universe") params.set("view", "universe");
+      else if (next === "sre-control") params.set("view", "sre-control");
+      else if (next === "catalog") params.set("view", "catalog");
+      else if (next === "inventory") params.set("view", "inventory");
+      else if (next === "sre-health") params.set("view", "sre-health");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -242,6 +367,18 @@ export default function DashboardClient({
     if (!authReady) return;
     setPersonasLocked(!(isSuperAdmin || Boolean(user)));
   }, [authReady, isSuperAdmin, user]);
+
+  useEffect(() => {
+    try {
+      if (isSuperAdmin) {
+        window.localStorage.setItem("scalesystems.ui.superAdmin", "1");
+      } else {
+        window.localStorage.removeItem("scalesystems.ui.superAdmin");
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
@@ -585,6 +722,76 @@ export default function DashboardClient({
             </Hover3DIcon>
             Universe
           </button>
+          {isSuperAdmin ? (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={consoleView === "sre-control"}
+              onClick={() => setView("sre-control")}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                consoleView === "sre-control"
+                  ? "bg-emerald-500/15 text-emerald-400"
+                  : "text-slate-muted hover:text-white"
+              }`}
+            >
+              <Hover3DIcon intensity={12}>
+                <Shield className="h-3.5 w-3.5" aria-hidden />
+              </Hover3DIcon>
+              SRE Control
+            </button>
+          ) : null}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={consoleView === "catalog"}
+            onClick={() => setView("catalog")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "catalog"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <ShoppingBag className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            Catalog
+          </button>
+          {isSuperAdmin ? (
+            <>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={consoleView === "inventory"}
+                onClick={() => setView("inventory")}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                  consoleView === "inventory"
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "text-slate-muted hover:text-white"
+                }`}
+              >
+                <Hover3DIcon intensity={12}>
+                  <Package className="h-3.5 w-3.5" aria-hidden />
+                </Hover3DIcon>
+                Inventory
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={consoleView === "sre-health"}
+                onClick={() => setView("sre-health")}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                  consoleView === "sre-health"
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "text-slate-muted hover:text-white"
+                }`}
+              >
+                <Hover3DIcon intensity={12}>
+                  <HeartPulse className="h-3.5 w-3.5" aria-hidden />
+                </Hover3DIcon>
+                SRE Health
+              </button>
+            </>
+          ) : null}
         </div>
         {consoleView === "workforce" ? (
           <>
@@ -640,6 +847,22 @@ export default function DashboardClient({
           <span className="text-xs text-slate-dim">
             Spatial sandbox · FP camera · script upload bridge
           </span>
+        ) : consoleView === "sre-control" ? (
+          <span className="text-xs text-slate-dim">
+            Meta-SRE directives · Discord mobile alerts
+          </span>
+        ) : consoleView === "catalog" ? (
+          <span className="text-xs text-slate-dim">
+            Wines · tastings · merch · digital passes · quick-add cart
+          </span>
+        ) : consoleView === "inventory" ? (
+          <span className="text-xs text-slate-dim">
+            Inline price editing · stock badges · category tagger · asset upload
+          </span>
+        ) : consoleView === "sre-health" ? (
+          <span className="text-xs text-slate-dim">
+            Live latency sparklines · error rates · container statuses
+          </span>
         ) : (
           <span className="text-xs text-slate-dim">
             Browse agent templates &amp; MCP servers for your workspace
@@ -670,6 +893,27 @@ export default function DashboardClient({
       ) : consoleView === "universe" ? (
         <ErrorBoundary label="Spatial Universe">
           <UniverseDeck />
+        </ErrorBoundary>
+      ) : consoleView === "sre-control" ? (
+        <div className="space-y-6">
+          <ErrorBoundary label="Meta-SRE Command Deck">
+            <MetaSreCommandDeck />
+          </ErrorBoundary>
+          <ErrorBoundary label="Discord Webhook Config">
+            <DiscordWebhookConfig />
+          </ErrorBoundary>
+        </div>
+      ) : consoleView === "catalog" ? (
+        <ErrorBoundary label="Items Catalog">
+          <ItemsCatalog />
+        </ErrorBoundary>
+      ) : consoleView === "inventory" ? (
+        <ErrorBoundary label="Items Manager">
+          <ItemsManager />
+        </ErrorBoundary>
+      ) : consoleView === "sre-health" ? (
+        <ErrorBoundary label="SRE Health Monitor">
+          <SreHealthMonitor />
         </ErrorBoundary>
       ) : consoleView === "teletraffic" ? (
         <ErrorBoundary label="Teletraffic Board">
