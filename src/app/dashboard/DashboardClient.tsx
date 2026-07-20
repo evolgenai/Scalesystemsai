@@ -16,6 +16,7 @@ import {
   BellRing,
   ClipboardList,
   Settings2,
+  Box,
   X,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
@@ -101,6 +102,22 @@ const WorkspaceSettings = dynamic(
   () => import("@/components/dashboard/WorkspaceSettings"),
   { ssr: false, loading: () => <WorkspaceSettingsSkeleton /> }
 );
+
+const UniverseDeck = dynamic(
+  () => import("@/components/sandbox/UniverseDeck"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading universe deck">
+        <div className="h-16 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+          <div className="min-h-[420px] animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl sm:min-h-[480px]" />
+          <div className="min-h-[420px] animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        </div>
+      </div>
+    ),
+  }
+);
 import ModeWrapper, {
   useWorkspaceMode,
 } from "@/components/dashboard/ModeWrapper";
@@ -147,6 +164,7 @@ export default function DashboardClient({
     | "alerts"
     | "audit"
     | "settings"
+    | "universe"
   >("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -169,7 +187,8 @@ export default function DashboardClient({
       view === "chaos" ||
       view === "teletraffic" ||
       view === "plugins" ||
-      view === "audit";
+      view === "audit" ||
+      view === "universe";
     if (isUser && developerOnly) {
       setConsoleView("workforce");
       const params = new URLSearchParams(searchParams.toString());
@@ -185,6 +204,7 @@ export default function DashboardClient({
     else if (view === "alerts") setConsoleView("alerts");
     else if (view === "audit") setConsoleView("audit");
     else if (view === "settings") setConsoleView("settings");
+    else if (view === "universe") setConsoleView("universe");
     else setConsoleView("workforce");
   }, [searchParams, isUser, router]);
 
@@ -199,6 +219,7 @@ export default function DashboardClient({
         | "alerts"
         | "audit"
         | "settings"
+        | "universe"
     ) => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
@@ -209,6 +230,7 @@ export default function DashboardClient({
       else if (next === "alerts") params.set("view", "alerts");
       else if (next === "audit") params.set("view", "audit");
       else if (next === "settings") params.set("view", "settings");
+      else if (next === "universe") params.set("view", "universe");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -547,6 +569,22 @@ export default function DashboardClient({
             </Hover3DIcon>
             Chaos
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={consoleView === "universe"}
+            onClick={() => setView("universe")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "universe"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <Box className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            Universe
+          </button>
         </div>
         {consoleView === "workforce" ? (
           <>
@@ -598,6 +636,10 @@ export default function DashboardClient({
           <span className="text-xs text-slate-dim">
             Feature flags · AI loops · webhook egress · heal budgets
           </span>
+        ) : consoleView === "universe" ? (
+          <span className="text-xs text-slate-dim">
+            Spatial sandbox · FP camera · script upload bridge
+          </span>
         ) : (
           <span className="text-xs text-slate-dim">
             Browse agent templates &amp; MCP servers for your workspace
@@ -624,6 +666,10 @@ export default function DashboardClient({
       ) : consoleView === "settings" ? (
         <ErrorBoundary label="Workspace Settings">
           <WorkspaceSettings />
+        </ErrorBoundary>
+      ) : consoleView === "universe" ? (
+        <ErrorBoundary label="Spatial Universe">
+          <UniverseDeck />
         </ErrorBoundary>
       ) : consoleView === "teletraffic" ? (
         <ErrorBoundary label="Teletraffic Board">

@@ -79,9 +79,11 @@ export async function getOrgOwnerBillingQuota(
           id: true,
           email: true,
           role: true,
+          accountKind: true,
           tier: true,
           maxAgents: true,
           plan: true,
+          developerAccount: { select: { id: true, verifiedAt: true } },
         },
       },
     },
@@ -92,14 +94,20 @@ export async function getOrgOwnerBillingQuota(
 
   const tier = owner.tier as SubscriptionTier;
   const role = owner.role as UserRole;
+  const verifiedDeveloper =
+    owner.accountKind === "DEVELOPER_ACCOUNT" &&
+    owner.developerAccount?.verifiedAt != null;
   const profile: RequestUserProfile = {
     id: owner.id,
     email: owner.email,
     role,
+    accountKind: owner.accountKind,
     tier,
     maxAgents: owner.maxAgents || getMaxAgentsForTier(tier),
     plan: normalizeCommercialPlan(owner.plan),
     isSuperAdmin: role === "SUPER_ADMIN",
+    isDeveloperAccount: verifiedDeveloper,
+    developerAccountId: owner.developerAccount?.id ?? null,
   };
 
   return {

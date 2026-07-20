@@ -42,6 +42,26 @@ enum UserRole {
 
 }
 
+/**
+ * Profile role hierarchy — absolute tier boundary for advanced tooling.
+ * USER_ACCOUNT: standard tenant operator (no script sandbox / orchestration).
+ * DEVELOPER_ACCOUNT: verified developer profile with sandbox + advanced flags.
+ */
+enum AccountProfileKind {
+  USER_ACCOUNT
+  DEVELOPER_ACCOUNT
+}
+
+/**
+ * Workspace authorization floor required to touch advanced tools / containers.
+ * BASIC < ADVANCED_TOOLS < CONTAINER_ORCHESTRATION
+ */
+enum WorkspaceAuthLevel {
+  BASIC
+  ADVANCED_TOOLS
+  CONTAINER_ORCHESTRATION
+}
+
 
 
 enum SubscriptionTier {
@@ -96,6 +116,9 @@ model User {
 
   role         UserRole         @default(USER)
 
+  /** Absolute profile tier — USER_ACCOUNT vs DEVELOPER_ACCOUNT hierarchy. */
+  accountKind  AccountProfileKind @default(USER_ACCOUNT)
+
   tier         SubscriptionTier @default(STARTER_5)
 
   maxAgents    Int              @default(5)
@@ -123,10 +146,40 @@ model User {
 
   subscription Subscription?
 
+  /** Present only when accountKind = DEVELOPER_ACCOUNT and verification succeeded. */
+  developerAccount DeveloperAccount?
+
   createdAt    DateTime         @default(now())
 
   updatedAt    DateTime         @updatedAt
 
+  @@index([accountKind])
+
+}
+
+/**
+ * Verified developer profile — gates script sandboxes & container orchestration.
+ * Linked 1:1 to User; absent for USER_ACCOUNT tier.
+ */
+model DeveloperAccount {
+  id                     String                 @id @default(cuid())
+  userId                 String                 @unique
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** Public developer handle (not a secret). */
+  handle                 String?
+  /** Wall-clock verification timestamp — null means pending / revoked. */
+  verifiedAt             DateTime?
+  sandboxEnabled         Boolean                @default(true)
+  orchestrationEnabled   Boolean                @default(false)
+  /** Soft caps for virtual runtime telemetry. */
+  maxConcurrentRuntimes  Int                    @default(2)
+  maxCpuMsPerDay         Int                    @default(600000)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  sandboxMetrics         SandboxRuntimeMetric[]
+
+  @@index([verifiedAt])
+  @@index([sandboxEnabled, verifiedAt])
 }
 
 
@@ -380,6 +433,11 @@ model Workspace {
   meterLastAt       DateTime?
   /** Tenant navigation / viewport mode — mirrored to Edge KV on write. */
   uiPreference      UiPreference         @default(USER)
+  /**
+   * Minimum AccountProfileKind / capability floor for this workspace.
+   * ADVANCED_TOOLS + CONTAINER_ORCHESTRATION require a verified DeveloperAccount.
+   */
+  requiredAuthLevel WorkspaceAuthLevel   @default(BASIC)
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   logs              AppErrorLog[]
@@ -391,10 +449,43 @@ model Workspace {
   alertRules        TelemetryAlertRule[]
   auditLogs         TelemetryAuditLog[]
   settings          WorkspaceSettings?
+  sandboxMetrics    SandboxRuntimeMetric[]
 
   @@index([createdAt])
   @@index([meterLastAt])
   @@index([uiPreference])
+  @@index([requiredAuthLevel])
+}
+
+/**
+ * Virtual sandbox runtime telemetry bound to a verified DeveloperAccount.
+ * Tracks CPU / memory / disk for script compilation & container-adjacent runs.
+ */
+model SandboxRuntimeMetric {
+  id                  String            @id @default(uuid())
+  developerAccountId  String
+  developerAccount    DeveloperAccount  @relation(fields: [developerAccountId], references: [id], onDelete: Cascade)
+  workspaceId         String?
+  workspace           Workspace?        @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  /** Opaque virtual system runtime identifier. */
+  runtimeId           String
+  /** javascript | python | container | other */
+  language            String?
+  cpuMs               Int               @default(0)
+  memoryMbPeak        Int               @default(0)
+  diskMb              Int               @default(0)
+  exitCode            Int?
+  /** active | completed | failed | killed */
+  status              String            @default("completed")
+  metadataJson        Json              @default("{}")
+  startedAt           DateTime          @default(now())
+  endedAt             DateTime?
+  createdAt           DateTime          @default(now())
+
+  @@index([developerAccountId, createdAt(sort: Desc)])
+  @@index([developerAccountId, runtimeId])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
 }
 
 /**

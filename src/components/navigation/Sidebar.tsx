@@ -13,6 +13,7 @@ import {
   Settings2,
   Radio,
   Zap,
+  Box,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -32,7 +33,8 @@ type NavLink = {
     | "audit"
     | "settings"
     | "teletraffic"
-    | "chaos";
+    | "chaos"
+    | "universe";
   /** Only shown in Developer mode on dashboard surfaces. */
   developerOnly?: boolean;
 };
@@ -82,6 +84,13 @@ const NAV_LINKS: NavLink[] = [
     developerOnly: true,
   },
   {
+    href: "/dashboard?view=universe",
+    label: "Universe",
+    icon: Box,
+    match: "universe",
+    developerOnly: true,
+  },
+  {
     href: "/dashboard?view=audit",
     label: "Audit",
     icon: ClipboardList,
@@ -122,6 +131,7 @@ function SidebarNav() {
   const settingsOpen = onDashboard && view === "settings";
   const teletrafficOpen = onDashboard && view === "teletraffic";
   const chaosOpen = onDashboard && view === "chaos";
+  const universeOpen = onDashboard && view === "universe";
 
   const closeDrawer = () => setOpen(false);
 
@@ -140,6 +150,7 @@ function SidebarNav() {
     if (link.match === "settings") return settingsOpen;
     if (link.match === "teletraffic") return teletrafficOpen;
     if (link.match === "chaos") return chaosOpen;
+    if (link.match === "universe") return universeOpen;
     if (link.match === "dashboard") {
       return (
         onDashboard &&
@@ -149,7 +160,8 @@ function SidebarNav() {
         !auditOpen &&
         !settingsOpen &&
         !teletrafficOpen &&
-        !chaosOpen
+        !chaosOpen &&
+        !universeOpen
       );
     }
     const pathOnly = link.href.split("?")[0] ?? link.href;

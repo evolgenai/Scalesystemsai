@@ -11,9 +11,12 @@ export async function GET(request: Request) {
     id: profile.id,
     email: profile.email,
     role: profile.role,
+    accountKind: profile.accountKind,
     tier: profile.tier,
     plan: profile.plan,
     maxAgents: profile.maxAgents,
     isSuperAdmin: profile.isSuperAdmin,
+    isDeveloperAccount: profile.isDeveloperAccount,
+    developerAccountId: profile.developerAccountId,
   });
 }

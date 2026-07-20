@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { resolveRequestUser } from "@/lib/auth/requestUser";
+import {
+  developerGateJson,
+  resolveDeveloperGate,
+} from "@/lib/auth/developerGate";
 import {
   extractOrgIdFromRequest,
   resolveOrgContext,
@@ -21,25 +24,25 @@ type SandboxBody = {
  * POST /api/agents/sandbox/run
  * Body: { code, language: "javascript" | "python" }
  * Header: optional x-org-id (membership verified when present)
+ * Requires verified DeveloperAccount (403 Unauthorized Tier otherwise).
  */
 export async function POST(request: Request) {
-  const profile = await resolveRequestUser(request);
-  if (!profile.id) {
+  const gate = await resolveDeveloperGate(request, "script_compilation");
+  if (!gate.ok) {
     return NextResponse.json(
       {
-        success: false,
-        error: "Sign in required.",
+        ...developerGateJson(gate),
         stdout: "",
-        stderr: "Unauthorized",
+        stderr: "Unauthorized Tier",
         exitCode: 1,
       },
-      { status: 401 }
+      { status: 403 }
     );
   }
 
   const headerOrg = extractOrgIdFromRequest(request);
   if (headerOrg) {
-    const membership = await resolveOrgContext(profile.id, headerOrg);
+    const membership = await resolveOrgContext(gate.userId, headerOrg);
     if (!membership) {
       return NextResponse.json(
         {
