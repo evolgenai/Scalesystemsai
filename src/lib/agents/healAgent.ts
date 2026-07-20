@@ -7,6 +7,11 @@ import {
   openHealMcpSession,
   type ToolCallLog,
 } from "@/lib/agents/healMcpTools";
+import {
+  MAX_CORRECTION_CYCLES,
+  runSelfRefiningExecutionLoop,
+  type FileAdjustment,
+} from "@/lib/sandbox/codeExecution";
 
 export const HealProposalSchema = z.object({
   targetFile: z
@@ -29,6 +34,8 @@ export type HealResult = HealProposal & {
   validatorApproved: boolean;
   workspaceName: string | null;
   estateToolsEnabled: boolean;
+  correctionCycles: number;
+  validationExhausted: boolean;
 };
 
 const SupervisorPlanSchema = z.object({
@@ -143,6 +150,8 @@ function offlineResult(input: {
     validatorApproved: true,
     workspaceName: null,
     estateToolsEnabled: false,
+    correctionCycles: 0,
+    validationExhausted: false,
   };
 }
 
@@ -208,10 +217,22 @@ export async function proposeHealPatch(input: {
       toolCalls.push(`supervisor:task ${t.id} ${t.action} ${t.title}`);
     }
 
-    // ── Phase 2: Code Writer ────────────────────────────────────────────
+    // ── Phase 2: Code Writer (+ self-refining TS validation, max 3) ─────
     phases.push("writer");
     toolCalls.push("writer:phase_start");
-    const writerPrompt = [
+
+    const baseWriterSystem = [
+      "You are the Scale Systems Code Writer agent.",
+      "Execute supervisor tasks using read_file / write_file / apply_patch (and MCP tools).",
+      session.estateToolsEnabled
+        ? "Meerendal Estate: you may call check_gate_power and cycle_parking_lights to remediate IoT/electrical faults."
+        : "",
+      "Stay inside the heal sandbox. Never touch .env files.",
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const baseWriterPrompt = [
       context,
       `Supervisor summary: ${plan.summary}`,
       `Target file: ${plan.targetFile}`,
@@ -219,62 +240,110 @@ export async function proposeHealPatch(input: {
       "Read the file via tools, apply a minimal fix with write_file/apply_patch, then output the proposal object.",
     ].join("\n\n");
 
-    let proposal: HealProposal;
-    try {
-      const writerResult = await generateText({
-        model,
-        tools: session.tools,
-        stopWhen: stepCountIs(6),
-        output: Output.object({ schema: HealProposalSchema }),
-        system: [
-          "You are the Scale Systems Code Writer agent.",
-          "Execute supervisor tasks using read_file / write_file / apply_patch (and MCP tools).",
-          session.estateToolsEnabled
-            ? "Meerendal Estate: you may call check_gate_power and cycle_parking_lights to remediate IoT/electrical faults."
-            : "",
-          "Stay inside the heal sandbox. Never touch .env files.",
-        ]
-          .filter(Boolean)
-          .join(" "),
-        prompt: writerPrompt,
-      });
+    async function invokeWriter(
+      promptExtra: string | null
+    ): Promise<HealProposal> {
+      const loggerOffset = session.logger.toolCalls.length;
+      try {
+        const writerResult = await generateText({
+          model,
+          tools: session.tools,
+          stopWhen: stepCountIs(6),
+          output: Output.object({ schema: HealProposalSchema }),
+          system: baseWriterSystem,
+          prompt: promptExtra
+            ? `${baseWriterPrompt}\n\n${promptExtra}`
+            : baseWriterPrompt,
+        });
 
-      toolCalls.push(
-        ...session.logger.toolCalls.map((l) =>
-          l.startsWith("writer:") ? l : `writer:${l}`
-        ),
-        ...collectStepsToolCalls(writerResult.steps, "writer")
-      );
+        toolCalls.push(
+          ...session.logger.toolCalls.slice(loggerOffset).map((l) =>
+            l.startsWith("writer:") ? l : `writer:${l}`
+          ),
+          ...collectStepsToolCalls(writerResult.steps, "writer")
+        );
 
-      proposal =
-        writerResult.output ??
-        ({
+        return (
+          writerResult.output ??
+          ({
+            targetFile: plan.targetFile,
+            patch: `--- a/${plan.targetFile}\n+++ b/${plan.targetFile}\n@@\n+// writer: no structured output`,
+            explanation: plan.summary,
+            filesWritten: [],
+          } satisfies HealProposal)
+        );
+      } catch (err) {
+        console.warn("[heal] writer failed:", err);
+        toolCalls.push(
+          `writer:error ${err instanceof Error ? err.message : "unknown"}`
+        );
+        return {
           targetFile: plan.targetFile,
-          patch: `--- a/${plan.targetFile}\n+++ b/${plan.targetFile}\n@@\n+// writer: no structured output`,
+          patch: [
+            `--- a/${plan.targetFile}`,
+            `+++ b/${plan.targetFile}`,
+            `@@`,
+            `+// writer fallback — tool loop failed`,
+          ].join("\n"),
           explanation: plan.summary,
           filesWritten: [],
-        } satisfies HealProposal);
-    } catch (err) {
-      console.warn("[heal] writer failed:", err);
-      toolCalls.push(
-        `writer:error ${err instanceof Error ? err.message : "unknown"}`
-      );
-      proposal = {
-        targetFile: plan.targetFile,
-        patch: [
-          `--- a/${plan.targetFile}`,
-          `+++ b/${plan.targetFile}`,
-          `@@`,
-          `+// writer fallback — tool loop failed`,
-        ].join("\n"),
-        explanation: plan.summary,
-        filesWritten: [],
-      };
+        };
+      }
     }
 
-    toolCalls.push(`writer:proposal ${proposal.targetFile}`);
+    const initialProposal = await invokeWriter(null);
+    toolCalls.push(`writer:proposal ${initialProposal.targetFile}`);
 
-    // ── Phase 3: Code Validator ─────────────────────────────────────────
+    const refine = await runSelfRefiningExecutionLoop({
+      initial: {
+        targetFile: initialProposal.targetFile,
+        patch: initialProposal.patch,
+        explanation: initialProposal.explanation,
+        filesWritten: initialProposal.filesWritten,
+      } satisfies FileAdjustment,
+      maxCycles: MAX_CORRECTION_CYCLES,
+      correctWriter: async (ctx) => {
+        toolCalls.push(
+          `writer:refine_inject cycle=${ctx.attempt}/${MAX_CORRECTION_CYCLES}`
+        );
+        const revised = await invokeWriter(ctx.promptInjection);
+        toolCalls.push(`writer:refined ${revised.targetFile}`);
+        return {
+          targetFile: revised.targetFile,
+          patch: revised.patch,
+          explanation: revised.explanation,
+          filesWritten: revised.filesWritten,
+        };
+      },
+    });
+
+    for (const log of refine.cycleLogs) {
+      toolCalls.push(`sandbox:${log}`);
+    }
+    if (refine.exhausted) {
+      toolCalls.push(
+        `sandbox:exhausted after ${refine.attempts}/${MAX_CORRECTION_CYCLES} cycles — routing to validator`
+      );
+    }
+
+    const proposal: HealProposal = {
+      targetFile: refine.adjustment.targetFile,
+      patch: refine.adjustment.patch,
+      explanation: [
+        refine.adjustment.explanation ?? plan.summary,
+        refine.validation.ok
+          ? null
+          : `Pre-validator TS diagnostics remaining: ${refine.validation.diagnostics
+              .filter((d) => d.severity === "error")
+              .map((d) => `${d.code}: ${d.message}`)
+              .join("; ")}`,
+      ]
+        .filter(Boolean)
+        .join("\n\n"),
+      filesWritten: refine.adjustment.filesWritten,
+    };
+
+    // ── Phase 3: Code Validator (after ≤3 correction cycles) ────────────
     phases.push("validator");
     toolCalls.push("validator:phase_start");
     const { object: verdict } = await generateObject({
@@ -284,12 +353,19 @@ export async function proposeHealPatch(input: {
         "You are the Scale Systems Code Validator agent.",
         "Review the writer's patch for TypeScript/runtime issues, security escapes, and incomplete fixes.",
         "Approve only if the change is minimal, typed, and safe to land.",
-      ].join(" "),
+        refine.exhausted
+          ? "Note: self-refining TS validation exhausted max correction cycles — be stricter."
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
       prompt: [
         context,
         `Target: ${proposal.targetFile}`,
         `Patch:\n${proposal.patch.slice(0, 8000)}`,
         `Writer explanation: ${proposal.explanation}`,
+        `Correction cycles used: ${refine.attempts}/${MAX_CORRECTION_CYCLES}`,
+        `Sandbox validation ok: ${refine.validation.ok}`,
       ].join("\n\n"),
     });
 
@@ -308,6 +384,7 @@ export async function proposeHealPatch(input: {
         proposal.explanation,
         `Validator: ${verdict.approved ? "approved" : "rejected"} — ${verdict.notes}`,
         verdict.issues.length ? `Issues: ${verdict.issues.join("; ")}` : null,
+        `Correction cycles: ${refine.attempts}/${MAX_CORRECTION_CYCLES}`,
       ]
         .filter(Boolean)
         .join("\n\n"),
@@ -318,6 +395,8 @@ export async function proposeHealPatch(input: {
       validatorApproved: verdict.approved,
       workspaceName: session.workspaceName,
       estateToolsEnabled: session.estateToolsEnabled,
+      correctionCycles: refine.attempts,
+      validationExhausted: refine.exhausted,
     };
   } finally {
     await closeHealMcpSession(session);

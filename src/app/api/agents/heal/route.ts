@@ -34,6 +34,8 @@ type HealRemediated = {
   toolCalls: string[];
   phases: Array<"supervisor" | "writer" | "validator">;
   validatorApproved: boolean;
+  correctionCycles: number;
+  validationExhausted: boolean;
   mcpHostsConnected: number;
   toolsAvailable: string[];
   workspaceId: string | null;
@@ -145,6 +147,8 @@ export async function POST(
         explanation: [
           `phases: ${proposal.phases.join(" → ")}`,
           `validatorApproved: ${proposal.validatorApproved}`,
+          `correctionCycles: ${proposal.correctionCycles}`,
+          `validationExhausted: ${proposal.validationExhausted}`,
           `targetFile: ${proposal.targetFile}`,
           `toolCalls: ${JSON.stringify(proposal.toolCalls)}`,
           proposal.explanation,
@@ -195,6 +199,8 @@ export async function POST(
       toolCalls: proposal.toolCalls,
       phases: proposal.phases,
       validatorApproved: proposal.validatorApproved,
+      correctionCycles: proposal.correctionCycles,
+      validationExhausted: proposal.validationExhausted,
       mcpHostsConnected: proposal.mcpHostsConnected,
       toolsAvailable: proposal.toolsAvailable,
       workspaceId: latest.workspaceId ?? workspaceId,

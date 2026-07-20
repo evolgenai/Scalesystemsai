@@ -10,6 +10,7 @@ import {
   CircleDot,
   Activity,
   PanelsTopLeft,
+  Store,
   X,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
@@ -19,6 +20,8 @@ import LiveStreamTerminal from "@/components/dashboard/LiveStreamTerminal";
 import WorkspaceHistorySidebar from "@/components/dashboard/WorkspaceHistorySidebar";
 import McpManager from "@/components/dashboard/McpManager";
 import HealerConsole from "@/components/dashboard/HealerConsole";
+import Marketplace from "@/components/dashboard/Marketplace";
+import Hover3DIcon from "@/components/ui/Hover3DIcon";
 
 const AgentCardStack3D = dynamic(
   () => import("@/components/dashboard/AgentCardStack3D"),
@@ -67,6 +70,9 @@ export default function DashboardClient({
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [troubleshootActive, setTroubleshootActive] = useState(false);
   const [crashAlert, setCrashAlert] = useState<string | null>(null);
+  const [consoleView, setConsoleView] = useState<"workforce" | "marketplace">(
+    "workforce"
+  );
   const typingIdleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -77,6 +83,24 @@ export default function DashboardClient({
    * guest Vercel views never mismatch / unmount the selector.
    */
   const [personasLocked, setPersonasLocked] = useState(!isSuperAdmin);
+
+  useEffect(() => {
+    setConsoleView(
+      searchParams.get("view") === "marketplace" ? "marketplace" : "workforce"
+    );
+  }, [searchParams]);
+
+  const setView = useCallback(
+    (next: "workforce" | "marketplace") => {
+      setConsoleView(next);
+      const params = new URLSearchParams(searchParams.toString());
+      if (next === "marketplace") params.set("view", "marketplace");
+      else params.delete("view");
+      const qs = params.toString();
+      router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   useEffect(() => {
     if (!authReady) return;
@@ -236,7 +260,9 @@ export default function DashboardClient({
             <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 rounded-full border border-cyan-accent/30 bg-cyan-accent/5 px-3.5 py-1.5 text-xs font-medium text-cyan-accent">
-                  <LayoutDashboard className="h-3.5 w-3.5" aria-hidden />
+                  <Hover3DIcon intensity={14}>
+                    <LayoutDashboard className="h-3.5 w-3.5" aria-hidden />
+                  </Hover3DIcon>
                   Developer Command Center
                 </div>
                 <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">
@@ -271,176 +297,228 @@ export default function DashboardClient({
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-4 rounded-xl border border-white/5 bg-black/25 px-4 py-3">
-              <div className="flex items-center gap-2 text-xs text-slate-muted">
-                <CircleDot
-                  className={`h-3.5 w-3.5 ${
-                    activeCount > 0
-                      ? "animate-pulse text-emerald-400"
-                      : "text-slate-500"
+              <div
+                className="inline-flex rounded-lg border border-white/5 bg-[#121212] p-0.5"
+                role="tablist"
+                aria-label="Console view"
+              >
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={consoleView === "workforce"}
+                  onClick={() => setView("workforce")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    consoleView === "workforce"
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-slate-muted hover:text-white"
                   }`}
-                  aria-hidden
-                />
-                {selectedSessionId
-                  ? "Viewing saved swarm from Workspace History"
-                  : activeCount > 0
-                    ? `${activeCount} agent${activeCount === 1 ? "" : "s"} active`
-                    : "Swarm standing by — enter an objective and launch"}
+                >
+                  <Hover3DIcon intensity={12}>
+                    <LayoutDashboard className="h-3.5 w-3.5" aria-hidden />
+                  </Hover3DIcon>
+                  Workforce
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={consoleView === "marketplace"}
+                  onClick={() => setView("marketplace")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    consoleView === "marketplace"
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-slate-muted hover:text-white"
+                  }`}
+                >
+                  <Hover3DIcon intensity={12}>
+                    <Store className="h-3.5 w-3.5" aria-hidden />
+                  </Hover3DIcon>
+                  Marketplace
+                </button>
               </div>
-              <span
-                className="hidden h-4 w-px bg-white/10 sm:block"
-                aria-hidden
-              />
-              <span className="text-xs text-slate-dim">
-                Events{" "}
-                <span className="font-mono text-cyan-accent">
-                  {lines.length}
+              {consoleView === "workforce" ? (
+                <>
+                  <div className="flex items-center gap-2 text-xs text-slate-muted">
+                    <CircleDot
+                      className={`h-3.5 w-3.5 ${
+                        activeCount > 0
+                          ? "animate-pulse text-emerald-400"
+                          : "text-slate-500"
+                      }`}
+                      aria-hidden
+                    />
+                    {selectedSessionId
+                      ? "Viewing saved swarm from Workspace History"
+                      : activeCount > 0
+                        ? `${activeCount} agent${activeCount === 1 ? "" : "s"} active`
+                        : "Swarm standing by — enter an objective and launch"}
+                  </div>
+                  <span
+                    className="hidden h-4 w-px bg-white/10 sm:block"
+                    aria-hidden
+                  />
+                  <span className="text-xs text-slate-dim">
+                    Events{" "}
+                    <span className="font-mono text-cyan-accent">
+                      {lines.length}
+                    </span>
+                  </span>
+                </>
+              ) : (
+                <span className="text-xs text-slate-dim">
+                  Browse agent templates &amp; MCP servers for your workspace
                 </span>
-              </span>
+              )}
             </div>
           </motion.header>
 
-          {crashAlert ? (
-            <div
-              role="alert"
-              className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-400/30 border-l-2 border-l-rose-400 bg-[#121212] px-3.5 py-2.5"
-            >
-              <p className="min-w-0 break-words text-xs font-medium text-amber-200">
-                {crashAlert}
-              </p>
-              <button
-                type="button"
-                onClick={() => setCrashAlert(null)}
-                className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-500 hover:text-white"
-              >
-                Dismiss
-              </button>
-            </div>
-          ) : null}
-
-          <section aria-labelledby="visualizer-heading" className="mb-8">
-            <h2 id="visualizer-heading" className="sr-only">
-              Agent visualizer cards
-            </h2>
-            <AgentCardStack3D
-              agents={agents}
-              troubleshootActive={troubleshootActive}
-            />
-            {agents.length > 4 ? (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {agents.slice(4).map((agent) => (
-                  <AgentVisualizerCard key={agent.id} agent={agent} />
-                ))}
-              </div>
-            ) : null}
-          </section>
-
-          <section
-            aria-labelledby="persona-heading"
-            className="mb-6 w-full rounded-lg border border-white/5 bg-[#121212] p-3.5 sm:p-4"
-          >
-            <h2 id="persona-heading" className="sr-only">
-              Agent personality templates
-            </h2>
-            <AgentPersonaSelector
-              personaId={personaId}
-              onPersonaChange={setPersonaId}
-              customSystemPrompt={customSystemPrompt}
-              onCustomSystemPromptChange={setCustomSystemPrompt}
-              locked={personasLocked}
-              isSuperAdmin={isSuperAdmin}
-            />
-          </section>
-
-          <section
-            aria-labelledby="split-heading"
-            className="grid w-full items-start gap-4 lg:grid-cols-5 lg:gap-6"
-          >
-            <h2 id="split-heading" className="sr-only">
-              Spawn controls and live terminal
-            </h2>
-
-            {/* Mobile/tablet: middle workspace behind a drawer trigger */}
-            <div className="lg:hidden">
-              <button
-                type="button"
-                onClick={() => setWorkspaceOpen(true)}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-3 py-2.5 text-xs font-semibold text-emerald-400 transition hover:border-emerald-500/30"
-                aria-expanded={workspaceOpen}
-              >
-                <PanelsTopLeft className="h-4 w-4" aria-hidden />
-                Open workspace controls
-              </button>
-            </div>
-
-            {workspaceOpen ? (
-              <button
-                type="button"
-                className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
-                aria-label="Close workspace overlay"
-                onClick={() => setWorkspaceOpen(false)}
-              />
-            ) : null}
-
-            <div
-              className={`lg:col-span-2 ${
-                workspaceOpen
-                  ? "fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-white/5 bg-[#121212] p-4 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
-                  : "hidden lg:block"
-              }`}
-            >
-              <div className="mb-3 flex items-center justify-between gap-2 lg:hidden">
-                <p className="font-display text-sm font-semibold text-white">
-                  Workspace controls
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setWorkspaceOpen(false)}
-                  className="rounded-lg border border-white/5 p-1.5 text-slate-muted hover:text-white"
-                  aria-label="Close workspace controls"
+          {consoleView === "marketplace" ? (
+            <Marketplace />
+          ) : (
+            <>
+              {crashAlert ? (
+                <div
+                  role="alert"
+                  className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-400/30 border-l-2 border-l-rose-400 bg-[#121212] px-3.5 py-2.5"
                 >
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
-              </div>
-              <AgentSpawnPanel
-                objective={objective}
-                onObjectiveChange={handleObjectiveChange}
-                connection={connection}
-                overallProgress={overallProgress}
-                onStart={handleStart}
-                onStop={handleStop}
-                onClear={handleClear}
-                mountedPluginIds={mountedPluginIds}
-                onMountedPluginIdsChange={setMountedPluginIds}
-              />
-              <McpManager />
-              <HealerConsole
-                onTroubleshootChange={setTroubleshootActive}
-                onCrashAlert={setCrashAlert}
-              />
-            </div>
-            <div className="w-full min-w-0 lg:col-span-3">
-              <LiveStreamTerminal
-                lines={lines}
-                results={results}
-                connection={connection}
-                sessionId={sessionId}
-                debateTurns={debateTurns}
-                consensusPending={consensusPending}
-                debateVote={debateVote}
-                recalledMemories={recalledMemories}
-                sandboxFrames={sandboxFrames}
-                onDebateVoteRegistered={registerDebateVote}
-                paymentRequired={paymentRequired}
-                onDismissPaymentRequired={dismissPaymentRequired}
-                onPause={pause}
-                onResume={resume}
-                onProceedCheckout={() => {
-                  trackFunnelEvent({ event: "checkout_redirect" });
-                  router.push("/checkout");
-                }}
-              />
-            </div>
-          </section>
+                  <p className="min-w-0 break-words text-xs font-medium text-amber-200">
+                    {crashAlert}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setCrashAlert(null)}
+                    className="shrink-0 text-[10px] uppercase tracking-wide text-zinc-500 hover:text-white"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              ) : null}
+
+              <section aria-labelledby="visualizer-heading" className="mb-8">
+                <h2 id="visualizer-heading" className="sr-only">
+                  Agent visualizer cards
+                </h2>
+                <AgentCardStack3D
+                  agents={agents}
+                  troubleshootActive={troubleshootActive}
+                />
+                {agents.length > 4 ? (
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {agents.slice(4).map((agent) => (
+                      <AgentVisualizerCard key={agent.id} agent={agent} />
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+
+              <section
+                aria-labelledby="persona-heading"
+                className="mb-6 w-full rounded-lg border border-white/5 bg-[#121212] p-3.5 sm:p-4"
+              >
+                <h2 id="persona-heading" className="sr-only">
+                  Agent personality templates
+                </h2>
+                <AgentPersonaSelector
+                  personaId={personaId}
+                  onPersonaChange={setPersonaId}
+                  customSystemPrompt={customSystemPrompt}
+                  onCustomSystemPromptChange={setCustomSystemPrompt}
+                  locked={personasLocked}
+                  isSuperAdmin={isSuperAdmin}
+                />
+              </section>
+
+              <section
+                aria-labelledby="split-heading"
+                className="grid w-full items-start gap-4 lg:grid-cols-5 lg:gap-6"
+              >
+                <h2 id="split-heading" className="sr-only">
+                  Spawn controls and live terminal
+                </h2>
+
+                {/* Mobile/tablet: middle workspace behind a drawer trigger */}
+                <div className="lg:hidden">
+                  <button
+                    type="button"
+                    onClick={() => setWorkspaceOpen(true)}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-3 py-2.5 text-xs font-semibold text-emerald-400 transition hover:border-emerald-500/30"
+                    aria-expanded={workspaceOpen}
+                  >
+                    <PanelsTopLeft className="h-4 w-4" aria-hidden />
+                    Open workspace controls
+                  </button>
+                </div>
+
+                {workspaceOpen ? (
+                  <button
+                    type="button"
+                    className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
+                    aria-label="Close workspace overlay"
+                    onClick={() => setWorkspaceOpen(false)}
+                  />
+                ) : null}
+
+                <div
+                  className={`lg:col-span-2 ${
+                    workspaceOpen
+                      ? "fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-white/5 bg-[#121212] p-4 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+                      : "hidden lg:block"
+                  }`}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2 lg:hidden">
+                    <p className="font-display text-sm font-semibold text-white">
+                      Workspace controls
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setWorkspaceOpen(false)}
+                      className="rounded-lg border border-white/5 p-1.5 text-slate-muted hover:text-white"
+                      aria-label="Close workspace controls"
+                    >
+                      <X className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                  <AgentSpawnPanel
+                    objective={objective}
+                    onObjectiveChange={handleObjectiveChange}
+                    connection={connection}
+                    overallProgress={overallProgress}
+                    onStart={handleStart}
+                    onStop={handleStop}
+                    onClear={handleClear}
+                    mountedPluginIds={mountedPluginIds}
+                    onMountedPluginIdsChange={setMountedPluginIds}
+                  />
+                  <McpManager />
+                  <HealerConsole
+                    onTroubleshootChange={setTroubleshootActive}
+                    onCrashAlert={setCrashAlert}
+                  />
+                </div>
+                <div className="w-full min-w-0 lg:col-span-3">
+                  <LiveStreamTerminal
+                    lines={lines}
+                    results={results}
+                    connection={connection}
+                    sessionId={sessionId}
+                    debateTurns={debateTurns}
+                    consensusPending={consensusPending}
+                    debateVote={debateVote}
+                    recalledMemories={recalledMemories}
+                    sandboxFrames={sandboxFrames}
+                    onDebateVoteRegistered={registerDebateVote}
+                    paymentRequired={paymentRequired}
+                    onDismissPaymentRequired={dismissPaymentRequired}
+                    onPause={pause}
+                    onResume={resume}
+                    onProceedCheckout={() => {
+                      trackFunnelEvent({ event: "checkout_redirect" });
+                      router.push("/checkout");
+                    }}
+                  />
+                </div>
+              </section>
+            </>
+          )}
         </div>
       </div>
     </div>

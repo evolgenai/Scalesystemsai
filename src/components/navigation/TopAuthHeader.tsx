@@ -9,6 +9,7 @@ import AuthModal from "@/components/auth/AuthModal";
 import WorkspaceSwitcher from "@/components/navigation/WorkspaceSwitcher";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
 import TeamPresenceBar from "@/components/org/TeamPresenceBar";
+import Hover3DIcon from "@/components/ui/Hover3DIcon";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
   OPEN_AUTH_EVENT,
@@ -154,10 +155,12 @@ export default function TopAuthHeader() {
               <button
                 type="button"
                 onClick={() => router.push("/settings")}
-                className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-slate-muted transition hover:border-cyan-accent/30 hover:text-cyan-accent"
+                className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400"
                 aria-label="Open account settings"
               >
-                <Settings className="h-4 w-4" aria-hidden />
+                <Hover3DIcon intensity={16}>
+                  <Settings className="h-4 w-4" aria-hidden />
+                </Hover3DIcon>
               </button>
             </>
           ) : (

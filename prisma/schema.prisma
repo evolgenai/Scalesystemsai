@@ -368,8 +368,31 @@ model Workspace {
   hosts     McpHost[]
   tokens    AgentTokenVault[]
   devices   EstateDevice[]
+  plugins   AgentPlugin[]
 
   @@index([createdAt])
+}
+
+/**
+ * Developer marketplace listing — external MCP/tool extensions.
+ * Scoped to Workspace for multi-tenant isolation; developerId is the publisher.
+ */
+model AgentPlugin {
+  id          String     @id @default(uuid())
+  name        String
+  developerId String
+  pricePerRun Float      @default(0.001)
+  /** JSON description of custom tool capabilities (MCP schema). */
+  mcpSchema   String     @db.Text
+  isActive    Boolean    @default(true)
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([developerId])
+  @@index([workspaceId, isActive])
+  @@index([isActive, createdAt])
 }
 
 /**
