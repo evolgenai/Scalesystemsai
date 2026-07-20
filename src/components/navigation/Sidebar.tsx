@@ -10,6 +10,7 @@ import {
   Plug,
   BellRing,
   ClipboardList,
+  Settings2,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -19,7 +20,14 @@ const NAV_LINKS: {
   href: string;
   label: string;
   icon?: LucideIcon;
-  match?: "exact" | "dashboard" | "marketplace" | "plugins" | "alerts" | "audit";
+  match?:
+    | "exact"
+    | "dashboard"
+    | "marketplace"
+    | "plugins"
+    | "alerts"
+    | "audit"
+    | "settings";
 }[] = [
   { href: "/", label: "Home", match: "exact" },
   { href: "/features", label: "Features" },
@@ -55,6 +63,12 @@ const NAV_LINKS: {
     icon: ClipboardList,
     match: "audit",
   },
+  {
+    href: "/dashboard?view=settings",
+    label: "Settings",
+    icon: Settings2,
+    match: "settings",
+  },
   { href: "/analytics", label: "Analytics" },
   { href: "/checkout", label: "Checkout" },
   { href: "/contact", label: "Contact" },
@@ -84,6 +98,9 @@ function SidebarNav() {
   const auditOpen =
     pathname.startsWith("/dashboard") &&
     searchParams.get("view") === "audit";
+  const settingsOpen =
+    pathname.startsWith("/dashboard") &&
+    searchParams.get("view") === "settings";
 
   const closeDrawer = () => setOpen(false);
 
@@ -93,13 +110,15 @@ function SidebarNav() {
     if (link.match === "plugins") return pluginsOpen;
     if (link.match === "alerts") return alertsOpen;
     if (link.match === "audit") return auditOpen;
+    if (link.match === "settings") return settingsOpen;
     if (link.match === "dashboard") {
       return (
         pathname.startsWith("/dashboard") &&
         !marketplaceOpen &&
         !pluginsOpen &&
         !alertsOpen &&
-        !auditOpen
+        !auditOpen &&
+        !settingsOpen
       );
     }
     const pathOnly = link.href.split("?")[0] ?? link.href;

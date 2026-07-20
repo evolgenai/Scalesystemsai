@@ -16,6 +16,7 @@ import {
   Plug,
   BellRing,
   ClipboardList,
+  Settings2,
   X,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
@@ -37,6 +38,7 @@ import {
   PluginAnalyticsSkeleton,
   AlertConfigSkeleton,
   AuditLogSkeleton,
+  WorkspaceSettingsSkeleton,
 } from "@/components/ui/DashboardSkeletons";
 
 const AgentCardStack3D = dynamic(
@@ -95,6 +97,11 @@ const AuditLog = dynamic(
   () => import("@/components/dashboard/AuditLog"),
   { ssr: false, loading: () => <AuditLogSkeleton /> }
 );
+
+const WorkspaceSettings = dynamic(
+  () => import("@/components/dashboard/WorkspaceSettings"),
+  { ssr: false, loading: () => <WorkspaceSettingsSkeleton /> }
+);
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAlertToasts } from "@/components/dashboard/AlertToastContext";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
@@ -136,6 +143,7 @@ export default function DashboardClient({
     | "plugins"
     | "alerts"
     | "audit"
+    | "settings"
   >("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -160,6 +168,7 @@ export default function DashboardClient({
     else if (view === "plugins") setConsoleView("plugins");
     else if (view === "alerts") setConsoleView("alerts");
     else if (view === "audit") setConsoleView("audit");
+    else if (view === "settings") setConsoleView("settings");
     else setConsoleView("workforce");
   }, [searchParams]);
 
@@ -173,6 +182,7 @@ export default function DashboardClient({
         | "plugins"
         | "alerts"
         | "audit"
+        | "settings"
     ) => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
@@ -182,6 +192,7 @@ export default function DashboardClient({
       else if (next === "plugins") params.set("view", "plugins");
       else if (next === "alerts") params.set("view", "alerts");
       else if (next === "audit") params.set("view", "audit");
+      else if (next === "settings") params.set("view", "settings");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -510,6 +521,22 @@ export default function DashboardClient({
                 <button
                   type="button"
                   role="tab"
+                  aria-selected={consoleView === "settings"}
+                  onClick={() => setView("settings")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    consoleView === "settings"
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-slate-muted hover:text-white"
+                  }`}
+                >
+                  <Hover3DIcon intensity={12}>
+                    <Settings2 className="h-3.5 w-3.5" aria-hidden />
+                  </Hover3DIcon>
+                  Settings
+                </button>
+                <button
+                  type="button"
+                  role="tab"
                   aria-selected={consoleView === "teletraffic"}
                   onClick={() => setView("teletraffic")}
                   className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -588,6 +615,10 @@ export default function DashboardClient({
                 <span className="text-xs text-slate-dim">
                   Immutable WORM stream · hashed keys · action targets
                 </span>
+              ) : consoleView === "settings" ? (
+                <span className="text-xs text-slate-dim">
+                  Feature flags · AI loops · webhook egress · heal budgets
+                </span>
               ) : (
                 <span className="text-xs text-slate-dim">
                   Browse agent templates &amp; MCP servers for your workspace
@@ -611,6 +642,10 @@ export default function DashboardClient({
           ) : consoleView === "audit" ? (
             <ErrorBoundary label="Compliance Audit Log">
               <AuditLog />
+            </ErrorBoundary>
+          ) : consoleView === "settings" ? (
+            <ErrorBoundary label="Workspace Settings">
+              <WorkspaceSettings />
             </ErrorBoundary>
           ) : consoleView === "teletraffic" ? (
             <ErrorBoundary label="Teletraffic Board">

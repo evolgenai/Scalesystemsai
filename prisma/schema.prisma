@@ -380,9 +380,28 @@ model Workspace {
   meterEvents       WorkspaceMeterEvent[]
   alertRules        TelemetryAlertRule[]
   auditLogs         TelemetryAuditLog[]
+  settings          WorkspaceSettings?
 
   @@index([createdAt])
   @@index([meterLastAt])
+}
+
+/**
+ * Tenant workspace configuration + platform feature flags.
+ * One row per workspace; mirrored to Edge KV on write for middleware reads.
+ */
+model WorkspaceSettings {
+  id               String    @id @default(uuid())
+  workspaceId      String    @unique
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /** Ordered custom configuration entries (key/value/meta arrays). */
+  configJson       Json      @default("[]")
+  /** Active feature flag map: { flagKey: boolean }. */
+  featureFlagsJson Json      @default("{}")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([updatedAt])
 }
 
 /**

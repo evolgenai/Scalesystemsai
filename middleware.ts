@@ -3,10 +3,15 @@ import {
   extractAgentToken,
   verifyAgentEdgeToken,
 } from "@/lib/security/edgeToken";
+import {
+  encodeFlagsHeader,
+  getWorkspaceFlagsFromKv,
+} from "@/lib/workspace/settingsCache";
 
 /**
  * Edge gate — geo regional routing + quick auth before origin/DB.
  * Runtime: Edge (`experimental-edge` / `edge`).
+ * Feature flags: read from Edge KV (`ws:flags:{workspaceId}`) — no Postgres.
  */
 
 const SESSION_COOKIE_HINTS = [
@@ -136,12 +141,46 @@ function applyGeoHeaders(
   headers.set("x-scale-edge-runtime", "1");
 }
 
-function passThrough(
+async function attachFeatureFlagsFromKv(
+  request: NextRequest,
+  requestHeaders: Headers,
+  responseHeaders: Headers
+): Promise<void> {
+  const workspaceId =
+    request.headers.get("x-workspace-id")?.trim() ||
+    request.nextUrl.searchParams.get("workspaceId")?.trim() ||
+    "";
+  if (!workspaceId) {
+    responseHeaders.set("x-scale-flags-source", "none");
+    return;
+  }
+
+  const cached = await getWorkspaceFlagsFromKv(workspaceId);
+  if (!cached) {
+    responseHeaders.set("x-scale-flags-source", "miss");
+    return;
+  }
+
+  const encoded = encodeFlagsHeader(cached.flags);
+  requestHeaders.set("x-scale-feature-flags", encoded);
+  requestHeaders.set("x-scale-flags-workspace", cached.workspaceId);
+  responseHeaders.set("x-scale-feature-flags", encoded);
+  responseHeaders.set("x-scale-flags-source", "kv");
+  responseHeaders.set(
+    "x-scale-flag-edge-regional-affinity",
+    cached.flags.edge_regional_affinity === false ? "0" : "1"
+  );
+}
+
+async function passThrough(
   request: NextRequest,
   requestHeaders: Headers,
   geo: ReturnType<typeof resolveRegion>
 ) {
   applyGeoHeaders(requestHeaders, geo);
+
+  const responseHeaders = new Headers();
+  await attachFeatureFlagsFromKv(request, requestHeaders, responseHeaders);
 
   const response = NextResponse.next({
     request: { headers: requestHeaders },
@@ -150,10 +189,17 @@ function passThrough(
   response.headers.set("x-scale-geo-country", geo.country);
   response.headers.set("x-scale-preferred-region", geo.region);
   response.headers.set("x-scale-edge-runtime", "1");
+  responseHeaders.forEach((value, key) => {
+    response.headers.set(key, value);
+  });
 
   if (isTelemetryPath(request.nextUrl.pathname)) {
     response.headers.set("x-scale-telemetry-route", "edge");
-    response.headers.set("x-scale-region-affinity", geo.region);
+    const affinityOff =
+      response.headers.get("x-scale-flag-edge-regional-affinity") === "0";
+    if (!affinityOff) {
+      response.headers.set("x-scale-region-affinity", geo.region);
+    }
   }
 
   return response;
@@ -183,12 +229,12 @@ export async function middleware(request: NextRequest) {
     if (verdict.subject) {
       requestHeaders.set("x-agent-subject", verdict.subject.slice(0, 128));
     }
-    return passThrough(request, requestHeaders, geo);
+    return await passThrough(request, requestHeaders, geo);
   }
 
   if (!strict && hasSessionHint(request)) {
     requestHeaders.set("x-agent-auth", "session");
-    return passThrough(request, requestHeaders, geo);
+    return await passThrough(request, requestHeaders, geo);
   }
 
   if (
@@ -197,12 +243,12 @@ export async function middleware(request: NextRequest) {
     !strict
   ) {
     requestHeaders.set("x-agent-auth", "dev-bypass");
-    return passThrough(request, requestHeaders, geo);
+    return await passThrough(request, requestHeaders, geo);
   }
 
   if (!strict) {
     requestHeaders.set("x-agent-auth", "deferred");
-    return passThrough(request, requestHeaders, geo);
+    return await passThrough(request, requestHeaders, geo);
   }
 
   return unauthorized(
@@ -219,6 +265,8 @@ export const config = {
     "/api/agent/:path*",
     "/api/agents/:path*",
     "/api/telemetry/:path*",
+    "/api/workspace",
+    "/api/workspace/:path*",
     "/api/workspaces",
     "/api/workspaces/:path*",
     "/api/v1/admin/:path*",
