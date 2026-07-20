@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import RobotMeshIcon from "@/components/dashboard/RobotMeshIcon";
 
 export type OrchestratorAgentStatus = "pending" | "active" | "done" | "error";
 
@@ -10,26 +11,30 @@ export type OrchestratorStep = {
   name: string;
   detail: string;
   status: OrchestratorAgentStatus;
+  variant: "supervisor" | "writer" | "validator";
 };
 
 const PLAN: Omit<OrchestratorStep, "status">[] = [
   {
     id: "sre",
     emoji: "👁️",
-    name: "SRE Supervisor Agent",
+    name: "Supervisor Agent",
     detail: "Analyzing error vector…",
+    variant: "supervisor",
   },
   {
     id: "writer",
     emoji: "📝",
-    name: "Code Writer Agent",
+    name: "Writer Agent",
     detail: "Drafting filesystem patch…",
+    variant: "writer",
   },
   {
     id: "validator",
     emoji: "🧪",
-    name: "Validation Agent",
+    name: "Validator Agent",
     detail: "Verifying schema compliance…",
+    variant: "validator",
   },
 ];
 
@@ -144,7 +149,7 @@ export default function OrchestratorFeed({
   if (!running && !complete && !failed) return null;
 
   return (
-    <div className="overflow-hidden rounded-lg border border-white/5 bg-[#0a0a0a]">
+    <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
       <div className="border-b border-white/5 px-2.5 py-1.5">
         <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
           Orchestration plan
@@ -164,8 +169,14 @@ export default function OrchestratorFeed({
             <StatusRing status={step.status} />
             <div className="min-w-0 flex-1 pt-0.5">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <RobotMeshIcon
+                  size={36}
+                  variant={step.variant}
+                  active={step.status === "active"}
+                  label={step.name}
+                  className="rounded-md"
+                />
                 <p className="text-[11px] font-semibold text-white">
-                  <span aria-hidden>{step.emoji} </span>
                   [{step.name}]
                 </p>
                 <span

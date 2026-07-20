@@ -16,6 +16,8 @@ type Hover3DIconProps = {
   intensity?: number;
   /** Emerald glow radius on hover. */
   glow?: boolean;
+  /** Notify parent so labels can spring push-down. */
+  onHoverChange?: (hovered: boolean) => void;
   /** Optional label for accessibility when wrapping interactive chrome. */
   "aria-hidden"?: boolean;
 };
@@ -30,6 +32,7 @@ export default function Hover3DIcon({
   className = "",
   intensity = 14,
   glow = true,
+  onHoverChange,
   "aria-hidden": ariaHidden,
 }: Hover3DIconProps) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -67,6 +70,7 @@ export default function Hover3DIcon({
   const onEnter = () => {
     setHovered(true);
     hoverProgress.set(1);
+    onHoverChange?.(true);
   };
 
   const onLeave = () => {
@@ -74,6 +78,7 @@ export default function Hover3DIcon({
     hoverProgress.set(0);
     mx.set(0);
     my.set(0);
+    onHoverChange?.(false);
   };
 
   const glowStyle: CSSProperties = glow
@@ -89,11 +94,13 @@ export default function Hover3DIcon({
     <span
       ref={ref}
       aria-hidden={ariaHidden}
-      className={`inline-flex ${className}`}
+      className={`inline-flex shrink-0 touch-manipulation ${className}`}
       style={{ perspective: 600 }}
       onMouseEnter={onEnter}
       onMouseMove={onMove}
       onMouseLeave={onLeave}
+      onFocus={onEnter}
+      onBlur={onLeave}
     >
       <motion.span
         className="inline-flex will-change-transform"

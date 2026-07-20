@@ -14,6 +14,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrthographicCamera } from "@react-three/drei";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
+import { RobotMesh } from "@/components/dashboard/RobotMeshIcon";
 
 export type FlowHealth = "healthy" | "incident" | "healing";
 export type FlowNodeId = "error" | "sandbox" | "iot" | "notify";
@@ -365,12 +366,35 @@ function Conduit({
 function IsoGrid() {
   return (
     <gridHelper
-      args={[14, 14, "#1f2937", "#181818"]}
+      args={[14, 14, "#1a1a1a", "#141414"]}
       position={[0, -0.02, 0]}
       rotation={[0, Math.PI / 4, 0]}
     />
   );
 }
+
+/** Decorative agent rigs aligned to operational heal roles. */
+const AGENT_ROBOTS: {
+  variant: "supervisor" | "writer" | "validator";
+  label: string;
+  position: [number, number, number];
+}[] = [
+  {
+    variant: "supervisor",
+    label: "Supervisor Agent",
+    position: [-3.2, 1.15, 1.1],
+  },
+  {
+    variant: "writer",
+    label: "Writer Agent",
+    position: [-0.9, 1.35, 0.2],
+  },
+  {
+    variant: "validator",
+    label: "Validator Agent",
+    position: [1.4, 1.25, -0.6],
+  },
+];
 
 function FlowScene({
   health,
@@ -400,7 +424,6 @@ function FlowScene({
   return (
     <>
       <IsoCameraRig />
-      <color attach="background" args={["#0a0a0a"]} />
       <ambientLight intensity={0.45} />
       <directionalLight position={[6, 10, 4]} intensity={1.05} color="#e2e8f0" />
       <pointLight
@@ -411,8 +434,15 @@ function FlowScene({
       />
       <IsoGrid />
       <mesh rotation={[-Math.PI / 2, 0, Math.PI / 4]} position={[0, -0.01, 0]} receiveShadow>
-        <planeGeometry args={[12, 8]} />
-        <meshStandardMaterial color="#121212" metalness={0.2} roughness={0.85} />
+        <planeGeometry args={[14, 10]} />
+        <meshStandardMaterial
+          color="#121212"
+          metalness={0.15}
+          roughness={0.92}
+          transparent
+          opacity={0.001}
+          depthWrite={false}
+        />
       </mesh>
 
       {NODES.map((node) => (
@@ -422,6 +452,22 @@ function FlowScene({
           health={health}
           stressed={stressed.has(node.id)}
         />
+      ))}
+
+      {AGENT_ROBOTS.map((bot) => (
+        <group key={bot.variant} position={bot.position}>
+          <RobotMesh scale={0.55} variant={bot.variant} />
+          <Html
+            position={[0.55, 0.05, 0]}
+            center={false}
+            distanceFactor={7.5}
+            style={{ pointerEvents: "none", userSelect: "none" }}
+          >
+            <p className="whitespace-nowrap font-mono text-[8px] font-semibold uppercase tracking-wider text-emerald-400/90">
+              {bot.label}
+            </p>
+          </Html>
+        </group>
       ))}
 
       {edges.map((edge, i) => {
@@ -549,7 +595,7 @@ export default function IsometricFlowMap({
             <p className="text-[11px] text-slate-dim">{statusLabel}</p>
           </div>
         </header>
-        <div className={`rounded-lg border bg-[#0a0a0a] p-3 ${border}`}>
+        <div className={`rounded-lg border bg-[#121212] p-3 ${border}`}>
           <FlatFlowFallback
             health={effectiveHealth}
             stressedNodeIds={stressedNodeIds}
@@ -588,7 +634,7 @@ export default function IsometricFlowMap({
 
       <WebGLErrorBoundary onError={() => setUse3d(false)}>
         <div
-          className={`relative h-[260px] w-full overflow-hidden rounded-lg border bg-[#0a0a0a] sm:h-[300px] md:h-[340px] ${border}`}
+          className={`relative h-[260px] w-full overflow-hidden rounded-lg border bg-[#121212] pointer-events-auto sm:h-[300px] md:h-[340px] ${border}`}
         >
           {glitching ? (
             <div
@@ -601,7 +647,19 @@ export default function IsometricFlowMap({
               }}
             />
           ) : null}
-          <Canvas dpr={[1, 1.75]} gl={{ antialias: true, alpha: false }}>
+          <div
+            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(52,211,153,0.07),transparent_55%)]"
+            aria-hidden
+          />
+          <Canvas
+            dpr={[1, 1.75]}
+            gl={{ antialias: true, alpha: true, premultipliedAlpha: false }}
+            className="pointer-events-auto relative z-[1] h-full w-full touch-none"
+            style={{ background: "transparent" }}
+            onCreated={({ gl }) => {
+              gl.setClearColor(0x121212, 0);
+            }}
+          >
             <Suspense fallback={null}>
               <FlowScene health={health} stressedNodeIds={stressedNodeIds} />
             </Suspense>

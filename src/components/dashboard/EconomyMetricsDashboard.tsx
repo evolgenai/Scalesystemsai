@@ -9,18 +9,40 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
+import RobotMeshIcon, {
+  type RobotMeshVariant,
+} from "@/components/dashboard/RobotMeshIcon";
 
 type GasLane = {
   id: string;
   label: string;
   tokens: number;
   color: string;
+  variant: RobotMeshVariant;
 };
 
 const GAS_LANES: GasLane[] = [
-  { id: "supervisor", label: "Supervisor", tokens: 412_800, color: "bg-emerald-400" },
-  { id: "writer", label: "Writer", tokens: 286_400, color: "bg-emerald-400/70" },
-  { id: "validator", label: "Validator", tokens: 154_200, color: "bg-emerald-400/40" },
+  {
+    id: "supervisor",
+    label: "Supervisor Agent",
+    tokens: 412_800,
+    color: "bg-emerald-400",
+    variant: "supervisor",
+  },
+  {
+    id: "writer",
+    label: "Writer Agent",
+    tokens: 286_400,
+    color: "bg-emerald-400/70",
+    variant: "writer",
+  },
+  {
+    id: "validator",
+    label: "Validator Agent",
+    tokens: 154_200,
+    color: "bg-emerald-400/40",
+    variant: "validator",
+  },
 ];
 
 const GAS_TOTAL = GAS_LANES.reduce((sum, l) => sum + l.tokens, 0);
@@ -99,7 +121,6 @@ export default function EconomyMetricsDashboard() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-3">
-        {/* Compute Gas */}
         <MetricCard
           icon={Fuel}
           title="Compute Gas Consumed"
@@ -111,9 +132,19 @@ export default function EconomyMetricsDashboard() {
               const pct = Math.round((lane.tokens / GAS_TOTAL) * 100);
               return (
                 <li key={lane.id}>
-                  <div className="mb-1 flex items-center justify-between text-[10px]">
-                    <span className="text-slate-muted">{lane.label}</span>
-                    <span className="font-mono text-emerald-400">{pct}%</span>
+                  <div className="mb-1 flex items-center justify-between gap-2 text-[10px]">
+                    <span className="inline-flex min-w-0 items-center gap-1.5 text-slate-muted">
+                      <RobotMeshIcon
+                        size={28}
+                        variant={lane.variant}
+                        label={lane.label}
+                        className="rounded"
+                      />
+                      <span className="truncate">{lane.label}</span>
+                    </span>
+                    <span className="shrink-0 font-mono text-emerald-400">
+                      {pct}%
+                    </span>
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
                     <motion.div
@@ -129,7 +160,6 @@ export default function EconomyMetricsDashboard() {
           </ul>
         </MetricCard>
 
-        {/* Marketplace Royalties */}
         <MetricCard
           icon={Coins}
           title="Marketplace Royalties Accrued"
@@ -161,7 +191,6 @@ export default function EconomyMetricsDashboard() {
           </p>
         </MetricCard>
 
-        {/* Outbound Notification Costs */}
         <MetricCard
           icon={Bell}
           title="Outbound Notification Costs"

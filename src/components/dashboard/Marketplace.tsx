@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
+import RobotMeshIcon from "@/components/dashboard/RobotMeshIcon";
 
 type ListingKind = "agent" | "mcp";
 type Pricing = "lease" | "purchase";
@@ -150,6 +151,112 @@ const MOCK_WEBHOOKS = [
 
 type Filter = "all" | ListingKind;
 
+const PANEL_SPRING = { type: "spring" as const, stiffness: 300, damping: 24, mass: 0.6 };
+
+function ListingCard({
+  item,
+  index,
+}: {
+  item: MarketplaceListing;
+  index: number;
+}) {
+  const [iconHot, setIconHot] = useState(false);
+  const Icon = item.icon;
+
+  return (
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 14 }}
+      animate={{
+        opacity: 1,
+        y: 0,
+        paddingBottom: iconHot ? 22 : 16,
+      }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{
+        delay: index * 0.04,
+        duration: 0.28,
+        paddingBottom: PANEL_SPRING,
+      }}
+      className="group relative flex min-h-[17.5rem] flex-col overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4 pt-4 transition hover:border-emerald-500/35 sm:min-h-[18.5rem]"
+      onMouseLeave={() => setIconHot(false)}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/[0.06] via-transparent to-transparent opacity-0 transition group-hover:opacity-100"
+        aria-hidden
+      />
+
+      <div className="relative flex items-start justify-between gap-3">
+        <Hover3DIcon
+          intensity={16}
+          className="h-14 w-14 sm:h-16 sm:w-16"
+          onHoverChange={setIconHot}
+        >
+          <RobotMeshIcon
+            size={64}
+            variant={item.kind === "agent" ? "agent" : "validator"}
+            active={iconHot}
+            label={item.name}
+            className="rounded-xl border border-white/5 bg-black/30"
+          />
+        </Hover3DIcon>
+
+        <div className="flex min-w-0 flex-col items-end gap-1.5">
+          <span
+            className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
+              item.kind === "agent"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                : "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
+            }`}
+          >
+            <Icon className="h-3 w-3 shrink-0" aria-hidden />
+            {item.kind === "agent" ? "Agent" : "MCP"}
+          </span>
+          <span className="font-mono text-sm font-semibold text-emerald-400">
+            {item.price}
+          </span>
+          <span className="font-mono text-[9px] uppercase tracking-wider text-slate-dim">
+            {item.pricing === "lease" ? "Lease" : "Purchase"}
+          </span>
+        </div>
+      </div>
+
+      <motion.div
+        className="relative mt-3 flex min-w-0 flex-1 flex-col"
+        animate={{ y: iconHot ? 12 : 0 }}
+        transition={PANEL_SPRING}
+      >
+        <h3 className="font-display text-sm font-semibold leading-snug text-white">
+          {item.name}
+        </h3>
+        <p className="mt-1.5 flex-1 text-xs leading-relaxed text-slate-muted">
+          {item.tagline}
+        </p>
+
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {item.tags.map((tag) => (
+            <span
+              key={tag}
+              className="rounded border border-white/5 bg-white/[0.03] px-2 py-0.5 text-[10px] text-slate-dim"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="pointer-events-auto relative mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
+        >
+          {item.pricing === "lease"
+            ? "Lease for workspace"
+            : "Purchase & install"}
+        </button>
+      </motion.div>
+    </motion.article>
+  );
+}
+
 export default function Marketplace() {
   const [filter, setFilter] = useState<Filter>("all");
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
@@ -256,67 +363,11 @@ export default function Marketplace() {
         </div>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
         <AnimatePresence mode="popLayout">
-          {visible.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <motion.article
-                key={item.id}
-                layout
-                initial={{ opacity: 0, y: 14 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.96 }}
-                transition={{ delay: index * 0.04, duration: 0.28 }}
-                className="group relative flex flex-col overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4 transition hover:border-emerald-500/35"
-              >
-                <div
-                  className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/[0.06] via-transparent to-transparent opacity-0 transition group-hover:opacity-100"
-                  aria-hidden
-                />
-                <div className="relative flex items-start justify-between gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-white/5 bg-black/40 text-emerald-400">
-                    <Hover3DIcon intensity={18}>
-                      <Icon className="h-5 w-5" aria-hidden />
-                    </Hover3DIcon>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    <span className="rounded border border-white/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-slate-dim">
-                      {item.kind === "agent" ? "Agent" : "MCP"}
-                    </span>
-                    <span className="font-mono text-sm font-semibold text-emerald-400">
-                      {item.price}
-                    </span>
-                  </div>
-                </div>
-
-                <h3 className="relative mt-3 font-display text-sm font-semibold text-white">
-                  {item.name}
-                </h3>
-                <p className="relative mt-1.5 flex-1 text-xs leading-relaxed text-slate-muted">
-                  {item.tagline}
-                </p>
-
-                <div className="relative mt-3 flex flex-wrap gap-1.5">
-                  {item.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded border border-white/5 bg-white/[0.03] px-2 py-0.5 text-[10px] text-slate-dim"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  className="relative mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
-                >
-                  {item.pricing === "lease" ? "Lease for workspace" : "Purchase & install"}
-                </button>
-              </motion.article>
-            );
-          })}
+          {visible.map((item, index) => (
+            <ListingCard key={item.id} item={item} index={index} />
+          ))}
         </AnimatePresence>
       </div>
 

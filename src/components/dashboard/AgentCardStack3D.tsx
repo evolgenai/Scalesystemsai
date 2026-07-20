@@ -231,8 +231,9 @@ function StackCard({
           pointerEvents: "none",
           userSelect: "none",
         }}
+        className="pointer-events-none"
       >
-        <div className="rounded-lg shadow-lg shadow-black/50">
+        <div className="pointer-events-none rounded-lg shadow-lg shadow-black/50">
           <AgentVisualizerCard agent={agent} compact />
         </div>
       </Html>
@@ -385,7 +386,7 @@ export default function AgentCardStack3D({
       ) : (
         <WebGLErrorBoundary onError={() => setUse3d(false)}>
           <div
-            className={`relative h-[280px] w-full overflow-hidden rounded-lg border bg-[#0a0a0a] sm:h-[320px] md:h-[360px] ${
+            className={`relative h-[280px] w-full touch-none overflow-hidden rounded-lg border bg-[#0a0a0a] pointer-events-auto sm:h-[320px] md:h-[360px] ${
               troubleshootActive
                 ? "border-amber-400/40 ring-1 ring-rose-400/30"
                 : "border-white/5"
@@ -398,11 +399,15 @@ export default function AgentCardStack3D({
               }
             }}
           >
+            <div
+              className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.06),transparent_70%)]"
+              aria-hidden
+            />
             <Canvas
               camera={{ position: [0, 0.2, 6.2], fov: 38 }}
               dpr={[1, 1.75]}
               gl={{ antialias: true, alpha: true }}
-              className="h-full w-full touch-none"
+              className="pointer-events-auto relative z-[1] h-full w-full touch-none"
               onCreated={({ gl }) => {
                 gl.domElement.addEventListener("webglcontextlost", (e) => {
                   e.preventDefault();

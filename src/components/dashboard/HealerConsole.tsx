@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Activity,
   ChevronDown,
@@ -10,8 +11,11 @@ import {
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 import OrchestratorFeed from "@/components/dashboard/OrchestratorFeed";
 import NotificationDispatchFeed from "@/components/dashboard/NotificationDispatchFeed";
+import Hover3DIcon from "@/components/ui/Hover3DIcon";
+import RobotMeshIcon from "@/components/dashboard/RobotMeshIcon";
 
 const AGENT_TOKEN_KEY = "scalesystems.mcp.agentToken";
+const PANEL_SPRING = { type: "spring" as const, stiffness: 280, damping: 26, mass: 0.65 };
 
 type HealToolLog = {
   tool: string;
@@ -208,6 +212,7 @@ export default function HealerConsole({
   const [orchComplete, setOrchComplete] = useState(false);
   const [orchFailed, setOrchFailed] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [iconHot, setIconHot] = useState(false);
   const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const clearStepTimer = () => {
@@ -419,21 +424,67 @@ export default function HealerConsole({
   const unresolved = errors.length;
   const busy = healingId !== null;
 
+  const statusTone = busy
+    ? {
+        label: "HEALING",
+        className:
+          "border-amber-400/40 bg-amber-400/10 text-amber-300 animate-pulse",
+      }
+    : unresolved > 0
+      ? {
+          label: `${unresolved} OPEN`,
+          className: "border-rose-400/35 bg-rose-500/10 text-rose-300",
+        }
+      : {
+          label: "NOMINAL",
+          className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+        };
+
   return (
     <section className="mt-4 overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between gap-2 px-3.5 py-3 text-left transition hover:bg-white/[0.02]"
+        className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-white/[0.02]"
         aria-expanded={open}
       >
-        <span className="flex min-w-0 items-center gap-2">
-          <Activity className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
-          <span className="font-display text-sm font-semibold text-white">
-            Self-Healing Console
-          </span>
-          <span className="rounded-md border border-white/5 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500">
-            {unresolved} open
+        <span className="flex min-w-0 items-center gap-3">
+          <Hover3DIcon
+            intensity={14}
+            className="h-11 w-11 sm:h-12 sm:w-12"
+            onHoverChange={setIconHot}
+          >
+            <RobotMeshIcon
+              size={48}
+              variant="supervisor"
+              active={iconHot || busy}
+              label="Self-healing console"
+              className="rounded-lg border border-white/5 bg-black/30"
+            />
+          </Hover3DIcon>
+          <span className="min-w-0">
+            <motion.span
+              className="flex flex-wrap items-center gap-2"
+              animate={{ y: iconHot ? 6 : 0 }}
+              transition={PANEL_SPRING}
+            >
+              <span className="font-display text-sm font-semibold text-white">
+                Self-Healing Console
+              </span>
+              <span
+                className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${statusTone.className}`}
+              >
+                <Activity className="h-3 w-3 shrink-0" aria-hidden />
+                {statusTone.label}
+              </span>
+            </motion.span>
+            <motion.p
+              className="mt-0.5 text-[11px] text-slate-dim"
+              animate={{ y: iconHot ? 8 : 0, opacity: iconHot ? 1 : 0.85 }}
+              transition={PANEL_SPRING}
+            >
+              MCP tool chain · unified diff remediation
+            </motion.p>
           </span>
         </span>
         <ChevronDown
@@ -444,8 +495,17 @@ export default function HealerConsole({
         />
       </button>
 
-      {open ? (
-        <div className="space-y-3 border-t border-white/5 px-3.5 pb-3.5 pt-3">
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            key="healer-panel"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={PANEL_SPRING}
+            className="overflow-hidden border-t border-white/5"
+          >
+            <div className="space-y-3 px-3.5 pb-3.5 pt-3">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -567,7 +627,7 @@ export default function HealerConsole({
                         {row.errorMessage}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[9px] font-medium uppercase tracking-wide text-amber-300">
+                    <span className="shrink-0 rounded border border-amber-400/30 bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide text-amber-300">
                       open
                     </span>
                   </div>
@@ -581,8 +641,10 @@ export default function HealerConsole({
               ))
             )}
           </ul>
-        </div>
-      ) : null}
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }
