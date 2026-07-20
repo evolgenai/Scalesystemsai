@@ -12,6 +12,7 @@ import {
   PanelsTopLeft,
   Store,
   Zap,
+  Radio,
   X,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
@@ -22,6 +23,7 @@ import WorkspaceHistorySidebar from "@/components/dashboard/WorkspaceHistorySide
 import McpManager from "@/components/dashboard/McpManager";
 import HealerConsole from "@/components/dashboard/HealerConsole";
 import EconomyMetricsDashboard from "@/components/dashboard/EconomyMetricsDashboard";
+import TeletrafficBoard from "@/components/dashboard/TeletrafficBoard";
 import type { FlowNodeId } from "@/components/dashboard/IsometricFlowMap";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
@@ -104,7 +106,7 @@ export default function DashboardClient({
   const [troubleshootActive, setTroubleshootActive] = useState(false);
   const [crashAlert, setCrashAlert] = useState<string | null>(null);
   const [consoleView, setConsoleView] = useState<
-    "workforce" | "marketplace" | "chaos"
+    "workforce" | "marketplace" | "chaos" | "teletraffic"
   >("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -125,15 +127,17 @@ export default function DashboardClient({
     const view = searchParams.get("view");
     if (view === "marketplace") setConsoleView("marketplace");
     else if (view === "chaos") setConsoleView("chaos");
+    else if (view === "teletraffic") setConsoleView("teletraffic");
     else setConsoleView("workforce");
   }, [searchParams]);
 
   const setView = useCallback(
-    (next: "workforce" | "marketplace" | "chaos") => {
+    (next: "workforce" | "marketplace" | "chaos" | "teletraffic") => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
       if (next === "marketplace") params.set("view", "marketplace");
       else if (next === "chaos") params.set("view", "chaos");
+      else if (next === "teletraffic") params.set("view", "teletraffic");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -404,6 +408,22 @@ export default function DashboardClient({
                 <button
                   type="button"
                   role="tab"
+                  aria-selected={consoleView === "teletraffic"}
+                  onClick={() => setView("teletraffic")}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                    consoleView === "teletraffic"
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "text-slate-muted hover:text-white"
+                  }`}
+                >
+                  <Hover3DIcon intensity={12}>
+                    <Radio className="h-3.5 w-3.5" aria-hidden />
+                  </Hover3DIcon>
+                  Teletraffic
+                </button>
+                <button
+                  type="button"
+                  role="tab"
                   aria-selected={consoleView === "chaos"}
                   onClick={() => setView("chaos")}
                   className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -450,6 +470,10 @@ export default function DashboardClient({
                 <span className="text-xs text-slate-dim">
                   Admin chaos inject · stress isometric flow nodes
                 </span>
+              ) : consoleView === "teletraffic" ? (
+                <span className="text-xs text-slate-dim">
+                  Edge latency · KV scratchpad cache · live user stream
+                </span>
               ) : (
                 <span className="text-xs text-slate-dim">
                   Browse agent templates &amp; MCP servers for your workspace
@@ -461,6 +485,10 @@ export default function DashboardClient({
           {consoleView === "marketplace" ? (
             <ErrorBoundary label="Marketplace">
               <Marketplace />
+            </ErrorBoundary>
+          ) : consoleView === "teletraffic" ? (
+            <ErrorBoundary label="Teletraffic Board">
+              <TeletrafficBoard />
             </ErrorBoundary>
           ) : consoleView === "chaos" ? (
             <div className="space-y-6">

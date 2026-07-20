@@ -458,6 +458,9 @@ export default function HealerConsole({
               size={48}
               variant="supervisor"
               active={iconHot || busy}
+              status={
+                orchFailed ? "error" : busy || toolsStreaming ? "working" : "idle"
+              }
               label="Self-healing console"
               className="rounded-lg border border-white/5 bg-black/30"
             />

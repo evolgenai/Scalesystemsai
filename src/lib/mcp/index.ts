@@ -4,6 +4,10 @@ export {
   ScaleMcpClient,
   ingestCommunityMcpSchemas,
   openSreMcpSession,
+  parseAggressiveMcpCapabilitySchema,
+  stripSchemaRedundancies,
+  compactMcpToolDescriptors,
+  ingestAndCacheCapabilityJson,
   McpClientConnectSchema,
 } from "@/lib/mcp/mcpClient";
 export type {
@@ -11,6 +15,8 @@ export type {
   ScaleMcpSessionState,
   CallMcpToolResult,
   IngestCommunityMcpOptions,
+  CompactMcpCapabilityDocument,
+  AggressiveSchemaParseResult,
 } from "@/lib/mcp/mcpClient";
 export {
   issueVaultToken,

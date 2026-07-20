@@ -173,6 +173,13 @@ export default function OrchestratorFeed({
                   size={36}
                   variant={step.variant}
                   active={step.status === "active"}
+                  status={
+                    step.status === "error"
+                      ? "error"
+                      : step.status === "active"
+                        ? "working"
+                        : "idle"
+                  }
                   label={step.name}
                   className="rounded-md"
                 />

@@ -14,7 +14,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html, OrthographicCamera } from "@react-three/drei";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
-import { RobotMesh } from "@/components/dashboard/RobotMeshIcon";
+import { RobotMesh } from "@/components/ui/RobotMeshIcon";
 
 export type FlowHealth = "healthy" | "incident" | "healing";
 export type FlowNodeId = "error" | "sandbox" | "iot" | "notify";

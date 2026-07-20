@@ -44,6 +44,46 @@ function scratchKey(agentId: string, sessionId: string): string {
   return `${SCRATCH_PREFIX}${agentId}:${sessionId}`;
 }
 
+const SCHEMA_SIG_PREFIX = "mcp:schema:sig:";
+const RUNTIME_TOKEN_PREFIX = "runtime:ss_rt:";
+const RUNTIME_INDEX_KEY = "runtime:ss_rt:index";
+const DEFAULT_SCHEMA_TTL_SEC = 60 * 60 * 6; // 6h reasoning-loop reuse window
+
+export type McpSchemaSignatureCache = {
+  signature: string;
+  urlFingerprint: string;
+  toolCount: number;
+  /** Compact validated descriptors — redundancies already stripped. */
+  tools: Array<{
+    name: string;
+    description?: string;
+    inputSchema?: unknown;
+  }>;
+  cachedAt: string;
+  ttlSec: number;
+};
+
+export type RuntimeTokenKvRecord = {
+  tokenId: string;
+  tokenPrefix: string;
+  loopId: string;
+  expiresAt: number;
+  singleUse: boolean;
+  status: "active" | "consumed" | "revoked" | "expired";
+};
+
+function schemaSigKey(urlFingerprint: string): string {
+  return `${SCHEMA_SIG_PREFIX}${urlFingerprint}`;
+}
+
+function runtimeTokenKey(tokenId: string): string {
+  return `${RUNTIME_TOKEN_PREFIX}${tokenId}`;
+}
+
+export function isEdgeKvConfigured(): boolean {
+  return kvConfigured();
+}
+
 function kvConfigured(): boolean {
   return Boolean(
     process.env.KV_REST_API_URL?.trim() &&
@@ -156,6 +196,169 @@ export async function clearScratchpad(
     return true;
   } catch {
     return false;
+  }
+}
+
+/** Read cached MCP capability schema signature (miss → re-parse upstream). */
+export async function getMcpSchemaSignatureCache(
+  urlFingerprint: string
+): Promise<McpSchemaSignatureCache | null> {
+  if (!kvConfigured() || !urlFingerprint.trim()) return null;
+  try {
+    return (
+      (await kv.get<McpSchemaSignatureCache>(
+        schemaSigKey(urlFingerprint.trim())
+      )) ?? null
+    );
+  } catch (err) {
+    console.error("[edgeStorage] getMcpSchemaSignatureCache failed", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
+/** Persist validated/compact MCP schema signature for high-frequency loops. */
+export async function setMcpSchemaSignatureCache(
+  entry: Omit<McpSchemaSignatureCache, "cachedAt" | "ttlSec"> & {
+    ttlSec?: number;
+  }
+): Promise<McpSchemaSignatureCache | null> {
+  if (!kvConfigured()) return null;
+  const ttlSec = Math.max(
+    60,
+    Math.min(entry.ttlSec ?? DEFAULT_SCHEMA_TTL_SEC, 60 * 60 * 24)
+  );
+  const payload: McpSchemaSignatureCache = {
+    signature: entry.signature,
+    urlFingerprint: entry.urlFingerprint,
+    toolCount: entry.toolCount,
+    tools: entry.tools.slice(0, 128),
+    cachedAt: new Date().toISOString(),
+    ttlSec,
+  };
+  try {
+    await kv.set(schemaSigKey(payload.urlFingerprint), payload, { ex: ttlSec });
+    return payload;
+  } catch (err) {
+    console.error("[edgeStorage] setMcpSchemaSignatureCache failed", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
+/** Mirror runtime credential metadata into KV (never stores raw `ss_rt_…`). */
+export async function putRuntimeTokenMirror(
+  record: RuntimeTokenKvRecord,
+  ttlSec: number
+): Promise<boolean> {
+  if (!kvConfigured()) return false;
+  const ex = Math.max(30, Math.min(ttlSec, 3600));
+  try {
+    await kv.set(runtimeTokenKey(record.tokenId), record, { ex });
+    await kv.sadd(RUNTIME_INDEX_KEY, record.tokenId);
+    return true;
+  } catch (err) {
+    console.error("[edgeStorage] putRuntimeTokenMirror failed", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return false;
+  }
+}
+
+export async function patchRuntimeTokenMirror(
+  tokenId: string,
+  patch: Partial<Pick<RuntimeTokenKvRecord, "status">>
+): Promise<boolean> {
+  if (!kvConfigured() || !tokenId.trim()) return false;
+  try {
+    const key = runtimeTokenKey(tokenId.trim());
+    const existing = await kv.get<RuntimeTokenKvRecord>(key);
+    if (!existing) return false;
+    const next = { ...existing, ...patch };
+    const ttl = Math.max(1, next.expiresAt - Math.floor(Date.now() / 1000));
+    await kv.set(key, next, { ex: Math.min(ttl, 3600) });
+    return true;
+  } catch (err) {
+    console.error("[edgeStorage] patchRuntimeTokenMirror failed", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return false;
+  }
+}
+
+export async function deleteRuntimeTokenMirror(tokenId: string): Promise<boolean> {
+  if (!kvConfigured() || !tokenId.trim()) return false;
+  try {
+    await kv.del(runtimeTokenKey(tokenId.trim()));
+    await kv.srem(RUNTIME_INDEX_KEY, tokenId.trim());
+    return true;
+  } catch (err) {
+    console.error("[edgeStorage] deleteRuntimeTokenMirror failed", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return false;
+  }
+}
+
+/**
+ * Purge expired / terminal runtime token mirrors from Edge KV.
+ * Does not touch PostgreSQL or any persistent application tables.
+ */
+export async function purgeExpiredRuntimeTokenMirrors(options?: {
+  nowSec?: number;
+  dryRun?: boolean;
+}): Promise<{
+  scanned: number;
+  purged: number;
+  dryRun: boolean;
+  tokenIds: string[];
+}> {
+  const dryRun = Boolean(options?.dryRun);
+  const now = options?.nowSec ?? Math.floor(Date.now() / 1000);
+  const empty = { scanned: 0, purged: 0, dryRun, tokenIds: [] as string[] };
+  if (!kvConfigured()) return empty;
+
+  try {
+    const ids = (await kv.smembers(RUNTIME_INDEX_KEY)) as string[];
+    if (!Array.isArray(ids) || ids.length === 0) return empty;
+
+    const tokenIds: string[] = [];
+    let purged = 0;
+
+    for (const id of ids) {
+      if (typeof id !== "string" || !id) continue;
+      const row = await kv.get<RuntimeTokenKvRecord>(runtimeTokenKey(id));
+      if (!row) {
+        if (!dryRun) await kv.srem(RUNTIME_INDEX_KEY, id);
+        purged += 1;
+        tokenIds.push(id);
+        continue;
+      }
+
+      const expired = row.expiresAt <= now;
+      const terminal =
+        row.status === "expired" ||
+        row.status === "consumed" ||
+        row.status === "revoked";
+
+      if (!expired && !terminal) continue;
+
+      tokenIds.push(id);
+      purged += 1;
+      if (!dryRun) {
+        await kv.del(runtimeTokenKey(id));
+        await kv.srem(RUNTIME_INDEX_KEY, id);
+      }
+    }
+
+    return { scanned: ids.length, purged, dryRun, tokenIds };
+  } catch (err) {
+    console.error("[edgeStorage] purgeExpiredRuntimeTokenMirrors failed", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return empty;
   }
 }
 

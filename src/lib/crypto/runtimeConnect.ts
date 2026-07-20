@@ -11,7 +11,14 @@ import {
 } from "node:crypto";
 import { z } from "zod";
 import { sealJson, unsealJson, maskSecret } from "@/lib/crypto/vault";
+import {
+  deleteRuntimeTokenMirror,
+  patchRuntimeTokenMirror,
+  putRuntimeTokenMirror,
+  purgeExpiredRuntimeTokenMirrors,
+} from "@/lib/storage/edgeStorage";
 
+const LOG = "[runtimeConnect]";
 export const RUNTIME_SCOPES = [
   "mcp:list",
   "mcp:call",
@@ -201,6 +208,23 @@ export function issueRuntimeCredential(
   store.set(tokenId, row);
   indexLoop(parsed.loopId, tokenId);
 
+  void putRuntimeTokenMirror(
+    {
+      tokenId,
+      tokenPrefix,
+      loopId: parsed.loopId,
+      expiresAt,
+      singleUse: parsed.singleUse,
+      status: "active",
+    },
+    parsed.ttlSeconds
+  ).catch((err) => {
+    console.error(`${LOG} kv mirror write failed`, {
+      tokenId,
+      message: err instanceof Error ? err.message : String(err),
+    });
+  });
+
   return {
     ...toPublic(row),
     rawToken,
@@ -301,6 +325,7 @@ export function redeemRuntimeCredential(
   if (shouldConsume && match.singleUse) {
     match.status = "consumed";
     match.consumedAt = now;
+    void patchRuntimeTokenMirror(match.tokenId, { status: "consumed" });
   }
 
   return {
@@ -316,6 +341,7 @@ export function revokeRuntimeCredential(tokenId: string): boolean {
   if (!row) return false;
   row.status = "revoked";
   row.revokedAt = Math.floor(Date.now() / 1000);
+  void patchRuntimeTokenMirror(tokenId, { status: "revoked" });
   return true;
 }
 
@@ -343,13 +369,72 @@ export function terminateHealerLoop(loopId: string): {
     tokenIds.push(id);
     store.delete(id);
     unindexLoop(loopId, id);
+    void deleteRuntimeTokenMirror(id);
   }
 
   loopIndex.delete(loopId);
   return { revoked, tokenIds };
 }
 
-/** Drop expired rows (safe housekeeping — no secrets emitted). */
+export type PurgeRuntimeCredentialsResult = {
+  localPurged: number;
+  kvPurged: number;
+  kvScanned: number;
+  dryRun: boolean;
+  enforcedAt: number;
+};
+
+/**
+ * Drop expired / terminal `ss_rt_…` rows from process memory + Edge KV mirrors.
+ * Strict TTL gate — never mutates PostgreSQL / persistent app tables.
+ */
+export async function purgeExpiredRuntimeCredentialsAsync(options?: {
+  dryRun?: boolean;
+  nowSec?: number;
+}): Promise<PurgeRuntimeCredentialsResult> {
+  const dryRun = Boolean(options?.dryRun);
+  const now = options?.nowSec ?? Math.floor(Date.now() / 1000);
+  let localPurged = 0;
+
+  for (const [id, row] of store.entries()) {
+    const expired = row.expiresAt <= now;
+    if (expired && row.status === "active") {
+      row.status = "expired";
+    }
+    const terminal =
+      row.status === "expired" ||
+      row.status === "consumed" ||
+      row.status === "revoked" ||
+      expired;
+
+    if (!terminal) continue;
+    localPurged += 1;
+    if (!dryRun) {
+      store.delete(id);
+      unindexLoop(row.loopId, id);
+    }
+  }
+
+  const kv = await purgeExpiredRuntimeTokenMirrors({ nowSec: now, dryRun });
+
+  console.info(`${LOG} purge complete`, {
+    localPurged,
+    kvPurged: kv.purged,
+    kvScanned: kv.scanned,
+    dryRun,
+    enforcedAt: now,
+  });
+
+  return {
+    localPurged,
+    kvPurged: kv.purged,
+    kvScanned: kv.scanned,
+    dryRun,
+    enforcedAt: now,
+  };
+}
+
+/** Drop expired rows (safe housekeeping — no secrets emitted). Sync local-only. */
 export function purgeExpiredRuntimeCredentials(): number {
   const now = Math.floor(Date.now() / 1000);
   let purged = 0;
@@ -361,6 +446,7 @@ export function purgeExpiredRuntimeCredentials(): number {
       if (row.status !== "active") {
         store.delete(id);
         unindexLoop(row.loopId, id);
+        void deleteRuntimeTokenMirror(id);
         purged += 1;
       }
     }
