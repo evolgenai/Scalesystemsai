@@ -94,7 +94,7 @@ export default function TopAuthHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-3 border-b border-white/5 bg-[#121212]/90 px-3 backdrop-blur-xl sm:px-4 md:px-6">
+      <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-3 border-b border-white/5 bg-obsidian/90 px-3 backdrop-blur-xl sm:px-4 md:px-6">
         <button
           type="button"
           onClick={toggleNav}

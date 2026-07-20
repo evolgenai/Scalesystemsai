@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
+import CryptographicVaultMesh from "@/components/ui/CryptographicVaultMesh";
 import RobotMeshIcon, {
   type RobotMeshVariant,
 } from "@/components/dashboard/RobotMeshIcon";
@@ -71,7 +72,7 @@ type MetricCardProps = {
 
 function MetricCard({ icon: Icon, title, value, unit, children }: MetricCardProps) {
   return (
-    <article className="flex flex-col overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4">
+    <article className="glass-panel flex flex-col overflow-hidden p-4">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-dim">
@@ -104,16 +105,24 @@ export default function EconomyMetricsDashboard() {
       className="mb-8 space-y-3"
     >
       <div className="flex items-end justify-between gap-3">
-        <div>
-          <h2
-            id="economy-heading"
-            className="font-display text-sm font-semibold text-white"
-          >
-            Economy &amp; Utility
-          </h2>
-          <p className="text-[11px] text-slate-dim">
-            Tenant token economy · current billing cycle
-          </p>
+        <div className="flex items-center gap-3">
+          <CryptographicVaultMesh
+            size={44}
+            active
+            label="Billing vault node"
+            className="rounded-lg border border-emerald-500/20 bg-white/[0.03]"
+          />
+          <div>
+            <h2
+              id="economy-heading"
+              className="font-display text-sm font-semibold text-white"
+            >
+              Economy &amp; Utility
+            </h2>
+            <p className="text-[11px] text-slate-dim">
+              Tenant token economy · current billing cycle
+            </p>
+          </div>
         </div>
         <span className="hidden font-mono text-[10px] text-emerald-400/80 sm:inline">
           live metering

@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
+import WarningBeaconMesh from "@/components/ui/WarningBeaconMesh";
 import { useAlertToasts } from "@/components/dashboard/AlertToastContext";
 
 type MetricId = "computeGas" | "healLatency" | "notifyCost" | "errorRate";
@@ -123,6 +124,7 @@ export default function AlertConfig() {
   const [savedFlash, setSavedFlash] = useState(false);
 
   const enabledCount = RULES.filter((r) => rules[r.id].enabled).length;
+  const beaconActive = enabledCount > 0;
 
   const toggleRule = (id: MetricId) => {
     setRules((prev) => ({
@@ -167,23 +169,31 @@ export default function AlertConfig() {
   return (
     <section aria-labelledby="alert-config-heading" className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400">
-            <Hover3DIcon intensity={12}>
-              <BellRing className="h-3 w-3" aria-hidden />
-            </Hover3DIcon>
-            Tenant alert rules
+        <div className="flex items-start gap-3">
+          <WarningBeaconMesh
+            size={56}
+            active={beaconActive}
+            label="Alert configuration beacon"
+            className="rounded-lg border border-amber-400/20 bg-white/[0.03]"
+          />
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400">
+              <Hover3DIcon intensity={12}>
+                <BellRing className="h-3 w-3" aria-hidden />
+              </Hover3DIcon>
+              Tenant alert rules
+            </div>
+            <h2
+              id="alert-config-heading"
+              className="font-display text-2xl font-bold tracking-tight text-white"
+            >
+              Alert Rules Configuration
+            </h2>
+            <p className="mt-1 max-w-xl text-sm text-slate-muted">
+              Set thresholds for compute gas, heal latency, and chaos density.
+              Matching incidents stream into the live toast stack.
+            </p>
           </div>
-          <h2
-            id="alert-config-heading"
-            className="font-display text-2xl font-bold tracking-tight text-white"
-          >
-            Alert Rules Configuration
-          </h2>
-          <p className="mt-1 max-w-xl text-sm text-slate-muted">
-            Set thresholds for compute gas, heal latency, and chaos density.
-            Matching incidents stream into the live toast stack.
-          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -211,10 +221,10 @@ export default function AlertConfig() {
           label="Dispatch channels"
           value={`${Object.values(channels).filter(Boolean).length} live`}
         />
-        <StatChip label="Theme plane" value="#121212" mono />
+        <StatChip label="Theme plane" value="#09090B" mono />
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
+      <div className="glass-panel overflow-hidden">
         <div className="border-b border-white/5 px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-dim">
             Threshold triggers
@@ -244,7 +254,7 @@ export default function AlertConfig() {
                       type="checkbox"
                       checked={state.enabled}
                       onChange={() => toggleRule(rule.id)}
-                      className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-white/20 bg-[#0a0a0a] text-emerald-500 accent-emerald-500 focus:ring-emerald-500/40"
+                      className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-white/20 bg-obsidian text-emerald-500 accent-emerald-500 focus:ring-emerald-500/40"
                     />
                     <span className="min-w-0">
                       <span className="flex items-center gap-2 text-sm font-medium text-white">
@@ -279,7 +289,7 @@ export default function AlertConfig() {
                         </span>
                         <span
                           role="tooltip"
-                          className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 w-52 rounded-lg border border-emerald-500/25 bg-[#0a0a0a] px-2.5 py-2 text-left text-[10px] font-normal normal-case tracking-normal text-zinc-300 opacity-0 shadow-xl shadow-black/50 transition duration-150 group-hover/value:opacity-100"
+                          className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 w-52 rounded-lg border border-emerald-500/25 bg-obsidian px-2.5 py-2 text-left text-[10px] font-normal normal-case tracking-normal text-zinc-300 opacity-0 shadow-xl shadow-black/50 transition duration-150 group-hover/value:opacity-100"
                         >
                           Live ceiling ·{" "}
                           <span className="text-emerald-400">
@@ -288,7 +298,7 @@ export default function AlertConfig() {
                           <br />
                           Range {rule.format(rule.min)} – {rule.format(rule.max)}
                           <span
-                            className="absolute right-3 top-full h-0 w-0 border-x-4 border-t-4 border-x-transparent border-t-[#0a0a0a]"
+                            className="absolute right-3 top-full h-0 w-0 border-x-4 border-t-4 border-x-transparent border-t-obsidian"
                             aria-hidden
                           />
                         </span>
@@ -322,7 +332,7 @@ export default function AlertConfig() {
         </ul>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
+      <div className="glass-panel overflow-hidden">
         <div className="border-b border-white/5 px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-dim">
             Delivery channels
@@ -338,7 +348,7 @@ export default function AlertConfig() {
                 type="checkbox"
                 checked={channels[ch.id]}
                 onChange={() => toggleChannel(ch.id)}
-                className="h-4 w-4 cursor-pointer rounded border-white/20 bg-[#0a0a0a] text-emerald-500 accent-emerald-500 focus:ring-emerald-500/40"
+                className="h-4 w-4 cursor-pointer rounded border-white/20 bg-obsidian text-emerald-500 accent-emerald-500 focus:ring-emerald-500/40"
               />
               <span className="text-sm text-white">{ch.label}</span>
             </label>
@@ -361,11 +371,11 @@ function MetricTooltip({ text }: { text: string }) {
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-56 -translate-x-1/2 rounded-lg border border-white/10 bg-[#0a0a0a] px-2.5 py-2 text-left text-[10px] font-normal normal-case leading-relaxed tracking-normal text-zinc-300 opacity-0 shadow-xl shadow-black/60 transition duration-150 group-hover/tip:opacity-100 group-focus-within/tip:opacity-100"
+        className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-2 w-56 -translate-x-1/2 rounded-lg border border-white/10 bg-obsidian px-2.5 py-2 text-left text-[10px] font-normal normal-case leading-relaxed tracking-normal text-zinc-300 opacity-0 shadow-xl shadow-black/60 transition duration-150 group-hover/tip:opacity-100 group-focus-within/tip:opacity-100"
       >
         {text}
         <span
-          className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-x-4 border-t-4 border-x-transparent border-t-[#0a0a0a]"
+          className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-x-4 border-t-4 border-x-transparent border-t-obsidian"
           aria-hidden
         />
       </span>
@@ -383,7 +393,7 @@ function StatChip({
   mono?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-white/5 bg-[#121212] px-3.5 py-3">
+    <div className="glass-panel px-3.5 py-3">
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-dim">
         {label}
       </p>

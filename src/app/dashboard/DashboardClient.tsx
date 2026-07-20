@@ -49,7 +49,7 @@ const AgentCardStack3D = dynamic(
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="h-24 animate-pulse rounded-lg border border-white/5 bg-[#121212]"
+            className="h-24 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl"
           />
         ))}
       </div>
@@ -62,7 +62,7 @@ const IsometricFlowMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="mb-8 h-[260px] animate-pulse rounded-lg border border-white/5 bg-[#121212] sm:h-[300px]" />
+      <div className="mb-8 h-[260px] animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl sm:h-[300px]" />
     ),
   }
 );
@@ -415,7 +415,7 @@ export default function DashboardClient({
     <>
       <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-white/5 bg-black/25 px-4 py-3">
         <div
-          className="inline-flex flex-wrap rounded-lg border border-white/5 bg-[#121212] p-0.5"
+          className="inline-flex flex-wrap rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl p-0.5"
           role="tablist"
           aria-label="Console view"
         >
@@ -649,7 +649,7 @@ export default function DashboardClient({
           {crashAlert ? (
             <div
               role="alert"
-              className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-400/30 border-l-2 border-l-rose-400 bg-[#121212] px-3.5 py-2.5"
+              className="mb-4 flex items-start justify-between gap-3 rounded-lg border border-amber-400/30 border-l-2 border-l-rose-400 bg-white/[0.03] backdrop-blur-xl px-3.5 py-2.5"
             >
               <p className="min-w-0 break-words text-xs font-medium text-amber-200">
                 {crashAlert}
@@ -696,7 +696,7 @@ export default function DashboardClient({
 
           <section
             aria-labelledby="persona-heading"
-            className="mb-6 w-full rounded-lg border border-white/5 bg-[#121212] p-3.5 sm:p-4"
+            className="mb-6 w-full rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl p-3.5 sm:p-4"
           >
             <h2 id="persona-heading" className="sr-only">
               Agent personality templates
@@ -723,7 +723,7 @@ export default function DashboardClient({
               <button
                 type="button"
                 onClick={() => setWorkspaceOpen(true)}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-3 py-2.5 text-xs font-semibold text-emerald-400 transition hover:border-emerald-500/30"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl px-3 py-2.5 text-xs font-semibold text-emerald-400 transition hover:border-emerald-500/30"
                 aria-expanded={workspaceOpen}
               >
                 <PanelsTopLeft className="h-4 w-4" aria-hidden />
@@ -743,7 +743,7 @@ export default function DashboardClient({
             <div
               className={`lg:col-span-2 ${
                 workspaceOpen
-                  ? "fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-white/5 bg-[#121212] p-4 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+                  ? "fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-white/5 bg-white/[0.03] backdrop-blur-xl p-4 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
                   : "hidden lg:block"
               }`}
             >

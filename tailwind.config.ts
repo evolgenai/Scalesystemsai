@@ -9,7 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        obsidian: "#09090b",
+        obsidian: "#09090B",
+        cyber: {
+          emerald: "#10B981",
+          amber: "#F59E0B",
+        },
         cyan: {
           accent: "#00f2fe",
         },
@@ -23,8 +27,9 @@ const config: Config = {
         display: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 0 40px rgba(0, 242, 254, 0.15)",
-        "glow-sm": "0 0 20px rgba(0, 242, 254, 0.25)",
+        glow: "0 0 40px rgba(16, 185, 129, 0.15)",
+        "glow-sm": "0 0 20px rgba(16, 185, 129, 0.25)",
+        "glow-amber": "0 0 24px rgba(245, 158, 11, 0.2)",
       },
       animation: {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",

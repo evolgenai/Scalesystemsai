@@ -14,6 +14,7 @@ import Hover3DIcon from "@/components/ui/Hover3DIcon";
 import RobotMeshIcon, {
   type RobotMeshStatus,
 } from "@/components/ui/RobotMeshIcon";
+import TeletrafficCrystalMesh from "@/components/ui/TeletrafficCrystalMesh";
 
 type StreamEvent = {
   id: string;
@@ -233,13 +234,19 @@ export default function TeletrafficBoard() {
     >
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex items-start gap-3">
+          <TeletrafficCrystalMesh
+            size={56}
+            active={robotStatus !== "idle"}
+            label="Edge teletraffic crystal cluster"
+            className="rounded-lg border border-emerald-500/20 bg-white/[0.03]"
+          />
           <RobotMeshIcon
-            size={52}
+            size={44}
             variant="supervisor"
             status={robotStatus}
             active={robotStatus === "working"}
             label="Edge teletraffic supervisor"
-            className="rounded-lg border border-white/5 bg-[#121212]"
+            className="rounded-lg border border-white/5 bg-white/[0.03]"
           />
           <div>
             <h2
@@ -293,7 +300,7 @@ export default function TeletrafficBoard() {
           return (
             <article
               key={card.label}
-              className="overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-3.5"
+              className="glass-panel overflow-hidden p-3.5"
             >
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-dim">
@@ -317,7 +324,7 @@ export default function TeletrafficBoard() {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-5">
-        <article className="overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4 lg:col-span-3">
+        <article className="glass-panel overflow-hidden p-4 lg:col-span-3">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Activity className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
@@ -346,7 +353,7 @@ export default function TeletrafficBoard() {
           </div>
         </article>
 
-        <article className="overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4 lg:col-span-2">
+        <article className="glass-panel overflow-hidden p-4 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Database className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
@@ -387,7 +394,7 @@ export default function TeletrafficBoard() {
         </article>
       </div>
 
-      <article className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
+      <article className="glass-panel overflow-hidden">
         <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
           <div className="flex items-center gap-2">
             <Radio className="h-3.5 w-3.5 text-emerald-400" aria-hidden />

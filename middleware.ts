@@ -111,6 +111,9 @@ function isStrictPath(pathname: string): boolean {
   ) {
     return true;
   }
+  if (pathname === "/api/sre" || pathname.startsWith("/api/sre/")) {
+    return true;
+  }
   if (
     pathname === "/api/workspaces" ||
     pathname.startsWith("/api/workspaces/")

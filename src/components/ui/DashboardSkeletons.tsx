@@ -26,7 +26,7 @@ export function MarketplaceSkeleton() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="space-y-3 rounded-lg border border-white/5 bg-[#121212] p-4"
+            className="space-y-3 rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl p-4"
           >
             <div className="flex justify-between">
               <Bone className="h-11 w-11 rounded-lg" />
@@ -39,7 +39,7 @@ export function MarketplaceSkeleton() {
           </div>
         ))}
       </div>
-      <div className="rounded-lg border border-white/5 bg-[#121212] p-4">
+      <div className="rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl p-4">
         <Bone className="mb-4 h-10 w-48" />
         <div className="grid gap-3 lg:grid-cols-2">
           <Bone className="h-36 w-full" />
@@ -53,7 +53,7 @@ export function MarketplaceSkeleton() {
 export function TokenVaultSkeleton() {
   return (
     <div
-      className="mt-4 overflow-hidden rounded-lg border border-white/5 bg-[#121212]"
+      className="mt-4 overflow-hidden rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl"
       aria-busy
       aria-label="Loading token vault"
     >
@@ -86,7 +86,7 @@ export function TokenVaultSkeleton() {
 export function ChaosConsoleSkeleton() {
   return (
     <div
-      className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]"
+      className="overflow-hidden rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl"
       aria-busy
       aria-label="Loading chaos console"
     >
@@ -127,7 +127,7 @@ export function PluginAnalyticsSkeleton() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 rounded-lg border border-white/5 bg-[#121212] px-3.5 py-3"
+            className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl px-3.5 py-3"
           >
             <Bone className="h-8 w-8 rounded-lg" />
             <div className="flex-1 space-y-2">
@@ -137,7 +137,7 @@ export function PluginAnalyticsSkeleton() {
           </div>
         ))}
       </div>
-      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4">
+      <div className="overflow-hidden rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl p-4">
         <Bone className="mb-4 h-3 w-full" />
         {Array.from({ length: 6 }).map((_, i) => (
           <Bone key={i} className="mb-3 h-10 w-full last:mb-0" />
@@ -159,14 +159,14 @@ export function AlertConfigSkeleton() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="space-y-2 rounded-lg border border-white/5 bg-[#121212] px-3.5 py-3"
+            className="space-y-2 rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl px-3.5 py-3"
           >
             <Bone className="h-2.5 w-20" />
             <Bone className="h-4 w-16" />
           </div>
         ))}
       </div>
-      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
+      <div className="overflow-hidden rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl">
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
@@ -193,14 +193,14 @@ export function WorkspaceSettingsSkeleton() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="space-y-2 rounded-lg border border-white/5 bg-[#121212] px-3.5 py-3"
+            className="space-y-2 rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl px-3.5 py-3"
           >
             <Bone className="h-2.5 w-20" />
             <Bone className="h-4 w-16" />
           </div>
         ))}
       </div>
-      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
+      <div className="overflow-hidden rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl">
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
@@ -227,14 +227,14 @@ export function AuditLogSkeleton() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="space-y-2 rounded-lg border border-white/5 bg-[#121212] px-3.5 py-3"
+            className="space-y-2 rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl px-3.5 py-3"
           >
             <Bone className="h-2.5 w-20" />
             <Bone className="h-4 w-16" />
           </div>
         ))}
       </div>
-      <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
+      <div className="overflow-hidden rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl">
         <Bone className="m-4 mb-0 h-3 w-full" />
         {Array.from({ length: 7 }).map((_, i) => (
           <Bone key={i} className="mx-4 my-3 h-10 w-[calc(100%-2rem)]" />
@@ -252,7 +252,7 @@ export function EconomySkeleton() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="space-y-3 rounded-lg border border-white/5 bg-[#121212] p-4"
+            className="space-y-3 rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl p-4"
           >
             <div className="flex justify-between">
               <Bone className="h-8 w-24" />

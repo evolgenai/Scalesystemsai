@@ -115,7 +115,7 @@ export function ModeToggle({ className = "" }: { className?: string }) {
 
   return (
     <div
-      className={`inline-flex items-center gap-1 rounded-xl border border-white/10 bg-[#121212] p-1 ${className}`}
+      className={`inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-1 ${className}`}
       role="group"
       aria-label="Workspace mode"
     >
@@ -225,7 +225,7 @@ function TemplateCardStack({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.06 * i, duration: 0.35 }}
             onClick={() => onSelect(t.id)}
-            className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-[#121212] p-5 text-left transition ${t.border} ${
+            className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.03] backdrop-blur-xl p-5 text-left transition ${t.border} ${
               selected ? "border-emerald-500/50 ring-1 ring-emerald-500/30" : ""
             }`}
           >
@@ -295,7 +295,7 @@ function ActionWizard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
-      className="overflow-hidden rounded-2xl border border-emerald-500/25 bg-[#121212]"
+      className="overflow-hidden rounded-2xl border border-emerald-500/25 bg-white/[0.03] backdrop-blur-xl"
     >
       <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3 sm:px-5">
         <div className="flex items-center gap-2.5">

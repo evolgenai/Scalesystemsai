@@ -13,6 +13,7 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import CryptographicVaultMesh from "@/components/ui/CryptographicVaultMesh";
 
 type VaultKeyId = "openai" | "anthropic" | "whatsapp";
 
@@ -115,13 +116,16 @@ export default function TokenVault() {
   return (
     <section
       aria-labelledby="token-vault-heading"
-      className="mt-4 overflow-hidden rounded-lg border border-white/5 bg-[#121212]"
+      className="glass-panel mt-4 overflow-hidden"
     >
       <header className="flex flex-col gap-3 border-b border-white/5 px-3.5 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:px-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
-            <ShieldCheck className="h-4 w-4" aria-hidden />
-          </div>
+          <CryptographicVaultMesh
+            size={44}
+            active={verifiedCount > 0}
+            label="Cryptographic vault node"
+            className="rounded-lg border border-emerald-500/20 bg-white/[0.03]"
+          />
           <div>
             <h2
               id="token-vault-heading"
