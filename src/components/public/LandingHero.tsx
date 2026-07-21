@@ -18,7 +18,7 @@ import {
 const AgentNetworkCanvas = dynamic(() => import("./AgentNetworkCanvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/90 sm:min-h-[340px]">
+    <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#09090B] sm:min-h-[340px]">
       <div className="h-24 w-24 animate-pulse rounded-full border border-emerald-500/30 bg-emerald-500/10" />
     </div>
   ),
@@ -197,9 +197,9 @@ export default function LandingHero() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.55, delay: 0.12 }}
-            className="relative z-10 w-full min-w-0"
+            className="relative z-10 w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#09090B] isolation-isolate"
           >
-            <AgentNetworkCanvas className="w-full" />
+            <AgentNetworkCanvas className="w-full !rounded-none !border-0" />
           </motion.div>
         </div>
       </section>

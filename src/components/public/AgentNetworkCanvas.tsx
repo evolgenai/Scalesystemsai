@@ -14,6 +14,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
 
+const OBSIDIAN = "#09090B";
 const EMERALD = "#10B981";
 const EMERALD_DIM = "#059669";
 const GLASS = "#a7f3d0";
@@ -43,12 +44,32 @@ const EDGES: [string, string][] = [
   ["sre", "content"],
 ];
 
+function SceneBackdrop() {
+  const { gl, scene } = useThree();
+
+  useEffect(() => {
+    const color = new THREE.Color(OBSIDIAN);
+    scene.background = color;
+    gl.setClearColor(color, 1);
+    gl.setClearAlpha(1);
+    const canvas = gl.domElement;
+    canvas.classList.add("block", "h-full", "w-full", "bg-[#09090B]");
+    canvas.style.display = "block";
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    canvas.style.backgroundColor = OBSIDIAN;
+    canvas.style.objectFit = "cover";
+  }, [gl, scene]);
+
+  return null;
+}
+
 function ResizeBinder({
   containerRef,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
 }) {
-  const { gl, setSize, camera } = useThree();
+  const { gl, setSize, camera, scene } = useThree();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -60,16 +81,19 @@ function ResizeBinder({
       gl.setPixelRatio(dpr);
       setSize(width, height, false);
       const canvas = gl.domElement;
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
+      const bw = Math.floor(width * dpr);
+      const bh = Math.floor(height * dpr);
+      if (canvas.width !== bw) canvas.width = bw;
+      if (canvas.height !== bh) canvas.height = bh;
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       canvas.style.display = "block";
-      canvas.style.backgroundColor = "#09090B";
+      canvas.style.backgroundColor = OBSIDIAN;
       canvas.style.objectFit = "cover";
-      gl.setClearColor("#09090B", 1);
+      scene.background = new THREE.Color(OBSIDIAN);
+      gl.setClearColor(OBSIDIAN, 1);
       gl.setClearAlpha(1);
-      gl.setViewport(0, 0, canvas.width, canvas.height);
+      gl.setViewport(0, 0, bw, bh);
       gl.clear(true, true, true);
       if (camera instanceof THREE.PerspectiveCamera) {
         camera.aspect = width / height;
@@ -96,7 +120,7 @@ function ResizeBinder({
       ro.disconnect();
       window.removeEventListener("resize", onWindowResize);
     };
-  }, [camera, containerRef, gl, setSize]);
+  }, [camera, containerRef, gl, scene, setSize]);
 
   return null;
 }
@@ -136,11 +160,11 @@ function AgentNode({
         emissiveIntensity={0.4}
         metalness={0.2}
         roughness={0.12}
-        transmission={0.45}
+        transmission={0}
         thickness={0.5}
         ior={1.9}
-        transparent
-        opacity={0.92}
+        transparent={false}
+        opacity={1}
         clearcoat={1}
         clearcoatRoughness={0.1}
       />
@@ -312,7 +336,7 @@ export default function AgentNetworkCanvas({
   return (
     <div
       ref={containerRef}
-      className={`relative aspect-[4/3] h-full w-full min-h-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/90 sm:min-h-[340px] ${className}`}
+      className={`relative isolate aspect-[4/3] h-full w-full min-h-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#09090B] sm:min-h-[340px] ${className}`}
     >
       <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] text-emerald-300">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
@@ -327,7 +351,7 @@ export default function AgentNetworkCanvas({
                 display: "block",
                 width: "100%",
                 height: "100%",
-                backgroundColor: "#09090B",
+                backgroundColor: OBSIDIAN,
               }}
               dpr={[1, 1.5]}
               camera={{ position: [0, 0, 4.35], fov: 40, near: 0.1, far: 40 }}
@@ -337,18 +361,21 @@ export default function AgentNetworkCanvas({
                 powerPreference: "high-performance",
               }}
               resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
-              onCreated={({ camera, gl }) => {
+              onCreated={({ camera, gl, scene }) => {
                 camera.lookAt(0, 0, 0);
-                gl.setClearColor("#09090B", 1);
+                const color = new THREE.Color(OBSIDIAN);
+                scene.background = color;
+                gl.setClearColor(0x09090b, 1);
                 gl.setClearAlpha(1);
-                const { width, height } = gl.domElement;
-                gl.setViewport(0, 0, width, height);
+                gl.domElement.className = "block h-full w-full bg-[#09090B]";
+                gl.domElement.style.backgroundColor = OBSIDIAN;
                 gl.clear(true, true, true);
                 setReady(true);
               }}
             >
+              <SceneBackdrop />
               <ResizeBinder containerRef={containerRef} />
-              <color attach="background" args={["#09090B"]} />
+              <color attach="background" args={[OBSIDIAN]} />
               <SwarmScene />
             </Canvas>
           </Suspense>
