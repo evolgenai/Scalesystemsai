@@ -5,10 +5,11 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
 
-const SAPPHIRE = "#3B82F6";
+const EMERALD = "#10B981";
 const ROBOT_HEIGHT = 1.15;
 const GROUND_Y = 0;
 const PROXIMITY_DEFAULT = 3;
+const MORPH_PROXIMITY_DEFAULT = 5.5;
 
 const MIN_POLAR = Math.PI / 6;
 const MAX_POLAR = Math.PI / 2 + 0.28;
@@ -33,7 +34,10 @@ export type RobotAvatarProps = {
   locked: boolean;
   targets?: ProximityTarget[];
   proximity?: number;
+  morphProximity?: number;
   onNearestChange?: (id: string | null) => void;
+  onNearbyChange?: (ids: string[]) => void;
+  onPositionChange?: (pos: [number, number, number]) => void;
   onInteract?: (id: string) => void;
   enabled?: boolean;
 };
@@ -96,7 +100,7 @@ function RobotMesh({
           color="#0b1220"
           metalness={0.85}
           roughness={0.22}
-          emissive={SAPPHIRE}
+          emissive={EMERALD}
           emissiveIntensity={0.5}
         />
       </mesh>
@@ -124,8 +128,8 @@ function RobotMesh({
       <mesh ref={eyeL} position={[-0.1, 1.18, 0.22]}>
         <sphereGeometry args={[0.045, 12, 12]} />
         <meshStandardMaterial
-          color={SAPPHIRE}
-          emissive={SAPPHIRE}
+          color={EMERALD}
+          emissive={EMERALD}
           emissiveIntensity={1}
           metalness={0.2}
           roughness={0.15}
@@ -134,8 +138,8 @@ function RobotMesh({
       <mesh ref={eyeR} position={[0.1, 1.18, 0.22]}>
         <sphereGeometry args={[0.045, 12, 12]} />
         <meshStandardMaterial
-          color={SAPPHIRE}
-          emissive={SAPPHIRE}
+          color={EMERALD}
+          emissive={EMERALD}
           emissiveIntensity={1}
           metalness={0.2}
           roughness={0.15}
@@ -149,8 +153,8 @@ function RobotMesh({
       <mesh position={[0.12, 1.55, 0]}>
         <sphereGeometry args={[0.035, 8, 8]} />
         <meshStandardMaterial
-          color={SAPPHIRE}
-          emissive={SAPPHIRE}
+          color={EMERALD}
+          emissive={EMERALD}
           emissiveIntensity={0.9}
         />
       </mesh>
@@ -176,8 +180,8 @@ function RobotMesh({
       <mesh ref={thrusterL} position={[-0.16, 0.04, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.09, 0.28, 8]} />
         <meshStandardMaterial
-          color={SAPPHIRE}
-          emissive={SAPPHIRE}
+          color={EMERALD}
+          emissive={EMERALD}
           emissiveIntensity={0.4}
           transparent
           opacity={0.85}
@@ -188,8 +192,8 @@ function RobotMesh({
       <mesh ref={thrusterR} position={[0.16, 0.04, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.09, 0.28, 8]} />
         <meshStandardMaterial
-          color={SAPPHIRE}
-          emissive={SAPPHIRE}
+          color={EMERALD}
+          emissive={EMERALD}
           emissiveIntensity={0.4}
           transparent
           opacity={0.85}
@@ -218,7 +222,10 @@ export default function RobotAvatar({
   locked,
   targets = [],
   proximity = PROXIMITY_DEFAULT,
+  morphProximity = MORPH_PROXIMITY_DEFAULT,
   onNearestChange,
+  onNearbyChange,
+  onPositionChange,
   onInteract,
   enabled = true,
 }: RobotAvatarProps) {
@@ -239,8 +246,10 @@ export default function RobotAvatar({
   const hovering = useRef(false);
   const moving = useRef(false);
   const nearestId = useRef<string | null>(null);
+  const nearbyKey = useRef("");
   const facing = useRef(0);
   const anim = useRef({ moving: false, hovering: false });
+  const posTick = useRef(0);
 
   useEffect(() => {
     if (!enabled) return;
@@ -419,9 +428,10 @@ export default function RobotAvatar({
     camera.position.lerp(camDesired.current, 1 - Math.exp(-14 * dt));
     camera.lookAt(pos.x, focusY, pos.z);
 
-    // Proximity
+    // Proximity (nearest + multi-node for morph)
     let bestId: string | null = null;
     let best = proximity;
+    const nearby: string[] = [];
     for (const t of targets) {
       probe.current.set(
         t.position[0],
@@ -433,10 +443,21 @@ export default function RobotAvatar({
         best = d;
         bestId = t.id;
       }
+      if (d < morphProximity) nearby.push(t.id);
     }
     if (nearestId.current !== bestId) {
       nearestId.current = bestId;
       onNearestChange?.(bestId);
+    }
+    const key = nearby.slice().sort().join(",");
+    if (key !== nearbyKey.current) {
+      nearbyKey.current = key;
+      onNearbyChange?.(nearby);
+    }
+    posTick.current += dt;
+    if (posTick.current > 0.12) {
+      posTick.current = 0;
+      onPositionChange?.([pos.x, pos.y, pos.z]);
     }
   });
 
@@ -449,7 +470,7 @@ export default function RobotAvatar({
         position={[0, 1.2, 0.4]}
         intensity={0.55}
         distance={4}
-        color={SAPPHIRE}
+        color={EMERALD}
       />
     </group>
   );

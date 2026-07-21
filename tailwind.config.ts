@@ -9,17 +9,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        obsidian: "#060810",
+        obsidian: "#05110d",
         midnight: {
-          glass: "#0A0F1D",
+          glass: "#09090B",
         },
         cyber: {
-          sapphire: "#0066FF",
-          electric: "#3B82F6",
+          emerald: "#10B981",
+          electric: "#059669",
           amber: "#F59E0B",
+          // legacy aliases → emerald
+          sapphire: "#10B981",
         },
         cyan: {
-          accent: "#00f2fe",
+          accent: "#34d399",
         },
         slate: {
           muted: "#94a3b8",
@@ -31,8 +33,8 @@ const config: Config = {
         display: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 0 40px rgba(0, 102, 255, 0.15)",
-        "glow-sm": "0 0 20px rgba(0, 102, 255, 0.25)",
+        glow: "0 0 40px rgba(16, 185, 129, 0.15)",
+        "glow-sm": "0 0 20px rgba(16, 185, 129, 0.25)",
         "glow-amber": "0 0 24px rgba(245, 158, 11, 0.2)",
       },
       animation: {

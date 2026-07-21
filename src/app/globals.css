@@ -3,14 +3,17 @@
 @tailwind utilities;
 
 :root {
-  --obsidian: #060810;
-  --midnight-glass: #0a0f1d;
+  --obsidian: #05110d;
+  --midnight-glass: #09090b;
   --glass-smoke: rgba(255, 255, 255, 0.03);
   --glass-border: rgba(255, 255, 255, 0.08);
-  --cyber-sapphire: #0066ff;
-  --electric-sapphire: #3b82f6;
+  --cyber-emerald: #10b981;
+  --electric-emerald: #059669;
+  --cyber-sapphire: #10b981;
+  --electric-sapphire: #059669;
   --warning-amber: #f59e0b;
-  --glass-glow-sapphire: 0 0 24px rgba(0, 102, 255, 0.08);
+  --glass-glow-emerald: 0 0 24px rgba(16, 185, 129, 0.08);
+  --glass-glow-sapphire: 0 0 24px rgba(16, 185, 129, 0.08);
   --glass-glow-amber: 0 0 24px rgba(245, 158, 11, 0.1);
 }
 
@@ -25,7 +28,7 @@
   }
 
   ::selection {
-    @apply bg-blue-500/30 text-white;
+    @apply bg-emerald-500/30 text-white;
   }
 }
 
@@ -36,7 +39,7 @@
     @apply backdrop-blur-xl;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      var(--glass-glow-sapphire);
+      var(--glass-glow-emerald);
   }
 
   .glass-panel {
@@ -45,8 +48,8 @@
     @apply rounded-lg backdrop-blur-xl;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      0 0 0 1px rgba(0, 102, 255, 0.04),
-      var(--glass-glow-sapphire);
+      0 0 0 1px rgba(16, 185, 129, 0.04),
+      var(--glass-glow-emerald);
   }
 
   .glass-panel-amber {
@@ -59,7 +62,7 @@
   }
 
   .text-gradient {
-    @apply bg-gradient-to-r from-blue-400 to-cyan-accent bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-emerald-400 to-cyan-accent bg-clip-text text-transparent;
   }
 
   .roi-range::-webkit-slider-thumb {
@@ -67,25 +70,25 @@
     height: 18px;
     width: 18px;
     border-radius: 50%;
-    background: #0066FF;
+    background: #10b981;
     cursor: pointer;
     border: 2px solid #09090b;
-    box-shadow: 0 0 12px rgba(0, 102, 255, 0.5);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
   }
 
   .roi-range::-moz-range-thumb {
     height: 18px;
     width: 18px;
     border-radius: 50%;
-    background: #0066FF;
+    background: #10b981;
     cursor: pointer;
     border: 2px solid #09090b;
-    box-shadow: 0 0 12px rgba(0, 102, 255, 0.5);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
   }
 
   .terminal-scroll {
     scrollbar-width: thin;
-    scrollbar-color: rgba(0, 102, 255, 0.35) #09090b;
+    scrollbar-color: rgba(16, 185, 129, 0.35) #09090b;
   }
 
   .terminal-scroll::-webkit-scrollbar {
@@ -98,12 +101,12 @@
   }
 
   .terminal-scroll::-webkit-scrollbar-thumb {
-    background: rgba(0, 102, 255, 0.28);
+    background: rgba(16, 185, 129, 0.28);
     border-radius: 999px;
   }
 
   .terminal-scroll::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 102, 255, 0.48);
+    background: rgba(16, 185, 129, 0.48);
   }
 }
 
@@ -132,25 +135,25 @@
 }
 
 .blueprint-particle {
-  filter: drop-shadow(0 0 6px rgba(96, 165, 250, 0.95));
+  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.95));
 }
 
 .blueprint-particle-trail {
   opacity: 0.65;
-  filter: drop-shadow(0 0 4px rgba(147, 197, 253, 0.7));
+  filter: drop-shadow(0 0 4px rgba(110, 231, 183, 0.7));
 }
 
 @keyframes blueprint-node-pulse {
   0%,
   100% {
     box-shadow:
-      0 0 18px rgba(59, 130, 246, 0.35),
-      0 0 8px rgba(34, 211, 238, 0.2);
+      0 0 18px rgba(16, 185, 129, 0.35),
+      0 0 8px rgba(52, 211, 153, 0.2);
   }
   50% {
     box-shadow:
-      0 0 36px rgba(59, 130, 246, 0.65),
-      0 0 18px rgba(34, 211, 238, 0.4);
+      0 0 36px rgba(16, 185, 129, 0.65),
+      0 0 18px rgba(52, 211, 153, 0.4);
   }
 }
 
@@ -168,8 +171,8 @@
   background: conic-gradient(
     from 0deg,
     transparent 0%,
-    rgba(59, 130, 246, 0.55) 35%,
-    rgba(34, 211, 238, 0.7) 55%,
+    rgba(16, 185, 129, 0.55) 35%,
+    rgba(52, 211, 153, 0.7) 55%,
     transparent 75%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);

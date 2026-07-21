@@ -13,7 +13,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh, PointLight } from "three";
 
-const SAPPHIRE = "#0066FF";
+const SAPPHIRE = "#10B981";
 const METAL = "#c8d0d8";
 const BODY = "#12141a";
 

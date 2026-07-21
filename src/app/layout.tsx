@@ -6,6 +6,7 @@ import TopAuthHeader from "@/components/navigation/TopAuthHeader";
 import { NavDrawerProvider } from "@/components/navigation/NavDrawerContext";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WorkspaceModeProvider } from "@/components/dashboard/ModeWrapper";
+import LaunchBanner from "@/components/public/LaunchBanner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -129,6 +130,7 @@ export default function RootLayout({
               <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-obsidian text-white">
                 <Sidebar />
                 <div className="flex min-w-0 w-full flex-1 flex-col">
+                  <LaunchBanner />
                   <TopAuthHeader />
                   <main className="w-full min-w-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 md:p-6 lg:p-8">
                     {children}

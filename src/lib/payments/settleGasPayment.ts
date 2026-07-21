@@ -8,6 +8,7 @@ import {
   type GasPaymentStatus,
 } from "@prisma/client";
 import { creditGas } from "@/lib/billing/gasMeter";
+import { maybeAutoClaimReferralReward } from "@/lib/affiliate/referralRewards";
 import { getPrisma } from "@/lib/prisma";
 
 const MAX_TX_RETRIES = 3 as const;
@@ -63,7 +64,7 @@ export async function settleGasPayment(
 
   for (let attempt = 0; attempt < MAX_TX_RETRIES; attempt += 1) {
     try {
-      return await prisma.$transaction(
+      const settled = await prisma.$transaction(
         async (tx) => {
           const rows = await tx.$queryRaw<
             Array<{
@@ -178,6 +179,24 @@ export async function settleGasPayment(
           maxWait: 5_000,
         }
       );
+
+      // Automated referral reward trigger — idempotent; never blocks settlement.
+      if (!settled.alreadyCredited) {
+        const paymentMeta = await prisma.gasPayment.findUnique({
+          where: { id: settled.paymentId },
+          select: { metadataJson: true },
+        });
+        await maybeAutoClaimReferralReward({
+          gasPaymentId: settled.paymentId,
+          referredWorkspaceId: settled.workspaceId,
+          metadata: {
+            ...asMetaRecord(paymentMeta?.metadataJson),
+            ...(input.metadata ?? {}),
+          },
+        });
+      }
+
+      return settled;
     } catch (err) {
       lastError = err;
       if (!isRetryable(err) || attempt >= MAX_TX_RETRIES - 1) {

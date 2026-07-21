@@ -473,11 +473,20 @@ model OrgMembership {
  * Multi-tenant heal / MCP scope. apiKey authenticates workspace-scoped telemetry + heal.
  * credentialCipher holds AES-256-GCM sealed injection secrets (ssv1:…); never return raw.
  */
-/** Gas credit ledger entry kinds — recharge, execution burn, or refund. */
+/** Gas credit ledger entry kinds — recharge, execution burn, refund, or referral bonus. */
 enum GasTransactionType {
   RECHARGE
   EXECUTION_FEE
   REFUND
+  REFERRAL_BONUS
+}
+
+/** Referral attribution lifecycle — pending until referred workspace completes paid checkout. */
+enum ReferralStatus {
+  PENDING
+  QUALIFIED
+  REWARDED
+  REJECTED
 }
 
 /** External Gas top-up payment rails. */
@@ -554,6 +563,10 @@ model Workspace {
   inboundWebhooks    InboundWebhook[]
   skillInstalls      AgentSkillInstall[]
   gasPayments        GasPayment[]
+  referralCode       ReferralCode?
+  referralsMade      ReferralAttribution[] @relation("ReferrerWorkspace")
+  referredBy         ReferralAttribution?  @relation("ReferredWorkspace")
+  referralRewards    ReferralReward[]      @relation("ReferrerRewardWorkspace")
 
   @@index([createdAt])
   @@index([meterLastAt])
@@ -592,6 +605,75 @@ model GasPayment {
   @@index([workspaceId, status, createdAt(sort: Desc)])
   @@index([provider, status])
   @@index([externalIdAlt])
+  @@index([createdAt(sort: Desc)])
+}
+
+/**
+ * Public workspace referral code — one code per tenant workspace.
+ */
+model ReferralCode {
+  id          String   @id @default(cuid())
+  workspaceId String   @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /** Short public share code (case-insensitive lookup). */
+  code        String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  attributions ReferralAttribution[]
+  rewards      ReferralReward[]
+
+  @@index([code])
+  @@index([createdAt(sort: Desc)])
+}
+
+/**
+ * Links a referred workspace to a referrer via ReferralCode.
+ * referredWorkspaceId is unique — one referrer wins; self-referral is rejected at write time.
+ */
+model ReferralAttribution {
+  id                  String         @id @default(cuid())
+  referralCodeId      String
+  referralCode        ReferralCode   @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  referrerWorkspaceId String
+  referrerWorkspace   Workspace      @relation("ReferrerWorkspace", fields: [referrerWorkspaceId], references: [id], onDelete: Cascade)
+  referredWorkspaceId String         @unique
+  referredWorkspace   Workspace      @relation("ReferredWorkspace", fields: [referredWorkspaceId], references: [id], onDelete: Cascade)
+  status              ReferralStatus @default(PENDING)
+  attributedAt        DateTime       @default(now())
+  qualifiedAt         DateTime?
+  rejectedReason      String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  rewards             ReferralReward[]
+
+  @@unique([referrerWorkspaceId, referredWorkspaceId])
+  @@index([referrerWorkspaceId, status, attributedAt(sort: Desc)])
+  @@index([referralCodeId, status])
+  @@index([status, attributedAt(sort: Desc)])
+}
+
+/**
+ * Idempotent referral Gas credit — exactly one reward row per qualifying GasPayment.
+ */
+model ReferralReward {
+  id                  String              @id @default(cuid())
+  attributionId       String
+  attribution         ReferralAttribution @relation(fields: [attributionId], references: [id], onDelete: Cascade)
+  referralCodeId      String
+  referralCode        ReferralCode        @relation(fields: [referralCodeId], references: [id], onDelete: Cascade)
+  referrerWorkspaceId String
+  referrerWorkspace   Workspace           @relation("ReferrerRewardWorkspace", fields: [referrerWorkspaceId], references: [id], onDelete: Cascade)
+  referredWorkspaceId String
+  /** Qualifying COMPLETED GasPayment — unique idempotency key. */
+  gasPaymentId        String              @unique
+  gasAmount           Int
+  ledgerId            String?
+  claimedAt           DateTime            @default(now())
+  createdAt           DateTime            @default(now())
+
+  @@index([referrerWorkspaceId, claimedAt(sort: Desc)])
+  @@index([attributionId, claimedAt(sort: Desc)])
+  @@index([referredWorkspaceId])
   @@index([createdAt(sort: Desc)])
 }
 
