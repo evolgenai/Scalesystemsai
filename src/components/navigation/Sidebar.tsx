@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   Users,
   Crown,
+  Layers,
+  Webhook,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -54,7 +56,9 @@ type NavLink = {
     | "domains"
     | "security"
     | "team"
-    | "billing";
+    | "billing"
+    | "integrations"
+    | "webhooks";
   /** Only shown in Developer mode on dashboard surfaces. */
   developerOnly?: boolean;
   /** Only shown when Super-Admin env bypass is armed. */
@@ -143,6 +147,18 @@ const NAV_LINKS: NavLink[] = [
     label: "Team Members",
     icon: Users,
     match: "team",
+  },
+  {
+    href: "/dashboard?view=integrations",
+    label: "Integrations Hub",
+    icon: Layers,
+    match: "integrations",
+  },
+  {
+    href: "/dashboard?view=webhooks",
+    label: "Inbound Webhooks",
+    icon: Webhook,
+    match: "webhooks",
   },
   {
     href: "/dashboard?view=billing",
@@ -239,6 +255,8 @@ function SidebarNav() {
   const sreHealthOpen = onDashboard && view === "sre-health";
   const securityOpen = onDashboard && view === "security";
   const teamOpen = onDashboard && view === "team";
+  const integrationsOpen = onDashboard && view === "integrations";
+  const webhooksOpen = onDashboard && view === "webhooks";
   const billingOpen = onDashboard && view === "billing";
 
   const closeDrawer = () => setOpen(false);
@@ -272,6 +290,8 @@ function SidebarNav() {
     if (link.match === "sre-health") return sreHealthOpen;
     if (link.match === "security") return securityOpen;
     if (link.match === "team") return teamOpen;
+    if (link.match === "integrations") return integrationsOpen;
+    if (link.match === "webhooks") return webhooksOpen;
     if (link.match === "billing") return billingOpen;
     if (link.match === "dashboard") {
       return (
@@ -293,6 +313,8 @@ function SidebarNav() {
         !sreHealthOpen &&
         !securityOpen &&
         !teamOpen &&
+        !integrationsOpen &&
+        !webhooksOpen &&
         !billingOpen
       );
     }

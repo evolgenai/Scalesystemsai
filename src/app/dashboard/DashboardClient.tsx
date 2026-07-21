@@ -28,6 +28,8 @@ import {
   ShieldCheck,
   Users,
   Crown,
+  Layers,
+  Webhook,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
@@ -308,6 +310,40 @@ const SubscriptionPlans = dynamic(
   }
 );
 
+const IntegrationsHub = dynamic(
+  () => import("@/components/integrations/IntegrationsHub"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading integrations hub">
+        <div className="h-24 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-56 animate-pulse rounded-2xl border border-white/5 bg-white/[0.03] backdrop-blur-xl"
+            />
+          ))}
+        </div>
+      </div>
+    ),
+  }
+);
+
+const WebhookManager = dynamic(
+  () => import("@/components/webhooks/WebhookManager"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading webhook manager">
+        <div className="h-24 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="h-40 animate-pulse rounded-2xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="h-40 animate-pulse rounded-2xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+      </div>
+    ),
+  }
+);
+
 import ModeWrapper, {
   useWorkspaceMode,
 } from "@/components/dashboard/ModeWrapper";
@@ -343,7 +379,9 @@ type ConsoleView =
   | "domains"
   | "security"
   | "team"
-  | "billing";
+  | "billing"
+  | "integrations"
+  | "webhooks";
 
 const DEFAULT_OBJECTIVE =
   "Analyze https://example.com and run a TypeScript lead-scoring script in the sandbox.";
@@ -443,6 +481,8 @@ export default function DashboardClient({
     else if (view === "security") setConsoleView("security");
     else if (view === "team") setConsoleView("team");
     else if (view === "billing") setConsoleView("billing");
+    else if (view === "integrations") setConsoleView("integrations");
+    else if (view === "webhooks") setConsoleView("webhooks");
     else setConsoleView("workforce");
   }, [searchParams, isUser, isSuperAdmin, router]);
 
@@ -468,6 +508,8 @@ export default function DashboardClient({
       else if (next === "security") params.set("view", "security");
       else if (next === "team") params.set("view", "team");
       else if (next === "billing") params.set("view", "billing");
+      else if (next === "integrations") params.set("view", "integrations");
+      else if (next === "webhooks") params.set("view", "webhooks");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -960,6 +1002,38 @@ export default function DashboardClient({
           <button
             type="button"
             role="tab"
+            aria-selected={consoleView === "integrations"}
+            onClick={() => setView("integrations")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "integrations"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <Layers className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            Integrations
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={consoleView === "webhooks"}
+            onClick={() => setView("webhooks")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "webhooks"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <Webhook className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            Webhooks
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={consoleView === "billing"}
             onClick={() => setView("billing")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -1128,6 +1202,14 @@ export default function DashboardClient({
           <span className="text-xs text-slate-dim">
             Seats · invitations · Admin / Developer / Member roles
           </span>
+        ) : consoleView === "integrations" ? (
+          <span className="text-xs text-slate-dim">
+            Shopify · Slack/Discord · Sheets · GitHub connectors
+          </span>
+        ) : consoleView === "webhooks" ? (
+          <span className="text-xs text-slate-dim">
+            Inbound endpoints · signing secrets · JSON payload inspector
+          </span>
         ) : consoleView === "billing" ? (
           <span className="text-xs text-slate-dim">
             Starter · Pro · Enterprise · Stripe subscription checkout
@@ -1146,6 +1228,14 @@ export default function DashboardClient({
       {consoleView === "team" ? (
         <ErrorBoundary label="Team Manager">
           <TeamManager />
+        </ErrorBoundary>
+      ) : consoleView === "integrations" ? (
+        <ErrorBoundary label="Integrations Hub">
+          <IntegrationsHub />
+        </ErrorBoundary>
+      ) : consoleView === "webhooks" ? (
+        <ErrorBoundary label="Inbound Webhooks">
+          <WebhookManager />
         </ErrorBoundary>
       ) : consoleView === "billing" ? (
         <ErrorBoundary label="Subscription Plans">
@@ -1432,6 +1522,14 @@ export default function DashboardClient({
               ) : consoleView === "domains" ? (
                 <ErrorBoundary label="Domain Manager">
                   <DomainManager />
+                </ErrorBoundary>
+              ) : consoleView === "integrations" ? (
+                <ErrorBoundary label="Integrations Hub">
+                  <IntegrationsHub />
+                </ErrorBoundary>
+              ) : consoleView === "webhooks" ? (
+                <ErrorBoundary label="Inbound Webhooks">
+                  <WebhookManager />
                 </ErrorBoundary>
               ) : consoleView === "marketplace" ? (
                 <ErrorBoundary label="Agent Marketplace">
