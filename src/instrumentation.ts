@@ -18,5 +18,24 @@ export async function register() {
           err instanceof Error ? err.message : err
         );
       });
+
+    void import("@/lib/db/poolMonitor")
+      .then(({ probePoolHealth }) => probePoolHealth())
+      .then((snap) => {
+        if (!snap) return;
+        if (snap.ok) {
+          console.info(
+            `[pool-monitor] startup probe ok — ${snap.latencyMs}ms gen=${snap.generation}`
+          );
+        } else {
+          console.warn(`[pool-monitor] startup probe degraded — ${snap.error}`);
+        }
+      })
+      .catch((err) => {
+        console.warn(
+          "[instrumentation] pool monitor probe failed:",
+          err instanceof Error ? err.message : err
+        );
+      });
   });
 }

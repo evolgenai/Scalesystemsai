@@ -503,6 +503,9 @@ model Workspace {
   invites            WorkspaceInvite[]
   integrations       WorkspaceIntegration[]
   inboundWebhooks    InboundWebhook[]
+  creatorEarnings    CreatorEarning[]
+  slaMetrics         SlaMetric[]
+  systemIncidents    SystemIncident[]
 
   @@index([createdAt])
   @@index([meterLastAt])
@@ -1193,4 +1196,139 @@ model InboundWebhook {
   @@index([workspaceId, targetWorkflowBlueprintId])
   @@index([targetWorkflowBlueprintId])
   @@index([lastTriggeredAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Marketplace Earnings · Payouts · SLA · System Incidents (v2.0)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PayoutRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
+}
+
+enum SlaMetricName {
+  AVAILABILITY
+  LATENCY_P50
+  LATENCY_P95
+  LATENCY_P99
+  ERROR_RATE
+  THROUGHPUT
+}
+
+enum SystemIncidentSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum SystemIncidentStatus {
+  OPEN
+  ACKNOWLEDGED
+  MITIGATING
+  RESOLVED
+}
+
+/**
+ * Per-run creator / developer earning ledger (marketplace revenue splits).
+ * Tenant-isolated when workspaceId is set; developerId is the publisher key.
+ */
+model CreatorEarning {
+  id                 String    @id @default(cuid())
+  workspaceId        String?
+  workspace          Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  developerId        String
+  pluginId           String?
+  /** Gross fee before split (USD). */
+  grossUsd           Float
+  developerShareUsd  Float
+  platformShareUsd   Float
+  /** plugin_run | subscription | bounty | adjustment */
+  source             String    @default("plugin_run")
+  referenceId        String?
+  metadataJson       Json      @default("{}")
+  createdAt          DateTime  @default(now())
+
+  @@index([developerId, createdAt(sort: Desc)])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([pluginId, createdAt(sort: Desc)])
+  @@index([source, createdAt(sort: Desc)])
+  @@index([referenceId])
+}
+
+/**
+ * Developer payout withdrawal request against accumulated wallet balance.
+ * Never stores bank secrets — walletId is a public handle only.
+ */
+model PayoutRequest {
+  id          String              @id @default(cuid())
+  developerId String
+  walletId    String
+  amountUsd   Float
+  status      PayoutRequestStatus @default(PENDING)
+  /** Operator / automated decision notes (no secrets). */
+  notes       String?             @db.Text
+  requestedAt DateTime            @default(now())
+  resolvedAt  DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([developerId, status, requestedAt(sort: Desc)])
+  @@index([walletId, status])
+  @@index([status, requestedAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+/**
+ * Rolling SLA samples for workspace / platform services.
+ */
+model SlaMetric {
+  id          String        @id @default(cuid())
+  workspaceId String?
+  workspace   Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  service     String
+  metric      SlaMetricName
+  value       Float
+  /** Target threshold for the metric (e.g. 99.9 availability, 200ms p95). */
+  target      Float?
+  windowStart DateTime
+  windowEnd   DateTime
+  metadataJson Json         @default("{}")
+  createdAt   DateTime      @default(now())
+
+  @@index([workspaceId, service, windowEnd(sort: Desc)])
+  @@index([service, metric, windowEnd(sort: Desc)])
+  @@index([metric, windowEnd(sort: Desc)])
+  @@index([windowStart, windowEnd])
+}
+
+/**
+ * Platform / tenant incident record for Meta-SRE + pool-monitor correlation.
+ */
+model SystemIncident {
+  id          String                 @id @default(cuid())
+  workspaceId String?
+  workspace   Workspace?             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  severity    SystemIncidentSeverity @default(WARNING)
+  status      SystemIncidentStatus   @default(OPEN)
+  title       String
+  summary     String                 @db.Text
+  /** pool_monitor | chaos | sre | health | external */
+  source      String
+  /** Correlation id (Meta-SRE runId, chaos burst id, etc.). */
+  correlationId String?
+  metadataJson  Json                 @default("{}")
+  openedAt    DateTime               @default(now())
+  resolvedAt  DateTime?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  @@index([workspaceId, status, openedAt(sort: Desc)])
+  @@index([severity, status, openedAt(sort: Desc)])
+  @@index([source, openedAt(sort: Desc)])
+  @@index([correlationId])
+  @@index([status, openedAt(sort: Desc)])
 }
