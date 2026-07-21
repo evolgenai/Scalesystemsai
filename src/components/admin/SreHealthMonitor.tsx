@@ -307,7 +307,7 @@ export default function SreHealthMonitor() {
             type="button"
             onClick={refresh}
             disabled={refreshing}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-1.5 text-xs font-semibold text-slate-muted transition hover:border-white/10 hover:text-white disabled:opacity-50"
+            className="inline-flex min-h-[44px] touch-manipulation items-center gap-1.5 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-slate-muted transition hover:border-white/10 hover:text-white active:scale-[0.98] disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
             Refresh
@@ -353,18 +353,18 @@ export default function SreHealthMonitor() {
             </p>
           </div>
 
-          <div className="divide-y divide-white/[0.04]">
+          <div className="divide-y divide-white/[0.04] overflow-x-auto">
             {routes.map((route) => (
-              <div key={route.id}>
+              <div key={route.id} className="min-w-[280px]">
                 <button
                   type="button"
                   onClick={() => setExpandedRoute(expandedRoute === route.id ? null : route.id)}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/[0.02]"
+                  className="flex w-full items-center gap-2 px-3 py-3 text-left transition hover:bg-white/[0.02] sm:gap-3 sm:px-4"
                   aria-expanded={expandedRoute === route.id}
                 >
                   <HealthDot health={route.health} pulse={route.health !== "healthy"} />
                   <div className="min-w-0 flex-1">
-                    <p className="font-mono text-xs text-white truncate">{route.route}</p>
+                    <p className="truncate font-mono text-xs text-white">{route.route}</p>
                     <p className="text-[10px] text-slate-dim">
                       <span style={{ color: categoryColor(route.category) }}>{categoryLabel(route.category)}</span>
                       {" · "}{route.rps.toFixed(1)} rps
@@ -377,7 +377,7 @@ export default function SreHealthMonitor() {
                       {route.errorRate.toFixed(1)}% err
                     </p>
                   </div>
-                  <span className="ml-1 text-slate-600">
+                  <span className="ml-1 hidden text-slate-600 sm:inline">
                     {expandedRoute === route.id ? <ChevronUp className="h-3.5 w-3.5" aria-hidden /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden />}
                   </span>
                 </button>

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/navigation/Sidebar";
@@ -6,6 +7,7 @@ import TopAuthHeader from "@/components/navigation/TopAuthHeader";
 import { NavDrawerProvider } from "@/components/navigation/NavDrawerContext";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WorkspaceModeProvider } from "@/components/dashboard/ModeWrapper";
+import ReleaseSummaryHost from "@/components/v2/ReleaseSummaryHost";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -130,11 +132,14 @@ export default function RootLayout({
                 <Sidebar />
                 <div className="flex min-w-0 w-full flex-1 flex-col">
                   <TopAuthHeader />
-                  <main className="w-full min-w-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 md:p-6 lg:p-8">
+                  <main className="w-full min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 md:p-6 lg:p-8">
                     {children}
                   </main>
                 </div>
               </div>
+              <Suspense fallback={null}>
+                <ReleaseSummaryHost />
+              </Suspense>
             </WorkspaceModeProvider>
           </NavDrawerProvider>
         </AuthProvider>

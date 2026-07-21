@@ -10,10 +10,12 @@ import {
   Layers,
   Network,
   Shield,
+  Sparkles,
   Store,
   UserRound,
   Zap,
 } from "lucide-react";
+import { openReleaseModal } from "@/components/v2/ReleaseSummaryModal";
 
 const AgentNetworkCanvas = dynamic(() => import("./AgentNetworkCanvas"), {
   ssr: false,
@@ -90,8 +92,9 @@ export default function LandingHero() {
           <div className="absolute bottom-0 right-0 h-[280px] w-[420px] rounded-full bg-cyan-accent/10 blur-[100px]" />
         </div>
 
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 [contain:layout] lg:grid-cols-2 lg:gap-16">
           <motion.div
+            className="min-w-0"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
@@ -99,6 +102,15 @@ export default function LandingHero() {
             <p className="font-display text-sm font-semibold uppercase tracking-[0.22em] text-emerald-400">
               ScaleSystems
             </p>
+
+            <button
+              type="button"
+              onClick={openReleaseModal}
+              className="mt-3 inline-flex min-h-[36px] touch-manipulation items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300 transition hover:border-emerald-500/50 hover:bg-emerald-500/15 active:scale-[0.98]"
+            >
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              v2.0 system summary
+            </button>
 
             <h1 className="mt-4 font-display text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.35rem]">
               The Autonomous Agent Operating System for{" "}
@@ -194,6 +206,7 @@ export default function LandingHero() {
           </motion.div>
 
           <motion.div
+            className="min-h-[280px] w-full min-w-0 sm:min-h-[340px] lg:min-h-[400px]"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.55, delay: 0.12 }}

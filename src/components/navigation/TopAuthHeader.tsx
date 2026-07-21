@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, Settings, UserRound, X } from "lucide-react";
+import { Menu, Settings, Sparkles, UserRound, X } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import AuthModal from "@/components/auth/AuthModal";
 import WorkspaceSwitcher from "@/components/navigation/WorkspaceSwitcher";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
 import TeamPresenceBar from "@/components/org/TeamPresenceBar";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
+import { openReleaseModal } from "@/components/v2/ReleaseSummaryModal";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
   OPEN_AUTH_EVENT,
@@ -131,6 +132,15 @@ export default function TopAuthHeader() {
           </Link>
         </div>
         <div className="ml-auto flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={openReleaseModal}
+            className="inline-flex min-h-[36px] shrink-0 touch-manipulation items-center gap-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400 transition hover:border-emerald-500/40 hover:bg-emerald-500/15 sm:px-3"
+            aria-label="View Scale Systems v2.0 release summary"
+          >
+            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+            <span className="hidden sm:inline">v2.0</span>
+          </button>
           <WorkspaceSwitcher enabled={ready} />
           {!ready ? (
             <div className="h-8 w-28 animate-pulse rounded-lg bg-white/5" />

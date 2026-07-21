@@ -212,7 +212,7 @@ const NAV_LINKS: NavLink[] = [
 ];
 
 function linkClassName(active: boolean): string {
-  return `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+  return `flex min-h-[44px] touch-manipulation items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
     active
       ? "bg-emerald-500/15 text-emerald-400"
       : "text-slate-muted hover:bg-white/5 hover:text-white"
@@ -324,7 +324,7 @@ function SidebarNav() {
 
   return (
     <nav
-      className="flex-1 space-y-0.5 overflow-y-auto p-3"
+      className="flex-1 space-y-0.5 overflow-y-auto overscroll-contain p-3"
       aria-label="Sidebar navigation"
     >
       {onDashboard ? (
@@ -360,6 +360,15 @@ export default function Sidebar() {
 
   const closeDrawer = () => setOpen(false);
 
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   return (
     <>
       {open && (
@@ -372,7 +381,7 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,88vw)] flex-col border-r border-white/5 bg-obsidian/95 backdrop-blur-xl transition-transform duration-300 ease-out xl:static xl:z-auto xl:w-64 xl:shrink-0 xl:translate-x-0 xl:border-white/10 xl:bg-obsidian/80 ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,88vw)] flex-col border-r border-white/5 bg-obsidian/95 backdrop-blur-xl will-change-transform transition-transform duration-300 ease-out xl:static xl:z-auto xl:w-64 xl:shrink-0 xl:translate-x-0 xl:border-white/10 xl:bg-obsidian/80 ${
           open ? "translate-x-0 shadow-2xl" : "-translate-x-full xl:translate-x-0"
         }`}
       >
@@ -388,7 +397,7 @@ export default function Sidebar() {
             <button
               type="button"
               onClick={closeDrawer}
-              className="rounded-lg p-1.5 text-slate-muted transition hover:bg-white/5 hover:text-white xl:hidden"
+              className="inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center rounded-lg p-1.5 text-slate-muted transition hover:bg-white/5 hover:text-white xl:hidden"
               aria-label="Close drawer"
             >
               <X className="h-4 w-4" aria-hidden />

@@ -344,6 +344,10 @@ const WebhookManager = dynamic(
   }
 );
 
+import MobileConsoleNav, {
+  type ConsoleNavItem,
+} from "@/components/dashboard/MobileConsoleNav";
+import MobileSreHealthWidget from "@/components/admin/MobileSreHealthWidget";
 import ModeWrapper, {
   useWorkspaceMode,
 } from "@/components/dashboard/ModeWrapper";
@@ -385,6 +389,65 @@ type ConsoleView =
 
 const DEFAULT_OBJECTIVE =
   "Analyze https://example.com and run a TypeScript lead-scoring script in the sandbox.";
+
+const CONSOLE_SUBTITLES: Record<ConsoleView, string> = {
+  workforce: "Swarm standing by — enter an objective and launch",
+  marketplace: "Searchable agent gallery · install nodes onto the workflow canvas",
+  chaos: "Admin chaos inject · stress isometric flow nodes",
+  teletraffic: "Edge latency · KV scratchpad cache · live user stream",
+  plugins: "Extension leases · invocations · revenue/run · latency",
+  alerts: "Threshold rules · gas ceilings · live toast dispatch",
+  audit: "Immutable WORM stream · hashed keys · action targets",
+  settings: "Feature flags · AI loops · webhook egress · heal budgets",
+  universe: "Spatial sandbox · FP camera · script upload bridge",
+  "sre-control": "Meta-SRE directives · Discord mobile alerts",
+  catalog: "Wines · tastings · merch · digital passes · quick-add cart",
+  inventory: "Inline price editing · stock badges · category tagger · asset upload",
+  "sre-health": "Live latency sparklines · error rates · container statuses",
+  builder: "Drag-and-drop agent workflows · simulate · deploy blueprints",
+  cli: "Global CLI install · API keys · deploy simulator",
+  domains: "Custom hostname · DNS verify · SSL badge · tenant branding",
+  security: "Live threat stream · geo badges · snapshot vault",
+  team: "Seats · invitations · Admin / Developer / Member roles",
+  billing: "Starter · Pro · Enterprise · Stripe subscription checkout",
+  integrations: "Shopify · Slack/Discord · Sheets · GitHub connectors",
+  webhooks: "Inbound endpoints · signing secrets · JSON payload inspector",
+};
+
+function buildConsoleNavItems(isSuperAdmin: boolean): ConsoleNavItem[] {
+  const items: ConsoleNavItem[] = [
+    { id: "workforce", label: "Workforce", icon: LayoutDashboard },
+    { id: "marketplace", label: "Marketplace", icon: Store },
+    { id: "plugins", label: "Plugins", icon: Plug },
+    { id: "alerts", label: "Alerts", icon: BellRing },
+    { id: "audit", label: "Audit", icon: ClipboardList },
+    { id: "settings", label: "Settings", icon: Settings2 },
+    { id: "teletraffic", label: "Teletraffic", icon: Radio },
+    { id: "chaos", label: "Chaos", icon: Zap, accent: "rose" },
+    { id: "universe", label: "Universe", icon: Box },
+  ];
+  if (isSuperAdmin) {
+    items.push({ id: "sre-control", label: "SRE Control", icon: Shield });
+  }
+  items.push(
+    { id: "builder", label: "Builder", icon: GitFork },
+    { id: "cli", label: "CLI", icon: Terminal },
+    { id: "domains", label: "Domains", icon: Globe },
+    { id: "team", label: "Team Members", icon: Users },
+    { id: "integrations", label: "Integrations", icon: Layers },
+    { id: "webhooks", label: "Webhooks", icon: Webhook },
+    { id: "billing", label: "Upgrade", icon: Crown },
+    { id: "catalog", label: "Catalog", icon: ShoppingBag }
+  );
+  if (isSuperAdmin) {
+    items.push(
+      { id: "inventory", label: "Inventory", icon: Package },
+      { id: "sre-health", label: "SRE Health", icon: HeartPulse },
+      { id: "security", label: "Security Vault", icon: ShieldCheck }
+    );
+  }
+  return items;
+}
 
 type DashboardClientProps = {
   /** Server-derived env bypass: DEV_USER_ROLE + DEV_USER_TIER. */
@@ -767,7 +830,14 @@ export default function DashboardClient({
 
   const developerConsole = (
     <>
-      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-white/5 bg-black/25 px-4 py-3">
+      <MobileConsoleNav
+        items={buildConsoleNavItems(isSuperAdmin)}
+        activeId={consoleView}
+        onSelect={(id) => setView(id as ConsoleView)}
+        subtitle={CONSOLE_SUBTITLES[consoleView]}
+      />
+
+      <div className="mb-6 hidden flex-wrap items-center gap-4 rounded-xl border border-white/5 bg-black/25 px-4 py-3 lg:flex">
         <div
           className="inline-flex flex-wrap rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl p-0.5"
           role="tablist"
@@ -1283,6 +1353,7 @@ export default function DashboardClient({
         </ErrorBoundary>
       ) : consoleView === "sre-control" ? (
         <div className="space-y-6">
+          <MobileSreHealthWidget />
           <ErrorBoundary label="Meta-SRE Command Deck">
             <MetaSreCommandDeck />
           </ErrorBoundary>
@@ -1411,7 +1482,7 @@ export default function DashboardClient({
             {workspaceOpen ? (
               <button
                 type="button"
-                className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
+                className="fixed inset-0 z-[37] bg-black/70 backdrop-blur-sm lg:hidden"
                 aria-label="Close workspace overlay"
                 onClick={() => setWorkspaceOpen(false)}
               />
@@ -1420,7 +1491,7 @@ export default function DashboardClient({
             <div
               className={`lg:col-span-2 ${
                 workspaceOpen
-                  ? "fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-white/5 bg-white/[0.03] backdrop-blur-xl p-4 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+                  ? "fixed inset-x-0 bottom-0 z-[38] max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-2xl border border-white/5 bg-[#09090B]/95 p-4 shadow-2xl backdrop-blur-xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
                   : "hidden lg:block"
               }`}
             >
@@ -1486,7 +1557,7 @@ export default function DashboardClient({
   );
 
   return (
-    <div className="relative min-h-full bg-obsidian text-white">
+    <div className="relative min-h-full overflow-x-hidden bg-obsidian text-white">
       <OnboardingWizard
         open={onboardingOpen}
         onClose={dismissOnboarding}
@@ -1500,7 +1571,7 @@ export default function DashboardClient({
         <div className="absolute bottom-0 left-0 h-[360px] w-[520px] rounded-full bg-slate-500/[0.08] blur-[120px]" />
       </div>
 
-      <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-0 py-2 sm:py-4 lg:flex-row lg:gap-4">
+      <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-0 overflow-x-hidden py-2 sm:py-4 lg:flex-row lg:gap-4">
         {isDeveloper ? (
           <WorkspaceHistorySidebar
             selectedId={selectedSessionId}

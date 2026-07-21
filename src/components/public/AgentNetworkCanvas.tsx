@@ -3,14 +3,15 @@
 import {
   Component,
   Suspense,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import type { Group, Mesh } from "three";
+import type { Group, Mesh, PerspectiveCamera } from "three";
 
 const EMERALD = "#10B981";
 const EMERALD_DIM = "#059669";
@@ -39,6 +40,9 @@ const EDGES: [string, string][] = [
   ["scraper", "sandbox"],
   ["sre", "content"],
 ];
+
+const MESH_CENTER: [number, number, number] = [0, -0.34, -0.22];
+const BASE_FOV = 42;
 
 function AgentNode({
   def,
@@ -153,7 +157,46 @@ function Packet({
   );
 }
 
-function SwarmScene() {
+function ResponsiveCamera({
+  viewportWidth,
+  viewportHeight,
+}: {
+  viewportWidth: number;
+  viewportHeight: number;
+}) {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    const cam = camera as PerspectiveCamera;
+    cam.fov = BASE_FOV;
+    cam.near = 0.1;
+    cam.far = 50;
+    cam.updateProjectionMatrix();
+  }, [camera]);
+
+  useFrame(() => {
+    const cam = camera as PerspectiveCamera;
+    const aspect = viewportWidth / Math.max(viewportHeight, 1);
+    const isPortrait = aspect < 1;
+    const dist = isPortrait ? 4.6 : 4.2;
+    const yLift = isPortrait ? 0.72 : 0.6;
+
+    cam.position.set(MESH_CENTER[0], MESH_CENTER[1] + yLift, dist);
+    cam.lookAt(MESH_CENTER[0], MESH_CENTER[1], MESH_CENTER[2]);
+    cam.aspect = aspect;
+    cam.updateProjectionMatrix();
+  });
+
+  return null;
+}
+
+function SwarmScene({
+  viewportWidth,
+  viewportHeight,
+}: {
+  viewportWidth: number;
+  viewportHeight: number;
+}) {
   const root = useRef<Group>(null);
   const byId = useMemo(() => {
     const map = new Map<string, NodeDef>();
@@ -192,6 +235,11 @@ function SwarmScene() {
           </group>
         );
       })}
+
+      <ResponsiveCamera
+        viewportWidth={viewportWidth}
+        viewportHeight={viewportHeight}
+      />
     </group>
   );
 }
@@ -236,9 +284,37 @@ export default function AgentNetworkCanvas({
   className?: string;
 }) {
   const [ready, setReady] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const update = (width: number, height: number) => {
+      const aspect = width / Math.max(height, 1);
+      const targetHeight = Math.round(
+        width / (aspect < 0.85 ? 0.82 : aspect < 1.15 ? 1 : 1.18)
+      );
+      setSize({ width, height: Math.max(targetHeight, 220) });
+    };
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      update(width, height);
+    });
+
+    ro.observe(el);
+    update(el.clientWidth, el.clientHeight);
+
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <div
+      ref={containerRef}
       className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/80 shadow-[0_0_48px_rgba(16,185,129,0.12)] backdrop-blur-xl ${className}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(16,185,129,0.12),_transparent_65%)]" />
@@ -246,20 +322,29 @@ export default function AgentNetworkCanvas({
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
         Agent mesh · live
       </div>
-      <CanvasErrorBoundary fallback={<FallbackMesh />}>
-        <Suspense fallback={<FallbackMesh />}>
-          <Canvas
-            className="h-full min-h-[280px] w-full sm:min-h-[340px]"
-            dpr={[1, 1.75]}
-            camera={{ position: [0, 0.6, 4.2], fov: 42 }}
-            gl={{ antialias: true, alpha: true }}
-            onCreated={() => setReady(true)}
-          >
-            <color attach="background" args={["#09090B"]} />
-            <SwarmScene />
-          </Canvas>
-        </Suspense>
-      </CanvasErrorBoundary>
+      <div
+        className="w-full"
+        style={{ height: size.height > 0 ? size.height : undefined }}
+      >
+        <CanvasErrorBoundary fallback={<FallbackMesh />}>
+          <Suspense fallback={<FallbackMesh />}>
+            <Canvas
+              className="h-full w-full"
+              style={{ minHeight: size.height > 0 ? size.height : 280 }}
+              dpr={[1, Math.min(1.75, typeof window !== "undefined" ? window.devicePixelRatio : 1.75)]}
+              camera={{ position: [0, 0.6, 4.2], fov: BASE_FOV }}
+              gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+              onCreated={() => setReady(true)}
+            >
+              <color attach="background" args={["#09090B"]} />
+              <SwarmScene
+                viewportWidth={size.width || 360}
+                viewportHeight={size.height || 280}
+              />
+            </Canvas>
+          </Suspense>
+        </CanvasErrorBoundary>
+      </div>
       {!ready ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <FallbackMesh />
