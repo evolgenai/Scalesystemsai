@@ -464,6 +464,9 @@ model Workspace {
   approvalRequests   ApprovalRequest[]
   gasLedgers         GasLedger[]
   apiKeys            ApiKey[]
+  domains            TenantDomain[]
+  securityAuditLogs  SecurityAuditLog[]
+  vaultBackups       VaultBackup[]
 
   @@index([createdAt])
   @@index([meterLastAt])
@@ -969,4 +972,86 @@ model ApprovalRequest {
   @@index([workspaceId, status, createdAt(sort: Desc)])
   @@index([workspaceId, nodeId, status])
   @@index([status, createdAt(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom Domains · Security Audit · Snapshot Vault
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum DomainSslStatus {
+  PENDING
+  ACTIVE
+  FAILED
+}
+
+enum SecurityAuditSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+/**
+ * Tenant custom domain binding + white-label brand overrides.
+ * domain is globally unique; workspace boundary enforced at the API layer.
+ */
+model TenantDomain {
+  id                String          @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  domain            String          @unique
+  sslStatus         DomainSslStatus @default(PENDING)
+  verificationToken String
+  customLogoUrl     String?
+  primaryColor      String?
+  createdAt         DateTime        @default(now())
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, sslStatus])
+  @@index([sslStatus, createdAt(sort: Desc)])
+}
+
+/**
+ * High-signal security event trail (threat levels).
+ * Distinct from TelemetryAuditLog — stores raw IP for SOC triage under tenant isolation.
+ */
+model SecurityAuditLog {
+  id          String                 @id @default(cuid())
+  workspaceId String
+  workspace   Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ipAddress   String?
+  userAgent   String?                @db.VarChar(512)
+  eventType   String
+  severity    SecurityAuditSeverity  @default(INFO)
+  details     Json                   @default("{}")
+  timestamp   DateTime               @default(now())
+
+  @@index([workspaceId, timestamp(sort: Desc)])
+  @@index([workspaceId, severity, timestamp(sort: Desc)])
+  @@index([workspaceId, eventType, timestamp(sort: Desc)])
+  @@index([severity, timestamp(sort: Desc)])
+  @@index([timestamp(sort: Desc)])
+}
+
+/**
+ * Encrypted workspace snapshot metadata for the Database Snapshot Vault.
+ * Payload lives in @vercel/blob; this row is the tenant-scoped index.
+ */
+model VaultBackup {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /** Private blob object URL. */
+  blobUrl      String
+  blobPathname String
+  /** Gzipped encrypted payload size in bytes. */
+  sizeBytes    Int       @default(0)
+  /** SHA-256 of the encrypted payload (hex). */
+  checksum     String?
+  /** Counts snapshot: { blueprints, catalogItems, gasLedgers }. */
+  itemCounts   Json      @default("{}")
+  createdBy    String?
+  createdAt    DateTime  @default(now())
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }

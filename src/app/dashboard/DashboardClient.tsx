@@ -24,6 +24,8 @@ import {
   HeartPulse,
   GitFork,
   Terminal,
+  Globe,
+  ShieldCheck,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
@@ -244,6 +246,38 @@ const SwarmCliPanel = dynamic(
   }
 );
 
+const DomainManager = dynamic(
+  () => import("@/components/domains/DomainManager"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading domain manager">
+        <div className="h-16 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="h-96 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+          <div className="h-96 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        </div>
+      </div>
+    ),
+  }
+);
+
+const SecurityVault = dynamic(
+  () => import("@/components/admin/SecurityVault"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading security vault">
+        <div className="h-16 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
+          <div className="h-[420px] animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+          <div className="h-[420px] animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        </div>
+      </div>
+    ),
+  }
+);
+
 import ModeWrapper, {
   useWorkspaceMode,
 } from "@/components/dashboard/ModeWrapper";
@@ -298,6 +332,8 @@ export default function DashboardClient({
     | "sre-health"
     | "builder"
     | "cli"
+    | "domains"
+    | "security"
   >("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -331,7 +367,10 @@ export default function DashboardClient({
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
       return;
     }
-    if ((view === "inventory" || view === "sre-health") && !isSuperAdmin) {
+    if (
+      (view === "inventory" || view === "sre-health" || view === "security") &&
+      !isSuperAdmin
+    ) {
       setConsoleView("workforce");
       const params = new URLSearchParams(searchParams.toString());
       params.delete("view");
@@ -361,6 +400,8 @@ export default function DashboardClient({
     else if (view === "sre-health") setConsoleView("sre-health");
     else if (view === "builder") setConsoleView("builder");
     else if (view === "cli") setConsoleView("cli");
+    else if (view === "domains") setConsoleView("domains");
+    else if (view === "security") setConsoleView("security");
     else setConsoleView("workforce");
   }, [searchParams, isUser, isSuperAdmin, router]);
 
@@ -382,6 +423,8 @@ export default function DashboardClient({
         | "sre-health"
         | "builder"
         | "cli"
+        | "domains"
+        | "security"
     ) => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
@@ -399,6 +442,8 @@ export default function DashboardClient({
       else if (next === "sre-health") params.set("view", "sre-health");
       else if (next === "builder") params.set("view", "builder");
       else if (next === "cli") params.set("view", "cli");
+      else if (next === "domains") params.set("view", "domains");
+      else if (next === "security") params.set("view", "security");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -825,6 +870,22 @@ export default function DashboardClient({
           <button
             type="button"
             role="tab"
+            aria-selected={consoleView === "domains"}
+            onClick={() => setView("domains")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "domains"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <Globe className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            Domains
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={consoleView === "catalog"}
             onClick={() => setView("catalog")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -871,6 +932,22 @@ export default function DashboardClient({
                   <HeartPulse className="h-3.5 w-3.5" aria-hidden />
                 </Hover3DIcon>
                 SRE Health
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={consoleView === "security"}
+                onClick={() => setView("security")}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                  consoleView === "security"
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "text-slate-muted hover:text-white"
+                }`}
+              >
+                <Hover3DIcon intensity={12}>
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+                </Hover3DIcon>
+                Security Vault
               </button>
             </>
           ) : null}
@@ -953,6 +1030,14 @@ export default function DashboardClient({
           <span className="text-xs text-slate-dim">
             Global CLI install · API keys · deploy simulator
           </span>
+        ) : consoleView === "domains" ? (
+          <span className="text-xs text-slate-dim">
+            Custom hostname · DNS verify · SSL badge · tenant branding
+          </span>
+        ) : consoleView === "security" ? (
+          <span className="text-xs text-slate-dim">
+            Live threat stream · geo badges · snapshot vault
+          </span>
         ) : (
           <span className="text-xs text-slate-dim">
             Searchable agent gallery · install nodes onto the workflow canvas
@@ -960,7 +1045,15 @@ export default function DashboardClient({
         )}
       </div>
 
-      {consoleView === "cli" ? (
+      {consoleView === "domains" ? (
+        <ErrorBoundary label="Domain Manager">
+          <DomainManager />
+        </ErrorBoundary>
+      ) : consoleView === "security" ? (
+        <ErrorBoundary label="Security Vault">
+          <SecurityVault />
+        </ErrorBoundary>
+      ) : consoleView === "cli" ? (
         <ErrorBoundary label="Swarm CLI">
           <SwarmCliPanel />
         </ErrorBoundary>
@@ -1224,6 +1317,10 @@ export default function DashboardClient({
               consoleView === "builder" ? (
                 <ErrorBoundary label="Workflow Builder">
                   <BlueprintCanvas />
+                </ErrorBoundary>
+              ) : consoleView === "domains" ? (
+                <ErrorBoundary label="Domain Manager">
+                  <DomainManager />
                 </ErrorBoundary>
               ) : consoleView === "marketplace" ? (
                 <ErrorBoundary label="Agent Marketplace">

@@ -20,6 +20,8 @@ import {
   HeartPulse,
   GitFork,
   Terminal,
+  Globe,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -46,7 +48,9 @@ type NavLink = {
     | "inventory"
     | "sre-health"
     | "builder"
-    | "cli";
+    | "cli"
+    | "domains"
+    | "security";
   /** Only shown in Developer mode on dashboard surfaces. */
   developerOnly?: boolean;
   /** Only shown when Super-Admin env bypass is armed. */
@@ -125,6 +129,12 @@ const NAV_LINKS: NavLink[] = [
     developerOnly: true,
   },
   {
+    href: "/dashboard?view=domains",
+    label: "Domains & Branding",
+    icon: Globe,
+    match: "domains",
+  },
+  {
     href: "/dashboard?view=catalog",
     label: "Item Catalog",
     icon: ShoppingBag,
@@ -142,6 +152,13 @@ const NAV_LINKS: NavLink[] = [
     label: "SRE Health",
     icon: HeartPulse,
     match: "sre-health",
+    superAdminOnly: true,
+  },
+  {
+    href: "/dashboard?view=security",
+    label: "Security Vault",
+    icon: ShieldCheck,
+    match: "security",
     superAdminOnly: true,
   },
   {
@@ -200,9 +217,11 @@ function SidebarNav() {
   const sreControlOpen = onDashboard && view === "sre-control";
   const builderOpen = onDashboard && view === "builder";
   const cliOpen = onDashboard && view === "cli";
+  const domainsOpen = onDashboard && view === "domains";
   const catalogOpen = onDashboard && view === "catalog";
   const inventoryOpen = onDashboard && view === "inventory";
   const sreHealthOpen = onDashboard && view === "sre-health";
+  const securityOpen = onDashboard && view === "security";
 
   const closeDrawer = () => setOpen(false);
 
@@ -229,9 +248,11 @@ function SidebarNav() {
     if (link.match === "sre-control") return sreControlOpen;
     if (link.match === "builder") return builderOpen;
     if (link.match === "cli") return cliOpen;
+    if (link.match === "domains") return domainsOpen;
     if (link.match === "catalog") return catalogOpen;
     if (link.match === "inventory") return inventoryOpen;
     if (link.match === "sre-health") return sreHealthOpen;
+    if (link.match === "security") return securityOpen;
     if (link.match === "dashboard") {
       return (
         onDashboard &&
@@ -246,9 +267,11 @@ function SidebarNav() {
         !sreControlOpen &&
         !builderOpen &&
         !cliOpen &&
+        !domainsOpen &&
         !catalogOpen &&
         !inventoryOpen &&
-        !sreHealthOpen
+        !sreHealthOpen &&
+        !securityOpen
       );
     }
     const pathOnly = link.href.split("?")[0] ?? link.href;
