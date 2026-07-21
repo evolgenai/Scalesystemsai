@@ -14,6 +14,7 @@ import {
   UserRound,
   Zap,
 } from "lucide-react";
+import DemoSandboxBanner from "@/components/public/DemoSandboxBanner";
 
 const AgentNetworkCanvas = dynamic(() => import("./AgentNetworkCanvas"), {
   ssr: false,
@@ -109,6 +110,8 @@ export default function LandingHero() {
               Spawn Router–Worker fleets, compare User vs Developer surfaces, and
               claim free gas credits — all on the Obsidian glass runtime.
             </p>
+
+            <DemoSandboxBanner className="mt-8" />
 
             <div
               className="mt-8 inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 backdrop-blur-xl"

@@ -365,6 +365,14 @@ import OnboardingWizard, {
   isOnboardingComplete,
   type OnboardingTenant,
 } from "@/components/onboarding/OnboardingWizard";
+import ProductTourModal, {
+  isProductTourComplete,
+} from "@/components/onboarding/ProductTourModal";
+import {
+  DEMO_SANDBOX_GAS,
+  provisionDemoSandbox,
+  readDemoSandbox,
+} from "@/components/public/DemoSandboxBanner";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAlertToasts } from "@/components/dashboard/AlertToastContext";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
@@ -424,6 +432,7 @@ export default function DashboardClient({
   const [troubleshootActive, setTroubleshootActive] = useState(false);
   const [crashAlert, setCrashAlert] = useState<string | null>(null);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [productTourOpen, setProductTourOpen] = useState(false);
   const [consoleView, setConsoleView] = useState<ConsoleView>("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -545,6 +554,42 @@ export default function DashboardClient({
     }
   }, [authReady, searchParams]);
 
+  useEffect(() => {
+    if (!authReady) return;
+    const isDemo = searchParams.get("demo") === "1";
+    if (!isDemo) return;
+
+    const existing = readDemoSandbox();
+    if (!existing) {
+      provisionDemoSandbox();
+    }
+    pushAlert({
+      tone: "heal",
+      title: "Demo sandbox ready",
+      detail: `Temporary workspace · ⚡ ${DEMO_SANDBOX_GAS.toLocaleString("en-US")} GAS · pre-built templates loaded`,
+    });
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("demo");
+    const qs = params.toString();
+    router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+  }, [authReady, searchParams, pushAlert, router]);
+
+  useEffect(() => {
+    if (!authReady || onboardingOpen) return;
+    const forceTour = searchParams.get("tour") === "true";
+    if (!(forceTour || !isProductTourComplete())) return;
+
+    setProductTourOpen(true);
+
+    if (forceTour) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("tour");
+      const qs = params.toString();
+      router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+    }
+  }, [authReady, onboardingOpen, searchParams, router]);
+
   const handleOnboardingComplete = useCallback(
     (tenant: OnboardingTenant) => {
       pushAlert({
@@ -556,6 +601,9 @@ export default function DashboardClient({
       params.delete("onboard");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+      if (!isProductTourComplete()) {
+        setProductTourOpen(true);
+      }
     },
     [pushAlert, router, searchParams]
   );
@@ -569,7 +617,23 @@ export default function DashboardClient({
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
     }
+    if (!isProductTourComplete()) {
+      setProductTourOpen(true);
+    }
   }, [router, searchParams]);
+
+  const handleProductTourComplete = useCallback(() => {
+    pushAlert({
+      tone: "heal",
+      title: "Tour complete",
+      detail: "Obsidian runtime unlocked — spawn a swarm when ready",
+    });
+    setProductTourOpen(false);
+  }, [pushAlert]);
+
+  const dismissProductTour = useCallback(() => {
+    setProductTourOpen(false);
+  }, []);
 
   useEffect(() => {
     try {
@@ -1533,6 +1597,11 @@ export default function DashboardClient({
         open={onboardingOpen}
         onClose={dismissOnboarding}
         onComplete={handleOnboardingComplete}
+      />
+      <ProductTourModal
+        open={productTourOpen && !onboardingOpen}
+        onClose={dismissProductTour}
+        onComplete={handleProductTourComplete}
       />
       <div
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"

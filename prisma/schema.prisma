@@ -466,6 +466,10 @@ model Workspace {
   meterLastAt       DateTime?
   /** Prepaid gas credits for workflow node execution (integer units). */
   gasBalance        Int                  @default(50000)
+  /** Ephemeral Instant Sandbox tenant — auto-purged after demoExpiresAt. */
+  isDemo            Boolean              @default(false)
+  /** Absolute expiry for demo sandboxes (typically createdAt + 24h). */
+  demoExpiresAt     DateTime?
   /** Enterprise: bind custom / white-label domains. */
   hasCustomDomains  Boolean              @default(false)
   /** Enterprise: Meta-SRE console + heal pipeline access. */
@@ -510,6 +514,8 @@ model Workspace {
   @@index([uiPreference])
   @@index([requiredAuthLevel])
   @@index([gasBalance])
+  @@index([isDemo, demoExpiresAt])
+  @@index([isDemo, createdAt])
 }
 
 /**
