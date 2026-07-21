@@ -22,6 +22,7 @@ import {
   ShoppingBag,
   Package,
   HeartPulse,
+  GitFork,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
@@ -72,8 +73,8 @@ const IsometricFlowMap = dynamic(
   }
 );
 
-const Marketplace = dynamic(
-  () => import("@/components/dashboard/Marketplace"),
+const AgentMarketplace = dynamic(
+  () => import("@/components/marketplace/AgentMarketplace"),
   { ssr: false, loading: () => <MarketplaceSkeleton /> }
 );
 
@@ -211,6 +212,19 @@ const SreHealthMonitor = dynamic(
     ),
   }
 );
+
+const BlueprintCanvas = dynamic(
+  () => import("@/components/builder/BlueprintCanvas"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading workflow builder">
+        <div className="h-16 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="h-[min(78vh,820px)] min-h-[520px] animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+      </div>
+    ),
+  }
+);
 import ModeWrapper, {
   useWorkspaceMode,
 } from "@/components/dashboard/ModeWrapper";
@@ -262,6 +276,7 @@ export default function DashboardClient({
     | "catalog"
     | "inventory"
     | "sre-health"
+    | "builder"
   >("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -322,6 +337,7 @@ export default function DashboardClient({
     else if (view === "catalog") setConsoleView("catalog");
     else if (view === "inventory") setConsoleView("inventory");
     else if (view === "sre-health") setConsoleView("sre-health");
+    else if (view === "builder") setConsoleView("builder");
     else setConsoleView("workforce");
   }, [searchParams, isUser, isSuperAdmin, router]);
 
@@ -341,6 +357,7 @@ export default function DashboardClient({
         | "catalog"
         | "inventory"
         | "sre-health"
+        | "builder"
     ) => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
@@ -356,6 +373,7 @@ export default function DashboardClient({
       else if (next === "catalog") params.set("view", "catalog");
       else if (next === "inventory") params.set("view", "inventory");
       else if (next === "sre-health") params.set("view", "sre-health");
+      else if (next === "builder") params.set("view", "builder");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -743,6 +761,22 @@ export default function DashboardClient({
           <button
             type="button"
             role="tab"
+            aria-selected={consoleView === "builder"}
+            onClick={() => setView("builder")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "builder"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <GitFork className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            Builder
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={consoleView === "catalog"}
             onClick={() => setView("catalog")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -863,16 +897,24 @@ export default function DashboardClient({
           <span className="text-xs text-slate-dim">
             Live latency sparklines · error rates · container statuses
           </span>
+        ) : consoleView === "builder" ? (
+          <span className="text-xs text-slate-dim">
+            Drag-and-drop agent workflows · simulate · deploy blueprints
+          </span>
         ) : (
           <span className="text-xs text-slate-dim">
-            Browse agent templates &amp; MCP servers for your workspace
+            Searchable agent gallery · install nodes onto the workflow canvas
           </span>
         )}
       </div>
 
-      {consoleView === "marketplace" ? (
-        <ErrorBoundary label="Marketplace">
-          <Marketplace />
+      {consoleView === "builder" ? (
+        <ErrorBoundary label="Workflow Builder">
+          <BlueprintCanvas />
+        </ErrorBoundary>
+      ) : consoleView === "marketplace" ? (
+        <ErrorBoundary label="Agent Marketplace">
+          <AgentMarketplace />
         </ErrorBoundary>
       ) : consoleView === "plugins" ? (
         <ErrorBoundary label="Plugin Analytics">
@@ -1122,6 +1164,17 @@ export default function DashboardClient({
           <ModeWrapper
             headerAside={headerAside}
             onLaunchObjective={handleLaunchFromTemplate}
+            userContent={
+              consoleView === "builder" ? (
+                <ErrorBoundary label="Workflow Builder">
+                  <BlueprintCanvas />
+                </ErrorBoundary>
+              ) : consoleView === "marketplace" ? (
+                <ErrorBoundary label="Agent Marketplace">
+                  <AgentMarketplace />
+                </ErrorBoundary>
+              ) : undefined
+            }
             developerContent={developerConsole}
           />
         </div>

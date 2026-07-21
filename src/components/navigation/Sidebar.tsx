@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   Package,
   HeartPulse,
+  GitFork,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -42,7 +43,8 @@ type NavLink = {
     | "sre-control"
     | "catalog"
     | "inventory"
-    | "sre-health";
+    | "sre-health"
+    | "builder";
   /** Only shown in Developer mode on dashboard surfaces. */
   developerOnly?: boolean;
   /** Only shown when Super-Admin env bypass is armed. */
@@ -106,6 +108,12 @@ const NAV_LINKS: NavLink[] = [
     icon: Shield,
     match: "sre-control",
     superAdminOnly: true,
+  },
+  {
+    href: "/dashboard?view=builder",
+    label: "Workflow Builder",
+    icon: GitFork,
+    match: "builder",
   },
   {
     href: "/dashboard?view=catalog",
@@ -181,6 +189,7 @@ function SidebarNav() {
   const chaosOpen = onDashboard && view === "chaos";
   const universeOpen = onDashboard && view === "universe";
   const sreControlOpen = onDashboard && view === "sre-control";
+  const builderOpen = onDashboard && view === "builder";
   const catalogOpen = onDashboard && view === "catalog";
   const inventoryOpen = onDashboard && view === "inventory";
   const sreHealthOpen = onDashboard && view === "sre-health";
@@ -208,6 +217,7 @@ function SidebarNav() {
     if (link.match === "chaos") return chaosOpen;
     if (link.match === "universe") return universeOpen;
     if (link.match === "sre-control") return sreControlOpen;
+    if (link.match === "builder") return builderOpen;
     if (link.match === "catalog") return catalogOpen;
     if (link.match === "inventory") return inventoryOpen;
     if (link.match === "sre-health") return sreHealthOpen;
@@ -223,6 +233,7 @@ function SidebarNav() {
         !chaosOpen &&
         !universeOpen &&
         !sreControlOpen &&
+        !builderOpen &&
         !catalogOpen &&
         !inventoryOpen &&
         !sreHealthOpen

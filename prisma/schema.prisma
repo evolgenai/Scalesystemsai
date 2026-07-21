@@ -450,7 +450,9 @@ model Workspace {
   auditLogs         TelemetryAuditLog[]
   settings          WorkspaceSettings?
   sandboxMetrics    SandboxRuntimeMetric[]
-  catalogItems      CatalogItem[]
+  catalogItems       CatalogItem[]
+  workflowBlueprints WorkflowBlueprint[]
+  approvalRequests   ApprovalRequest[]
 
   @@index([createdAt])
   @@index([meterLastAt])
@@ -791,4 +793,133 @@ model SreSystemLog {
   @@index([status, timestamp(sort: Desc)])
   @@index([fixedBySre, timestamp(sort: Desc)])
   @@index([timestamp(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Visual Workflow Engine
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Lifecycle for tenant-owned visual workflow blueprints (node graph configs).
+ */
+enum WorkflowBlueprintStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+/**
+ * Runtime status for an asynchronous workflow execution.
+ */
+enum WorkflowExecutionStatus {
+  PENDING
+  RUNNING
+  /** Halted awaiting Human-In-The-Loop approval on a gated node. */
+  PAUSED_HITL
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+/**
+ * Resolution state for HITL ApprovalRequest rows.
+ */
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/**
+ * Persisted visual workflow graph (nodes + edges JSON) scoped to a Workspace.
+ * Cross-tenant access is blocked at the API layer via workspace API key gate.
+ */
+model WorkflowBlueprint {
+  id          String                  @id @default(cuid())
+  workspaceId String
+  workspace   Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  title       String
+  description String?                 @db.Text
+  /** React-Flow / visualizer node array. */
+  nodes       Json                    @default("[]")
+  /** React-Flow / visualizer edge array. */
+  edges       Json                    @default("[]")
+  status      WorkflowBlueprintStatus @default(DRAFT)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  executions  WorkflowExecution[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, updatedAt(sort: Desc)])
+}
+
+/**
+ * Asynchronous run of a WorkflowBlueprint — logs + trigger payload retained.
+ */
+model WorkflowExecution {
+  id             String                  @id @default(cuid())
+  blueprintId    String
+  blueprint      WorkflowBlueprint       @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  status         WorkflowExecutionStatus @default(PENDING)
+  /** Ordered execution log frames (SSE-compatible JSON array). */
+  logs           Json                    @default("[]")
+  /** Operator / webhook trigger payload that started this run. */
+  triggerPayload Json                    @default("{}")
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  approvalRequests ApprovalRequest[]
+
+  @@index([blueprintId, status])
+  @@index([blueprintId, createdAt(sort: Desc)])
+  @@index([status, createdAt(sort: Desc)])
+}
+
+/**
+ * Agent Marketplace registry — reusable node templates for the visual builder.
+ * Official + community-published agents; slug is globally unique.
+ */
+model MarketplaceAgent {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  description  String   @db.Text
+  category     String
+  author       String
+  iconName     String
+  /** JSON Schema describing configurable node params for the builder. */
+  configSchema Json     @default("{}")
+  isOfficial   Boolean  @default(false)
+  downloads    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([category])
+  @@index([isOfficial, downloads(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([category, downloads(sort: Desc)])
+}
+
+/**
+ * Human-In-The-Loop approval gate for a paused workflow node.
+ * Created when a node declares requiresApproval: true; resolved via approve API.
+ */
+model ApprovalRequest {
+  id                  String                @id @default(cuid())
+  workflowExecutionId String
+  workflowExecution   WorkflowExecution     @relation(fields: [workflowExecutionId], references: [id], onDelete: Cascade)
+  nodeId              String
+  workspaceId         String
+  workspace           Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actionType          String
+  payload             Json                  @default("{}")
+  status              ApprovalRequestStatus @default(PENDING)
+  createdAt           DateTime              @default(now())
+  resolvedAt          DateTime?
+
+  @@index([workflowExecutionId, status])
+  @@index([workspaceId, status, createdAt(sort: Desc)])
+  @@index([workspaceId, nodeId, status])
+  @@index([status, createdAt(sort: Desc)])
 }

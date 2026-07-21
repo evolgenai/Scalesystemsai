@@ -115,3 +115,66 @@
     transform: translateY(0);
   }
 }
+
+/* Blueprint Workflow Builder — React Flow theme */
+.blueprint-flow.react-flow {
+  background: #09090b;
+}
+
+.blueprint-flow .react-flow__pane {
+  cursor: grab;
+}
+
+.blueprint-flow .react-flow__attribution {
+  display: none;
+}
+
+.blueprint-particle {
+  filter: drop-shadow(0 0 6px rgba(110, 231, 183, 0.95));
+}
+
+.blueprint-particle-trail {
+  opacity: 0.65;
+  filter: drop-shadow(0 0 4px rgba(167, 243, 208, 0.7));
+}
+
+@keyframes blueprint-node-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 18px rgba(52, 211, 153, 0.35),
+      0 0 8px rgba(34, 211, 238, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 36px rgba(52, 211, 153, 0.65),
+      0 0 18px rgba(34, 211, 238, 0.4);
+  }
+}
+
+@keyframes blueprint-ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.blueprint-node-running {
+  animation: blueprint-node-pulse 1.4s ease-in-out infinite;
+}
+
+.blueprint-activity-ring {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    rgba(52, 211, 153, 0.55) 35%,
+    rgba(34, 211, 238, 0.7) 55%,
+    transparent 75%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  padding: 2px;
+  animation: blueprint-ring-spin 1.8s linear infinite;
+  opacity: 0.9;
+}
