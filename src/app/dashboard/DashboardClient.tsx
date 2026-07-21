@@ -30,6 +30,7 @@ import {
   Crown,
   Layers,
   Webhook,
+  BarChart3,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
@@ -48,6 +49,7 @@ import {
   TokenVaultSkeleton,
   ChaosConsoleSkeleton,
   PluginAnalyticsSkeleton,
+  UsageAnalyticsSkeleton,
   AlertConfigSkeleton,
   AuditLogSkeleton,
   WorkspaceSettingsSkeleton,
@@ -98,6 +100,11 @@ const ChaosConsole = dynamic(
 const PluginAnalytics = dynamic(
   () => import("@/components/dashboard/PluginAnalytics"),
   { ssr: false, loading: () => <PluginAnalyticsSkeleton /> }
+);
+
+const UsageAnalytics = dynamic(
+  () => import("@/components/analytics/UsageAnalytics"),
+  { ssr: false, loading: () => <UsageAnalyticsSkeleton /> }
 );
 
 const AlertConfig = dynamic(
@@ -381,7 +388,8 @@ type ConsoleView =
   | "team"
   | "billing"
   | "integrations"
-  | "webhooks";
+  | "webhooks"
+  | "analytics";
 
 const DEFAULT_OBJECTIVE =
   "Analyze https://example.com and run a TypeScript lead-scoring script in the sandbox.";
@@ -483,6 +491,7 @@ export default function DashboardClient({
     else if (view === "billing") setConsoleView("billing");
     else if (view === "integrations") setConsoleView("integrations");
     else if (view === "webhooks") setConsoleView("webhooks");
+    else if (view === "analytics") setConsoleView("analytics");
     else setConsoleView("workforce");
   }, [searchParams, isUser, isSuperAdmin, router]);
 
@@ -510,6 +519,7 @@ export default function DashboardClient({
       else if (next === "billing") params.set("view", "billing");
       else if (next === "integrations") params.set("view", "integrations");
       else if (next === "webhooks") params.set("view", "webhooks");
+      else if (next === "analytics") params.set("view", "analytics");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -1034,6 +1044,22 @@ export default function DashboardClient({
           <button
             type="button"
             role="tab"
+            aria-selected={consoleView === "analytics"}
+            onClick={() => setView("analytics")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "analytics"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <BarChart3 className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            Analytics
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={consoleView === "billing"}
             onClick={() => setView("billing")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -1210,6 +1236,10 @@ export default function DashboardClient({
           <span className="text-xs text-slate-dim">
             Inbound endpoints · signing secrets · JSON payload inspector
           </span>
+        ) : consoleView === "analytics" ? (
+          <span className="text-xs text-slate-dim">
+            Gas breakdown · usage heatmap · cost forecast · top agents
+          </span>
         ) : consoleView === "billing" ? (
           <span className="text-xs text-slate-dim">
             Starter · Pro · Enterprise · Stripe subscription checkout
@@ -1236,6 +1266,10 @@ export default function DashboardClient({
       ) : consoleView === "webhooks" ? (
         <ErrorBoundary label="Inbound Webhooks">
           <WebhookManager />
+        </ErrorBoundary>
+      ) : consoleView === "analytics" ? (
+        <ErrorBoundary label="Usage Analytics">
+          <UsageAnalytics />
         </ErrorBoundary>
       ) : consoleView === "billing" ? (
         <ErrorBoundary label="Subscription Plans">
@@ -1530,6 +1564,10 @@ export default function DashboardClient({
               ) : consoleView === "webhooks" ? (
                 <ErrorBoundary label="Inbound Webhooks">
                   <WebhookManager />
+                </ErrorBoundary>
+              ) : consoleView === "analytics" ? (
+                <ErrorBoundary label="Usage Analytics">
+                  <UsageAnalytics />
                 </ErrorBoundary>
               ) : consoleView === "marketplace" ? (
                 <ErrorBoundary label="Agent Marketplace">

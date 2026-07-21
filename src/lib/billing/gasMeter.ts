@@ -5,6 +5,7 @@
 
 import { createHash } from "node:crypto";
 import { Prisma, type GasTransactionType } from "@prisma/client";
+import { recordDailyUsageInTx } from "@/lib/billing/usageAnalytics";
 import { getPrisma } from "@/lib/prisma";
 import { normalizeNodeType } from "@/lib/swarm/types";
 
@@ -173,6 +174,8 @@ export async function deductGas(
               description: `Execution fee: ${gasKind} (${nodeType}) — ${amount} GAS`,
             },
           });
+
+          await recordDailyUsageInTx(tx, locked.id, gasKind, amount);
 
           return {
             workspaceId: locked.id,

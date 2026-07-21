@@ -3,12 +3,14 @@
 import {
   Component,
   Suspense,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
 
@@ -23,12 +25,13 @@ type NodeDef = {
   role: "router" | "worker";
 };
 
+/** Swarm mesh centered at world origin (0, 0, 0) ≈ viewport center. */
 const NODES: NodeDef[] = [
-  { id: "router", label: "Router", position: [0, 0.35, 0], role: "router" },
-  { id: "scraper", label: "Scraper", position: [-1.35, -0.45, 0.4], role: "worker" },
-  { id: "sandbox", label: "Sandbox", position: [1.25, -0.35, 0.55], role: "worker" },
-  { id: "sre", label: "SRE", position: [-0.55, -0.7, -1.1], role: "worker" },
-  { id: "content", label: "Content", position: [0.7, -0.55, -0.95], role: "worker" },
+  { id: "router", label: "Router", position: [0, 0.12, 0.15], role: "router" },
+  { id: "scraper", label: "Scraper", position: [-1.35, 0.08, 0.7], role: "worker" },
+  { id: "sandbox", label: "Sandbox", position: [1.3, 0.06, 0.65], role: "worker" },
+  { id: "sre", label: "SRE", position: [-0.7, -0.22, -0.8], role: "worker" },
+  { id: "content", label: "Content", position: [0.72, -0.18, -0.75], role: "worker" },
 ];
 
 const EDGES: [string, string][] = [
@@ -39,6 +42,64 @@ const EDGES: [string, string][] = [
   ["scraper", "sandbox"],
   ["sre", "content"],
 ];
+
+function ResizeBinder({
+  containerRef,
+}: {
+  containerRef: RefObject<HTMLDivElement | null>;
+}) {
+  const { gl, setSize, camera } = useThree();
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const applySize = (width: number, height: number) => {
+      if (width < 1 || height < 1) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      gl.setPixelRatio(dpr);
+      setSize(width, height, false);
+      const canvas = gl.domElement;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      canvas.style.display = "block";
+      canvas.style.backgroundColor = "#09090B";
+      canvas.style.objectFit = "cover";
+      gl.setClearColor("#09090B", 1);
+      gl.setClearAlpha(1);
+      gl.setViewport(0, 0, canvas.width, canvas.height);
+      gl.clear(true, true, true);
+      if (camera instanceof THREE.PerspectiveCamera) {
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+      }
+    };
+
+    const onWindowResize = () => {
+      const rect = el.getBoundingClientRect();
+      applySize(rect.width, rect.height);
+    };
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      applySize(width, height);
+    });
+
+    ro.observe(el);
+    onWindowResize();
+    window.addEventListener("resize", onWindowResize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", onWindowResize);
+    };
+  }, [camera, containerRef, gl, setSize]);
+
+  return null;
+}
 
 function AgentNode({
   def,
@@ -53,7 +114,7 @@ function AgentNode({
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     if (!mesh.current) return;
-    const bob = Math.sin(t * 1.4 + pulse) * 0.06;
+    const bob = Math.sin(t * 1.4 + pulse) * 0.05;
     mesh.current.position.y = def.position[1] + bob;
     mesh.current.rotation.y = t * (isRouter ? 0.55 : 0.35) + pulse;
     const mat = mesh.current.material as THREE.MeshPhysicalMaterial;
@@ -101,10 +162,20 @@ function ConnectionBeam({
     () => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2],
     [a, b]
   );
-  const length = useMemo(() => new THREE.Vector3(...a).distanceTo(new THREE.Vector3(...b)), [a, b]);
+  const length = useMemo(
+    () => new THREE.Vector3(...a).distanceTo(new THREE.Vector3(...b)),
+    [a, b]
+  );
   const quat = useMemo(() => {
-    const dir = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize();
-    return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    const dir = new THREE.Vector3(
+      b[0] - a[0],
+      b[1] - a[1],
+      b[2] - a[2]
+    ).normalize();
+    return new THREE.Quaternion().setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0),
+      dir
+    );
   }, [a, b]);
 
   useFrame((state) => {
@@ -168,7 +239,7 @@ function SwarmScene() {
   });
 
   return (
-    <group ref={root}>
+    <group ref={root} position={[0, 0, 0]}>
       <ambientLight intensity={0.35} />
       <pointLight position={[2.2, 2.4, 1.5]} intensity={1.1} color={EMERALD} />
       <pointLight position={[-2, -1, -1.5]} intensity={0.45} color="#67e8f9" />
@@ -218,7 +289,7 @@ class CanvasErrorBoundary extends Component<
 
 function FallbackMesh() {
   return (
-    <div className="flex h-full w-full items-center justify-center">
+    <div className="flex h-full w-full items-center justify-center bg-[#09090B]">
       <div className="relative h-40 w-40">
         <div className="absolute inset-0 animate-pulse rounded-full border border-emerald-500/30 bg-emerald-500/10 blur-sm" />
         <div className="absolute inset-6 rounded-full border border-emerald-400/40 bg-emerald-500/15 shadow-[0_0_40px_rgba(16,185,129,0.25)]" />
@@ -235,33 +306,56 @@ export default function AgentNetworkCanvas({
 }: {
   className?: string;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/80 shadow-[0_0_48px_rgba(16,185,129,0.12)] backdrop-blur-xl ${className}`}
+      ref={containerRef}
+      className={`relative aspect-[4/3] h-full w-full min-h-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/90 sm:min-h-[340px] ${className}`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(16,185,129,0.12),_transparent_65%)]" />
       <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] text-emerald-300">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
         Agent mesh · live
       </div>
-      <CanvasErrorBoundary fallback={<FallbackMesh />}>
-        <Suspense fallback={<FallbackMesh />}>
-          <Canvas
-            className="h-full min-h-[280px] w-full sm:min-h-[340px]"
-            dpr={[1, 1.75]}
-            camera={{ position: [0, 0.6, 4.2], fov: 42 }}
-            gl={{ antialias: true, alpha: true }}
-            onCreated={() => setReady(true)}
-          >
-            <color attach="background" args={["#09090B"]} />
-            <SwarmScene />
-          </Canvas>
-        </Suspense>
-      </CanvasErrorBoundary>
+      <div className="absolute inset-0 bg-[#09090B]">
+        <CanvasErrorBoundary fallback={<FallbackMesh />}>
+          <Suspense fallback={<FallbackMesh />}>
+            <Canvas
+              className="block h-full w-full bg-[#09090B]"
+              style={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+                backgroundColor: "#09090B",
+              }}
+              dpr={[1, 1.5]}
+              camera={{ position: [0, 0, 4.35], fov: 40, near: 0.1, far: 40 }}
+              gl={{
+                antialias: true,
+                alpha: false,
+                powerPreference: "high-performance",
+              }}
+              resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
+              onCreated={({ camera, gl }) => {
+                camera.lookAt(0, 0, 0);
+                gl.setClearColor("#09090B", 1);
+                gl.setClearAlpha(1);
+                const { width, height } = gl.domElement;
+                gl.setViewport(0, 0, width, height);
+                gl.clear(true, true, true);
+                setReady(true);
+              }}
+            >
+              <ResizeBinder containerRef={containerRef} />
+              <color attach="background" args={["#09090B"]} />
+              <SwarmScene />
+            </Canvas>
+          </Suspense>
+        </CanvasErrorBoundary>
+      </div>
       {!ready ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#09090B]">
           <FallbackMesh />
         </div>
       ) : null}

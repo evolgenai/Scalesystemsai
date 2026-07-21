@@ -26,6 +26,7 @@ import {
   Crown,
   Layers,
   Webhook,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -58,7 +59,8 @@ type NavLink = {
     | "team"
     | "billing"
     | "integrations"
-    | "webhooks";
+    | "webhooks"
+    | "analytics";
   /** Only shown in Developer mode on dashboard surfaces. */
   developerOnly?: boolean;
   /** Only shown when Super-Admin env bypass is armed. */
@@ -161,6 +163,12 @@ const NAV_LINKS: NavLink[] = [
     match: "webhooks",
   },
   {
+    href: "/dashboard?view=analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    match: "analytics",
+  },
+  {
     href: "/dashboard?view=billing",
     label: "Upgrade Workspace",
     icon: Crown,
@@ -206,7 +214,6 @@ const NAV_LINKS: NavLink[] = [
     icon: Settings2,
     match: "settings",
   },
-  { href: "/analytics", label: "Analytics" },
   { href: "/checkout", label: "Checkout" },
   { href: "/contact", label: "Contact" },
 ];
@@ -257,6 +264,7 @@ function SidebarNav() {
   const teamOpen = onDashboard && view === "team";
   const integrationsOpen = onDashboard && view === "integrations";
   const webhooksOpen = onDashboard && view === "webhooks";
+  const analyticsOpen = onDashboard && view === "analytics";
   const billingOpen = onDashboard && view === "billing";
 
   const closeDrawer = () => setOpen(false);
@@ -292,6 +300,7 @@ function SidebarNav() {
     if (link.match === "team") return teamOpen;
     if (link.match === "integrations") return integrationsOpen;
     if (link.match === "webhooks") return webhooksOpen;
+    if (link.match === "analytics") return analyticsOpen;
     if (link.match === "billing") return billingOpen;
     if (link.match === "dashboard") {
       return (
@@ -315,6 +324,7 @@ function SidebarNav() {
         !teamOpen &&
         !integrationsOpen &&
         !webhooksOpen &&
+        !analyticsOpen &&
         !billingOpen
       );
     }
@@ -355,10 +365,18 @@ function SidebarNav() {
 }
 
 export default function Sidebar() {
+  const pathname = usePathname();
   const { open, setOpen } = useNavDrawer();
   const { isUser } = useWorkspaceModeOptional();
+  const onDashboard = pathname.startsWith("/dashboard");
 
   const closeDrawer = () => setOpen(false);
+
+  useEffect(() => {
+    if (!onDashboard && open) setOpen(false);
+  }, [onDashboard, open, setOpen]);
+
+  if (!onDashboard) return null;
 
   return (
     <>
@@ -372,8 +390,10 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(18rem,88vw)] flex-col border-r border-white/5 bg-obsidian/95 backdrop-blur-xl transition-transform duration-300 ease-out xl:static xl:z-auto xl:w-64 xl:shrink-0 xl:translate-x-0 xl:border-white/10 xl:bg-obsidian/80 ${
-          open ? "translate-x-0 shadow-2xl" : "-translate-x-full xl:translate-x-0"
+        className={`fixed inset-y-0 left-0 z-50 hidden w-[min(18rem,88vw)] flex-col border-r border-white/5 bg-obsidian/95 backdrop-blur-xl transition-transform duration-300 ease-out md:flex xl:static xl:z-auto xl:w-64 xl:shrink-0 xl:translate-x-0 xl:border-white/10 xl:bg-obsidian/80 ${
+          open
+            ? "!flex translate-x-0 shadow-2xl"
+            : "-translate-x-full xl:translate-x-0"
         }`}
       >
         <div className="border-b border-white/5 px-5 py-5">

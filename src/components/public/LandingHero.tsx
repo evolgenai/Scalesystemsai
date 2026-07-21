@@ -18,7 +18,7 @@ import {
 const AgentNetworkCanvas = dynamic(() => import("./AgentNetworkCanvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex min-h-[280px] items-center justify-center rounded-2xl border border-white/10 bg-[#09090B]/80 sm:min-h-[340px]">
+    <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/90 sm:min-h-[340px]">
       <div className="h-24 w-24 animate-pulse rounded-full border border-emerald-500/30 bg-emerald-500/10" />
     </div>
   ),
@@ -82,15 +82,15 @@ export default function LandingHero() {
   const mode = MODE_COPY[previewMode];
 
   return (
-    <>
+    <div className="relative z-10 min-h-screen overflow-hidden bg-[#09090B]">
       <section className="relative overflow-hidden px-4 pb-16 pt-14 sm:px-6 lg:px-8 lg:pb-20 lg:pt-20">
-        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.14),_transparent_55%)]" />
           <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[130px]" />
           <div className="absolute bottom-0 right-0 h-[280px] w-[420px] rounded-full bg-cyan-accent/10 blur-[100px]" />
         </div>
 
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -197,14 +197,15 @@ export default function LandingHero() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.55, delay: 0.12 }}
+            className="relative z-10 w-full min-w-0"
           >
-            <AgentNetworkCanvas />
+            <AgentNetworkCanvas className="w-full" />
           </motion.div>
         </div>
       </section>
 
       <section
-        className="border-y border-white/5 bg-black/20 px-4 py-16 sm:px-6 lg:px-8"
+        className="relative z-10 border-y border-white/5 bg-black/20 px-4 py-16 sm:px-6 lg:px-8"
         aria-labelledby="feature-showcase-heading"
       >
         <div className="mx-auto max-w-7xl">
@@ -248,6 +249,6 @@ export default function LandingHero() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }

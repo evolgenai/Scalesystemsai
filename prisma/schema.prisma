@@ -495,6 +495,7 @@ model Workspace {
   workflowBlueprints WorkflowBlueprint[]
   approvalRequests   ApprovalRequest[]
   gasLedgers         GasLedger[]
+  dailyUsageMetrics  DailyUsageMetric[]
   apiKeys            ApiKey[]
   domains            TenantDomain[]
   securityAuditLogs  SecurityAuditLog[]
@@ -569,6 +570,30 @@ model GasLedger {
   @@index([workspaceId, createdAt(sort: Desc)])
   @@index([workspaceId, transactionType, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
+}
+
+/**
+ * Daily gas usage rollup per workspace — burn velocity + depletion forecasts.
+ * date is UTC midnight; category columns mirror GAS_COSTS families.
+ */
+model DailyUsageMetric {
+  id                String    @id @default(cuid())
+  workspaceId       String
+  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /** UTC calendar day (time truncated to 00:00:00.000Z). */
+  date              DateTime
+  totalGasConsumed  Int       @default(0)
+  scraperGas        Int       @default(0)
+  aiGas             Int       @default(0)
+  webhookGas        Int       @default(0)
+  executionCount    Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([workspaceId, date])
+  @@index([workspaceId, date(sort: Desc)])
+  @@index([date(sort: Desc)])
+  @@index([workspaceId, totalGasConsumed])
 }
 
 /**

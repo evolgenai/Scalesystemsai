@@ -35,6 +35,7 @@ export default function TopAuthHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { open: navOpen, toggle: toggleNav } = useNavDrawer();
+  const onDashboard = pathname.startsWith("/dashboard");
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
 
@@ -95,19 +96,21 @@ export default function TopAuthHeader() {
   return (
     <>
       <header className="sticky top-0 z-30 flex h-14 w-full items-center gap-3 border-b border-white/5 bg-obsidian/90 px-3 backdrop-blur-xl sm:px-4 md:px-6">
-        <button
-          type="button"
-          onClick={toggleNav}
-          className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/[0.03] p-2 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400 xl:hidden"
-          aria-label={navOpen ? "Close navigation menu" : "Open navigation menu"}
-          aria-expanded={navOpen}
-        >
-          {navOpen ? (
-            <X className="h-5 w-5" aria-hidden />
-          ) : (
-            <Menu className="h-5 w-5" aria-hidden />
-          )}
-        </button>
+        {onDashboard ? (
+          <button
+            type="button"
+            onClick={toggleNav}
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/[0.03] p-2 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400 xl:hidden"
+            aria-label={navOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={navOpen}
+          >
+            {navOpen ? (
+              <X className="h-5 w-5" aria-hidden />
+            ) : (
+              <Menu className="h-5 w-5" aria-hidden />
+            )}
+          </button>
+        ) : null}
 
         <Link
           href="/"
