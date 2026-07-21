@@ -948,6 +948,28 @@ model SreSystemLog {
   @@index([timestamp(sort: Desc)])
 }
 
+/**
+ * Infrastructure incident ledger — pool timeouts, chaos drills, auto-heal events.
+ * kind: POOL_TIMEOUT | CHAOS_SWARM | CHAOS_POOL | CIRCUIT_TRIP | etc.
+ * severity: critical | high | medium | low
+ */
+model SystemIncident {
+  id        String    @id @default(uuid())
+  kind      String
+  severity  String    @default("high")
+  message   String    @db.Text
+  route     String?
+  metadata  Json?
+  healed    Boolean   @default(false)
+  healedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([kind, createdAt(sort: Desc)])
+  @@index([healed, createdAt(sort: Desc)])
+  @@index([severity, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Visual Workflow Engine
 // ─────────────────────────────────────────────────────────────────────────────

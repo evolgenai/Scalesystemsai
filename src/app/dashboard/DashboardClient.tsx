@@ -97,6 +97,11 @@ const ChaosConsole = dynamic(
   { ssr: false, loading: () => <ChaosConsoleSkeleton /> }
 );
 
+const ChaosControlPanel = dynamic(
+  () => import("@/components/admin/ChaosControlPanel"),
+  { ssr: false, loading: () => <ChaosConsoleSkeleton /> }
+);
+
 const PluginAnalytics = dynamic(
   () => import("@/components/dashboard/PluginAnalytics"),
   { ssr: false, loading: () => <PluginAnalyticsSkeleton /> }
@@ -909,7 +914,7 @@ export default function DashboardClient({
             <Hover3DIcon intensity={12} glow={false}>
               <Zap className="h-3.5 w-3.5" aria-hidden />
             </Hover3DIcon>
-            Chaos
+            Chaos Testing
           </button>
           <button
             type="button"
@@ -1170,7 +1175,7 @@ export default function DashboardClient({
           </>
         ) : consoleView === "chaos" ? (
           <span className="text-xs text-slate-dim">
-            Admin chaos inject · stress isometric flow nodes
+            Concurrency bursts · pool exhaustion · circuit auto-heal telemetry
           </span>
         ) : consoleView === "teletraffic" ? (
           <span className="text-xs text-slate-dim">
@@ -1342,6 +1347,9 @@ export default function DashboardClient({
         </ErrorBoundary>
       ) : consoleView === "chaos" ? (
         <div className="space-y-6">
+          <ErrorBoundary label="Chaos Control Panel">
+            <ChaosControlPanel />
+          </ErrorBoundary>
           <ErrorBoundary label="Telemetry Flow">
             <IsometricFlowMap
               health={flowHealth}

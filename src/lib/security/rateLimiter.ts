@@ -49,6 +49,12 @@ export const RATE_LIMIT_PRESETS = {
   auth: { limit: 30, windowMs: 60_000, bucket: "auth" } satisfies RateLimitConfig,
   billing: { limit: 40, windowMs: 60_000, bucket: "billing" } satisfies RateLimitConfig,
   swarm: { limit: 20, windowMs: 60_000, bucket: "swarm" } satisfies RateLimitConfig,
+  /** Tight bound for inbound webhook chaos probe stress tests. */
+  webhookChaos: {
+    limit: 40,
+    windowMs: 60_000,
+    bucket: "webhook-chaos",
+  } satisfies RateLimitConfig,
   marketplace: {
     limit: 90,
     windowMs: 60_000,
@@ -206,6 +212,12 @@ export function resolveRateLimitConfig(pathname: string): RateLimitConfig {
     return RATE_LIMIT_PRESETS.auth;
   }
   if (
+    pathname === "/api/v1/webhooks/chaos-probe" ||
+    pathname.startsWith("/api/v1/webhooks/chaos-probe/")
+  ) {
+    return RATE_LIMIT_PRESETS.webhookChaos;
+  }
+  if (
     pathname.startsWith("/api/billing/") ||
     pathname.startsWith("/api/checkout/") ||
     pathname.startsWith("/api/webhooks/")
@@ -221,6 +233,12 @@ export function resolveRateLimitConfig(pathname: string): RateLimitConfig {
   }
   if (pathname.startsWith("/api/marketplace/")) {
     return RATE_LIMIT_PRESETS.marketplace;
+  }
+  if (
+    pathname === "/api/admin/chaos" ||
+    pathname.startsWith("/api/admin/chaos/")
+  ) {
+    return { limit: 10, windowMs: 60_000, bucket: "admin-chaos" };
   }
   return { ...RATE_LIMIT_PRESETS.default, bucket: "api" };
 }

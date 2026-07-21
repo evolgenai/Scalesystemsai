@@ -188,17 +188,47 @@ export async function withPrisma<T>(
   for (let attempt = 0; attempt <= MAX_PRISMA_RETRIES; attempt += 1) {
     const db = getPrisma();
     try {
-      return await operation(db);
+      const result = await operation(db);
+      try {
+        const { recordPoolSuccess } = await import("@/lib/db/poolMonitor");
+        recordPoolSuccess();
+      } catch {
+        /* monitor optional */
+      }
+      return result;
     } catch (err) {
       lastError = err;
       if (!isPrismaDisconnectError(err) || attempt >= MAX_PRISMA_RETRIES) {
+        // Final failure: let poolMonitor intercept P2024 / disconnects (log + heal).
+        if (isPrismaDisconnectError(err)) {
+          try {
+            const { interceptPoolFailure, isPoolTimeoutError } = await import(
+              "@/lib/db/poolMonitor"
+            );
+            if (isPoolTimeoutError(err) || isPrismaDisconnectError(err)) {
+              await interceptPoolFailure(err, label);
+            }
+          } catch (monitorErr) {
+            console.error(`${LOG_PREFIX} poolMonitor intercept failed`, {
+              message:
+                monitorErr instanceof Error
+                  ? monitorErr.message
+                  : String(monitorErr),
+            });
+          }
+        }
         throw err;
       }
       console.warn(`${LOG_PREFIX} disconnect during ${label} — reconnect`, {
         attempt: attempt + 1,
         message: err instanceof Error ? err.message : String(err),
       });
-      await resetPrismaClient(`reconnect:${label}`);
+      try {
+        const { interceptPoolFailure } = await import("@/lib/db/poolMonitor");
+        await interceptPoolFailure(err, label);
+      } catch {
+        await resetPrismaClient(`reconnect:${label}`);
+      }
     }
   }
 
