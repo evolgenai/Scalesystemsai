@@ -1482,7 +1482,7 @@ export default function DashboardClient({
             {workspaceOpen ? (
               <button
                 type="button"
-                className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
+                className="fixed inset-0 z-[37] bg-black/70 backdrop-blur-sm lg:hidden"
                 aria-label="Close workspace overlay"
                 onClick={() => setWorkspaceOpen(false)}
               />
@@ -1491,7 +1491,7 @@ export default function DashboardClient({
             <div
               className={`lg:col-span-2 ${
                 workspaceOpen
-                  ? "fixed inset-x-0 bottom-0 z-50 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-white/5 bg-white/[0.03] backdrop-blur-xl p-4 shadow-2xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
+                  ? "fixed inset-x-0 bottom-0 z-[38] max-h-[85dvh] overflow-y-auto overscroll-contain rounded-t-2xl border border-white/5 bg-[#09090B]/95 p-4 shadow-2xl backdrop-blur-xl lg:static lg:z-auto lg:max-h-none lg:overflow-visible lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none"
                   : "hidden lg:block"
               }`}
             >
@@ -1557,7 +1557,7 @@ export default function DashboardClient({
   );
 
   return (
-    <div className="relative min-h-full bg-obsidian text-white">
+    <div className="relative min-h-full overflow-x-hidden bg-obsidian text-white">
       <OnboardingWizard
         open={onboardingOpen}
         onClose={dismissOnboarding}
@@ -1571,7 +1571,7 @@ export default function DashboardClient({
         <div className="absolute bottom-0 left-0 h-[360px] w-[520px] rounded-full bg-slate-500/[0.08] blur-[120px]" />
       </div>
 
-      <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-0 py-2 sm:py-4 lg:flex-row lg:gap-4">
+      <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-0 overflow-x-hidden py-2 sm:py-4 lg:flex-row lg:gap-4">
         {isDeveloper ? (
           <WorkspaceHistorySidebar
             selectedId={selectedSessionId}

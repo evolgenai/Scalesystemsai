@@ -433,7 +433,7 @@ function ScriptOverlay({
 }) {
   const { script } = tower;
   return (
-    <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-20 sm:left-auto sm:right-4 sm:w-[min(22rem,calc(100%-2rem))]">
+    <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-30 sm:left-auto sm:right-4 sm:w-[min(22rem,calc(100%-2rem))]">
       <div className="glass-panel overflow-hidden border-emerald-500/20 shadow-[0_0_40px_rgba(16,185,129,0.12)]">
         <div className="flex items-start justify-between gap-3 border-b border-white/5 px-3.5 py-2.5">
           <div className="min-w-0">
@@ -518,7 +518,7 @@ export default function SpatialUniverse() {
 
   return (
     <section
-      className="glass-panel relative flex min-h-[420px] flex-col overflow-hidden"
+      className="glass-panel relative flex min-h-[420px] flex-col overflow-hidden [contain:layout]"
       aria-label="Spatial sandbox universe"
     >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 px-3.5 py-2.5 sm:px-4">
@@ -535,7 +535,7 @@ export default function SpatialUniverse() {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] text-slate-muted">
+        <div className="hidden flex-wrap items-center gap-2 font-mono text-[10px] text-slate-muted sm:flex">
           <span className="rounded border border-white/10 bg-white/[0.03] px-2 py-1">
             WASD move
           </span>
@@ -546,9 +546,12 @@ export default function SpatialUniverse() {
             click · look
           </span>
         </div>
+        <p className="w-full font-mono text-[10px] text-slate-dim sm:hidden">
+          Tap viewport · drag to look
+        </p>
       </header>
 
-      <div className="relative min-h-[360px] flex-1 bg-[#050507] sm:min-h-[480px] lg:min-h-[560px]">
+      <div className="relative isolate min-h-[360px] flex-1 bg-[#050507] sm:min-h-[480px] lg:min-h-[560px]">
         {!webgl ? (
           <div className="flex h-full min-h-[360px] items-center justify-center p-6 text-center">
             <p className="text-sm text-slate-muted">
@@ -577,13 +580,16 @@ export default function SpatialUniverse() {
         )}
 
         {!locked && webgl ? (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-            <div className="glass rounded-lg px-4 py-3 text-center">
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-black/25">
+            <div className="glass mx-4 max-w-xs rounded-lg px-4 py-3 text-center">
               <Terminal className="mx-auto mb-2 h-5 w-5 text-emerald-400" />
               <p className="text-sm font-medium text-white">
-                Click to enter viewport
+                Tap to enter viewport
               </p>
-              <p className="mt-1 text-[11px] text-slate-muted">
+              <p className="mt-1 text-[11px] text-slate-muted sm:hidden">
+                Drag to look · approach towers to inspect scripts
+              </p>
+              <p className="mt-1 hidden text-[11px] text-slate-muted sm:block">
                 Approach a tower mesh to inspect live script actions
               </p>
             </div>

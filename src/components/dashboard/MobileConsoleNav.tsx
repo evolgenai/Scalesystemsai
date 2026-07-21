@@ -30,6 +30,15 @@ export default function MobileConsoleNav({
     setOpen(false);
   }, [activeId]);
 
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   return (
     <div className="lg:hidden">
       <div className="mb-4 flex items-center gap-3 rounded-xl border border-white/5 bg-black/25 px-3 py-2.5">
@@ -55,15 +64,15 @@ export default function MobileConsoleNav({
       {open ? (
         <button
           type="button"
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-[32] bg-black/70 backdrop-blur-sm lg:hidden"
           aria-label="Close console navigation"
           onClick={() => setOpen(false)}
         />
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(20rem,90vw)] flex-col border-r border-white/10 bg-obsidian/95 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 left-0 z-[33] flex w-[min(20rem,90vw)] flex-col border-r border-white/10 bg-[#09090B]/95 shadow-2xl backdrop-blur-xl will-change-transform transition-transform duration-300 ease-out lg:hidden ${
+          open ? "translate-x-0" : "-translate-x-full pointer-events-none"
         }`}
         aria-hidden={!open}
       >
@@ -78,7 +87,7 @@ export default function MobileConsoleNav({
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        <nav className="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Mobile console navigation">
+        <nav className="flex-1 space-y-1 overflow-y-auto overscroll-contain p-3" aria-label="Mobile console navigation">
           {items.map((item) => {
             const Icon = item.icon;
             const selected = item.id === activeId;
