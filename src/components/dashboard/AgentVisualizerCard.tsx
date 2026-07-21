@@ -20,15 +20,15 @@ const STATUS_STYLES: Record<
   },
   EXECUTING: {
     label: "Executing",
-    bar: "bg-emerald-400",
-    text: "text-emerald-400",
-    ring: "stroke-emerald-400",
+    bar: "bg-blue-400",
+    text: "text-blue-400",
+    ring: "stroke-blue-400",
   },
   SUCCESS: {
     label: "Success",
-    bar: "bg-emerald-400",
-    text: "text-emerald-400",
-    ring: "stroke-emerald-400",
+    bar: "bg-blue-400",
+    text: "text-blue-400",
+    ring: "stroke-blue-400",
   },
   ERROR: {
     label: "Error",
@@ -97,7 +97,7 @@ export default function AgentVisualizerCard({
   return (
     <article
       className={`relative overflow-hidden rounded-lg border border-white/5 bg-[#121212] transition-colors duration-300 ${
-        isActive ? "border-l-2 border-l-emerald-400" : ""
+        isActive ? "border-l-2 border-l-blue-400" : ""
       } ${compact ? "p-3" : "p-3.5"}`}
     >
       <div className="relative flex items-start gap-3">

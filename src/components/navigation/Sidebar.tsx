@@ -221,7 +221,7 @@ const NAV_LINKS: NavLink[] = [
 function linkClassName(active: boolean): string {
   return `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
     active
-      ? "bg-emerald-500/15 text-emerald-400"
+      ? "bg-blue-500/15 text-blue-400"
       : "text-slate-muted hover:bg-white/5 hover:text-white"
   }`;
 }
@@ -338,7 +338,7 @@ function SidebarNav() {
       aria-label="Sidebar navigation"
     >
       {onDashboard ? (
-        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">
+        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-blue-400/80">
           {mode === "USER" ? "User nav" : "Developer nav"}
         </p>
       ) : null}
@@ -403,7 +403,7 @@ export default function Sidebar() {
               className="font-display text-lg font-bold text-white"
               onClick={closeDrawer}
             >
-              Scale<span className="text-emerald-400">Systems</span>
+              Scale<span className="text-blue-400">Systems</span>
             </Link>
             <button
               type="button"

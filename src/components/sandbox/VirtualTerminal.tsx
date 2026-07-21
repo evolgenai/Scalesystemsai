@@ -188,14 +188,14 @@ export default function VirtualTerminal() {
         <div className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
+          <span className="h-2.5 w-2.5 rounded-full bg-blue-400/80" />
         </div>
       </header>
 
       <div
         className={`relative mx-3 mt-3 rounded-lg border border-dashed transition sm:mx-4 ${
           dragging
-            ? "border-emerald-400/60 bg-emerald-500/10"
+            ? "border-blue-400/60 bg-blue-500/10"
             : "border-white/10 bg-black/30"
         }`}
         onDragEnter={(e) => {
@@ -224,11 +224,11 @@ export default function VirtualTerminal() {
           <div className="flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.04]">
             {busy ? (
               <Loader2
-                className="h-5 w-5 animate-spin text-emerald-400"
+                className="h-5 w-5 animate-spin text-blue-400"
                 aria-hidden
               />
             ) : phase === "ready" ? (
-              <CheckCircle2 className="h-5 w-5 text-emerald-400" aria-hidden />
+              <CheckCircle2 className="h-5 w-5 text-blue-400" aria-hidden />
             ) : (
               <Upload className="h-5 w-5 text-slate-muted" aria-hidden />
             )}
@@ -245,14 +245,14 @@ export default function VirtualTerminal() {
               {statusLine}
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[10px] font-semibold text-emerald-300">
+          <span className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[10px] font-semibold text-blue-300">
             <FileCode2 className="h-3 w-3" aria-hidden />
             Browse
           </span>
         </label>
         {busy ? (
           <div className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-white/5">
-            <div className="h-full w-1/2 animate-pulse bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
+            <div className="h-full w-1/2 animate-pulse bg-gradient-to-r from-transparent via-blue-400 to-transparent" />
           </div>
         ) : null}
       </div>
@@ -264,12 +264,12 @@ export default function VirtualTerminal() {
               tty · session
             </span>
             {staged ? (
-              <span className="truncate font-mono text-[10px] text-emerald-400/90">
+              <span className="truncate font-mono text-[10px] text-blue-400/90">
                 {staged.name} · {formatBytes(staged.bytes)}
               </span>
             ) : null}
           </div>
-          <div className="flex-1 overflow-y-auto px-3 py-2 font-mono text-[11px] leading-relaxed text-emerald-200/90">
+          <div className="flex-1 overflow-y-auto px-3 py-2 font-mono text-[11px] leading-relaxed text-blue-200/90">
             {log.map((line, i) => (
               <div key={i} className="whitespace-pre-wrap break-all">
                 {line || "\u00a0"}
@@ -288,7 +288,7 @@ export default function VirtualTerminal() {
               type="button"
               onClick={runStaged}
               disabled={busy || !buffer.trim()}
-              className="rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-blue-300 transition hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-40"
             >
               dry-run
             </button>
@@ -307,7 +307,7 @@ export default function VirtualTerminal() {
       <footer className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 px-3.5 py-2.5 sm:px-4">
         <p className="font-mono text-[10px] text-slate-dim">
           {PROMPT}{" "}
-          <span className="animate-pulse text-emerald-400">▌</span>
+          <span className="animate-pulse text-blue-400">▌</span>
         </p>
         <p className="font-mono text-[10px] text-slate-dim">
           container test · no host egress

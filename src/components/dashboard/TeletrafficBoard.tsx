@@ -105,7 +105,7 @@ function Sparkline({
 function RingMeter({
   value,
   label,
-  color = "#34d399",
+  color = "#3B82F6",
 }: {
   value: number;
   label: string;
@@ -238,7 +238,7 @@ export default function TeletrafficBoard() {
             size={56}
             active={robotStatus !== "idle"}
             label="Edge teletraffic crystal cluster"
-            className="rounded-lg border border-emerald-500/20 bg-white/[0.03]"
+            className="rounded-lg border border-blue-500/20 bg-white/[0.03]"
           />
           <RobotMeshIcon
             size={44}
@@ -260,10 +260,10 @@ export default function TeletrafficBoard() {
             </p>
           </div>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-emerald-400">
+        <div className="inline-flex items-center gap-2 rounded-lg border border-blue-500/25 bg-blue-500/10 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-blue-400">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-400" />
           </span>
           streaming
         </div>
@@ -306,7 +306,7 @@ export default function TeletrafficBoard() {
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-dim">
                   {card.label}
                 </p>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+                <div className="flex h-8 w-8 items-center justify-center rounded-md border border-blue-500/20 bg-blue-500/10 text-blue-400">
                   <Hover3DIcon intensity={12}>
                     <Icon className="h-3.5 w-3.5" aria-hidden />
                   </Hover3DIcon>
@@ -315,7 +315,7 @@ export default function TeletrafficBoard() {
               <p className="font-display text-xl font-bold text-white">
                 {card.value}
               </p>
-              <p className="mt-1 font-mono text-[10px] text-emerald-400/80">
+              <p className="mt-1 font-mono text-[10px] text-blue-400/80">
                 {card.hint}
               </p>
             </article>
@@ -327,7 +327,7 @@ export default function TeletrafficBoard() {
         <article className="glass-panel overflow-hidden p-4 lg:col-span-3">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Activity className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+              <Activity className="h-3.5 w-3.5 text-blue-400" aria-hidden />
               <h3 className="text-xs font-semibold text-white">
                 Edge router latency
               </h3>
@@ -338,7 +338,7 @@ export default function TeletrafficBoard() {
           </div>
           <Sparkline
             points={latencySeries.map((p) => p.ms)}
-            color="#34d399"
+            color="#3B82F6"
             height={96}
             label="latency"
           />
@@ -348,7 +348,7 @@ export default function TeletrafficBoard() {
             <RingMeter
               value={Math.min(100, (1 - avgLatency / 100) * 100)}
               label="SLA headroom"
-              color="#6ee7b7"
+              color="#60A5FA"
             />
           </div>
         </article>
@@ -356,7 +356,7 @@ export default function TeletrafficBoard() {
         <article className="glass-panel overflow-hidden p-4 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Database className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+              <Database className="h-3.5 w-3.5 text-blue-400" aria-hidden />
               <h3 className="text-xs font-semibold text-white">
                 KV scratchpad hit ratio
               </h3>
@@ -364,7 +364,7 @@ export default function TeletrafficBoard() {
           </div>
           <Sparkline
             points={cacheSeries.map((p) => p.hitPct)}
-            color="#10b981"
+            color="#0066FF"
             height={88}
             label="cache"
           />
@@ -378,11 +378,11 @@ export default function TeletrafficBoard() {
                 <li key={edge}>
                   <div className="mb-0.5 flex justify-between font-mono text-[10px]">
                     <span className="text-slate-muted">{edge}</span>
-                    <span className="text-emerald-400">{pct.toFixed(0)}%</span>
+                    <span className="text-blue-400">{pct.toFixed(0)}%</span>
                   </div>
                   <div className="h-1 overflow-hidden rounded-full bg-white/5">
                     <motion.div
-                      className="h-full rounded-full bg-emerald-400/80"
+                      className="h-full rounded-full bg-blue-400/80"
                       animate={{ width: `${pct}%` }}
                       transition={{ duration: 0.45 }}
                     />
@@ -397,7 +397,7 @@ export default function TeletrafficBoard() {
       <article className="glass-panel overflow-hidden">
         <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
           <div className="flex items-center gap-2">
-            <Radio className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+            <Radio className="h-3.5 w-3.5 text-blue-400" aria-hidden />
             <h3 className="text-xs font-semibold text-white">
               Active user stream
             </h3>
@@ -418,7 +418,7 @@ export default function TeletrafficBoard() {
                 transition={{ duration: 0.22 }}
                 className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-[11px]"
               >
-                <span className="font-mono text-emerald-400">{ev.user}</span>
+                <span className="font-mono text-blue-400">{ev.user}</span>
                 <span className="text-slate-muted">{ev.action}</span>
                 <span className="rounded border border-white/10 px-1.5 py-0.5 font-mono text-[9px] text-slate-dim">
                   {ev.edge}
@@ -437,7 +437,7 @@ export default function TeletrafficBoard() {
                 <span
                   className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold ${
                     ev.cache === "HIT"
-                      ? "bg-emerald-500/15 text-emerald-400"
+                      ? "bg-blue-500/15 text-blue-400"
                       : "bg-amber-500/15 text-amber-300"
                   }`}
                 >

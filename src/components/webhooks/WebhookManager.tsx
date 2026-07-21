@@ -100,17 +100,17 @@ function CopyBlock({ value, label }: { value: string; label: string }) {
         <button
           type="button"
           onClick={onCopy}
-          className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-semibold text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-300"
+          className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-semibold text-slate-muted transition hover:border-blue-500/30 hover:text-blue-300"
         >
           {copied ? (
-            <Check className="h-3 w-3 text-emerald-400" aria-hidden />
+            <Check className="h-3 w-3 text-blue-400" aria-hidden />
           ) : (
             <Copy className="h-3 w-3" aria-hidden />
           )}
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      <code className="block break-all px-3 py-2.5 font-mono text-[11px] leading-relaxed text-emerald-300/90">
+      <code className="block break-all px-3 py-2.5 font-mono text-[11px] leading-relaxed text-blue-300/90">
         {value}
       </code>
     </div>
@@ -229,13 +229,13 @@ export default function WebhookManager() {
                     value={nameDraft}
                     onChange={(e) => setNameDraft(e.target.value)}
                     placeholder="Shopify orders · Stripe events"
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/30"
+                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30"
                     autoFocus
                   />
                 </label>
                 <p className="rounded-xl border border-white/5 bg-white/[0.03] px-3.5 py-3 text-[11px] leading-relaxed text-slate-dim">
                   Endpoint format:{" "}
-                  <span className="font-mono text-emerald-300/80">
+                  <span className="font-mono text-blue-300/80">
                     {ENDPOINT_BASE}/wh_…
                   </span>
                 </p>
@@ -244,7 +244,7 @@ export default function WebhookManager() {
                 <button
                   type="button"
                   onClick={createWebhook}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/15 px-3.5 py-2.5 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/25"
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden />
                   Generate endpoint
@@ -274,8 +274,8 @@ export default function WebhookManager() {
             >
               <header className="flex items-start justify-between gap-3 border-b border-white/5 px-5 py-4">
                 <div className="flex items-start gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
-                    <Braces className="h-5 w-5 text-emerald-400" aria-hidden />
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10">
+                    <Braces className="h-5 w-5 text-blue-400" aria-hidden />
                   </span>
                   <div>
                     <h2
@@ -312,7 +312,7 @@ export default function WebhookManager() {
                           [inspector.id]: !prev[inspector.id],
                         }))
                       }
-                      className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-semibold text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-300"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-semibold text-slate-muted transition hover:border-blue-500/30 hover:text-blue-300"
                     >
                       {revealedSecrets[inspector.id] ? (
                         <EyeOff className="h-3 w-3" aria-hidden />
@@ -322,16 +322,16 @@ export default function WebhookManager() {
                       {revealedSecrets[inspector.id] ? "Hide" : "Reveal"}
                     </button>
                   </div>
-                  <code className="block break-all px-3 py-2.5 font-mono text-[11px] text-emerald-300/90">
+                  <code className="block break-all px-3 py-2.5 font-mono text-[11px] text-blue-300/90">
                     {revealedSecrets[inspector.id]
                       ? inspector.secret
                       : "•".repeat(Math.min(inspector.secret.length, 36))}
                   </code>
                 </div>
 
-                <div className="overflow-hidden rounded-xl border border-emerald-500/20 bg-black/50 shadow-[0_0_28px_rgba(16,185,129,0.08)]">
+                <div className="overflow-hidden rounded-xl border border-blue-500/20 bg-black/50 shadow-[0_0_28px_rgba(0, 102, 255,0.08)]">
                   <div className="flex items-center justify-between gap-2 border-b border-white/5 px-3 py-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-400/80">
                       Live JSON HTTP payload
                     </span>
                     <span className="font-mono text-[10px] text-slate-dim">
@@ -340,7 +340,7 @@ export default function WebhookManager() {
                         : "—"}
                     </span>
                   </div>
-                  <pre className="max-h-[min(52vh,480px)] overflow-auto px-3 py-3 font-mono text-[11px] leading-relaxed text-emerald-200/90">
+                  <pre className="max-h-[min(52vh,480px)] overflow-auto px-3 py-3 font-mono text-[11px] leading-relaxed text-blue-200/90">
                     {inspector.lastPayload ?? "{\n  \"awaiting\": \"first request\"\n}"}
                   </pre>
                 </div>
@@ -350,7 +350,7 @@ export default function WebhookManager() {
                 <button
                   type="button"
                   onClick={() => simulatePayload(inspector.id)}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25"
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/15 px-3.5 py-2 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/25"
                 >
                   Simulate inbound POST
                 </button>
@@ -365,9 +365,9 @@ export default function WebhookManager() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-5 py-5 backdrop-blur-xl">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10">
             <Hover3DIcon intensity={14}>
-              <Webhook className="h-5 w-5 text-emerald-400" aria-hidden />
+              <Webhook className="h-5 w-5 text-blue-400" aria-hidden />
             </Hover3DIcon>
           </span>
           <div>
@@ -382,7 +382,7 @@ export default function WebhookManager() {
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25"
+          className="inline-flex items-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/15 px-3.5 py-2 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/25"
         >
           <Plus className="h-3.5 w-3.5" aria-hidden />
           Create Inbound Webhook
@@ -391,7 +391,7 @@ export default function WebhookManager() {
 
       {webhooks.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-14 text-center backdrop-blur-xl">
-          <Webhook className="mx-auto h-8 w-8 text-emerald-400/70" aria-hidden />
+          <Webhook className="mx-auto h-8 w-8 text-blue-400/70" aria-hidden />
           <p className="mt-3 text-sm font-semibold text-white">No inbound webhooks yet</p>
           <p className="mt-1 text-xs text-slate-dim">
             Generate an endpoint to start receiving external HTTP events.
@@ -417,7 +417,7 @@ export default function WebhookManager() {
                     <button
                       type="button"
                       onClick={() => setInspectorId(hook.id)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1.5 text-[11px] font-semibold text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-300"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1.5 text-[11px] font-semibold text-slate-muted transition hover:border-blue-500/30 hover:text-blue-300"
                     >
                       <Braces className="h-3.5 w-3.5" aria-hidden />
                       Inspect payload
@@ -448,7 +448,7 @@ export default function WebhookManager() {
                           [hook.id]: !prev[hook.id],
                         }))
                       }
-                      className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-semibold text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-300"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-semibold text-slate-muted transition hover:border-blue-500/30 hover:text-blue-300"
                     >
                       {revealed ? (
                         <EyeOff className="h-3 w-3" aria-hidden />
@@ -458,7 +458,7 @@ export default function WebhookManager() {
                       {revealed ? "Hide" : "Reveal"}
                     </button>
                   </div>
-                  <code className="block break-all px-3 py-2.5 font-mono text-[11px] text-emerald-300/90">
+                  <code className="block break-all px-3 py-2.5 font-mono text-[11px] text-blue-300/90">
                     {revealed
                       ? hook.secret
                       : "•".repeat(Math.min(hook.secret.length, 36))}

@@ -76,8 +76,8 @@ export default function InteractiveAgentPreview() {
           [ScaleSystems-Agent-01]
         </span>
         <span className="ml-auto flex items-center gap-1.5">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-          <span className="text-xs text-emerald-400">Live</span>
+          <span className="h-2 w-2 animate-pulse rounded-full bg-blue-400" />
+          <span className="text-xs text-blue-400">Live</span>
         </span>
       </div>
 
@@ -93,7 +93,7 @@ export default function InteractiveAgentPreview() {
             >
               {step.status === "complete" ? (
                 <CheckCircle2
-                  className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400"
+                  className="mt-0.5 h-4 w-4 shrink-0 text-blue-400"
                   aria-hidden
                 />
               ) : step.status === "running" ? (
@@ -123,7 +123,7 @@ export default function InteractiveAgentPreview() {
       <div className="border-t border-white/10 bg-black/30 px-4 py-2 font-mono text-xs text-slate-dim sm:px-6">
         Tasks automated today:{" "}
         <span className="text-cyan-accent">1,247</span> · Uptime:{" "}
-        <span className="text-emerald-400">99.97%</span>
+        <span className="text-blue-400">99.97%</span>
       </div>
     </div>
   );

@@ -185,7 +185,7 @@ export default function WorkspaceSettings() {
     <section aria-labelledby="workspace-settings-heading" className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400">
             <Hover3DIcon intensity={12}>
               <Settings2 className="h-3 w-3" aria-hidden />
             </Hover3DIcon>
@@ -205,7 +205,7 @@ export default function WorkspaceSettings() {
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-[#121212] px-3 py-2 text-xs text-slate-muted">
             Active
-            <span className="font-mono text-emerald-400">
+            <span className="font-mono text-blue-400">
               {activeCount}/{FLAGS.length}
             </span>
           </span>
@@ -251,7 +251,7 @@ export default function WorkspaceSettings() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Icon
                       className={`h-3.5 w-3.5 shrink-0 ${
-                        on ? "text-emerald-400" : "text-zinc-500"
+                        on ? "text-blue-400" : "text-zinc-500"
                       }`}
                       aria-hidden
                     />
@@ -321,7 +321,7 @@ export default function WorkspaceSettings() {
                     initial={{ scale: 0.92, opacity: 0.6 }}
                     animate={{ scale: 1, opacity: 1 }}
                     className={`font-mono text-sm font-semibold ${
-                      pulsing ? "text-emerald-300" : "text-emerald-400"
+                      pulsing ? "text-blue-300" : "text-blue-400"
                     }`}
                   >
                     {slider.format(value)}
@@ -341,7 +341,7 @@ export default function WorkspaceSettings() {
                     setSlider(slider.id, Number(e.target.value))
                   }
                   aria-label={slider.label}
-                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-emerald-400 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(52,211,153,0.45)]"
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-blue-400 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-400 [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(59, 130, 246,0.45)]"
                   style={{
                     background: `linear-gradient(to right, rgb(52 211 153 / 0.7) ${pct}%, rgb(255 255 255 / 0.08) ${pct}%)`,
                   }}
@@ -384,9 +384,9 @@ function ToggleSwitch({
       aria-label={label}
       disabled={busy}
       onClick={onChange}
-      className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 ${
+      className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 ${
         checked
-          ? "border-emerald-500/50 bg-emerald-500/25"
+          ? "border-blue-500/50 bg-blue-500/25"
           : "border-white/15 bg-white/5"
       } ${busy ? "cursor-wait opacity-80" : ""}`}
     >
@@ -394,7 +394,7 @@ function ToggleSwitch({
         layout
         transition={{ type: "spring", stiffness: 520, damping: 32 }}
         className={`absolute top-0.5 flex h-5 w-5 items-center justify-center rounded-full shadow ${
-          checked ? "bg-emerald-400" : "bg-white/80"
+          checked ? "bg-blue-400" : "bg-white/80"
         }`}
         style={{ left: checked ? "1.45rem" : "0.125rem" }}
       >
@@ -424,7 +424,7 @@ function StatusBadge({
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-300"
+          className="inline-flex items-center gap-1 rounded border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-blue-300"
         >
           <Loader2 className="h-2.5 w-2.5 animate-spin" aria-hidden />
           Syncing
@@ -435,7 +435,7 @@ function StatusBadge({
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
-          className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-400"
+          className="inline-flex items-center gap-1 rounded border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-blue-400"
         >
           <Check className="h-2.5 w-2.5" aria-hidden />
           {on ? "Enabled" : "Disabled"}
@@ -471,7 +471,7 @@ function StatChip({
       </p>
       <p
         className={`mt-1 text-sm font-semibold text-white ${
-          mono ? "font-mono text-emerald-400" : ""
+          mono ? "font-mono text-blue-400" : ""
         }`}
       >
         {value}

@@ -113,7 +113,7 @@ export function normalizeAnalyticsPayload(
 }
 
 function statusClass(status: AnalyticsRunStatus): string {
-  if (status === "Success") return "text-emerald-300";
+  if (status === "Success") return "text-blue-300";
   if (status === "Failed") return "text-rose-300";
   return "text-amber-200";
 }
@@ -281,7 +281,7 @@ export default function TelemetryDashboard() {
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-white/5">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-cyan-accent to-emerald-400 transition-all duration-500"
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-accent to-blue-400 transition-all duration-500"
                     style={{ width: `${quotaUsed}%` }}
                   />
                 </div>

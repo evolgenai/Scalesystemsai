@@ -37,7 +37,7 @@ const ROLE_TO_ORG: Record<SeatRole, "ADMIN" | "MEMBER"> = {
 };
 
 const TOAST_STYLES: Record<ToastTone, string> = {
-  success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  success: "border-blue-500/30 bg-blue-500/10 text-blue-300",
   error: "border-rose-500/30 bg-rose-500/10 text-rose-300",
   info: "border-amber-500/30 bg-amber-500/10 text-amber-200",
 };
@@ -290,8 +290,8 @@ export default function TeamManager() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-5 py-5 backdrop-blur-xl">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
-            <Users className="h-5 w-5 text-emerald-400" aria-hidden />
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10">
+            <Users className="h-5 w-5 text-blue-400" aria-hidden />
           </span>
           <div>
             <h1 className="font-display text-lg font-bold tracking-wide text-white">
@@ -307,7 +307,7 @@ export default function TeamManager() {
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 font-mono text-[11px] text-slate-muted">
-            <span className="text-emerald-400">{activeCount}</span>
+            <span className="text-blue-400">{activeCount}</span>
             <span className="text-slate-600">/</span>
             <span>{SEAT_CAP}</span>
             <span className="ml-1 text-slate-dim">active seats</span>
@@ -321,7 +321,7 @@ export default function TeamManager() {
             type="button"
             onClick={() => setDrawerOpen(true)}
             disabled={!canInvite}
-            className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/15 px-3.5 py-2 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <UserPlus className="h-3.5 w-3.5" aria-hidden />
             Invite member
@@ -352,7 +352,7 @@ export default function TeamManager() {
                     Pending
                   </span>
                 ) : (
-                  <span className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+                  <span className="rounded-md border border-blue-500/25 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
                     Active
                   </span>
                 )}
@@ -406,12 +406,12 @@ export default function TeamManager() {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="invite-member-title"
-                className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/95 shadow-[0_0_48px_rgba(16,185,129,0.12)] backdrop-blur-xl"
+                className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/95 shadow-[0_0_48px_rgba(0, 102, 255,0.12)] backdrop-blur-xl"
               >
                 <div className="flex items-start justify-between border-b border-white/5 px-5 py-4">
                   <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
-                      <UserPlus className="h-4 w-4 text-emerald-400" aria-hidden />
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10">
+                      <UserPlus className="h-4 w-4 text-blue-400" aria-hidden />
                     </span>
                     <div>
                       <h3
@@ -450,7 +450,7 @@ export default function TeamManager() {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="teammate@company.com"
                         autoComplete="email"
-                        className="w-full rounded-xl border border-white/10 bg-black/40 py-2.5 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-500/40"
+                        className="w-full rounded-xl border border-white/10 bg-black/40 py-2.5 pl-9 pr-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/40"
                       />
                     </div>
                   </label>
@@ -460,7 +460,7 @@ export default function TeamManager() {
                     <select
                       value={role}
                       onChange={(e) => setRole(e.target.value as SeatRole)}
-                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-emerald-500/40"
+                      className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500/40"
                     >
                       <option value="Admin">Admin</option>
                       <option value="Developer">Developer</option>
@@ -471,7 +471,7 @@ export default function TeamManager() {
                   <button
                     type="submit"
                     disabled={pending || !email.trim()}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-4 py-2.5 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/15 px-4 py-2.5 text-sm font-semibold text-blue-300 transition hover:bg-blue-500/25 disabled:opacity-50"
                   >
                     {pending ? (
                       <>

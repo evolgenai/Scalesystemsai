@@ -55,7 +55,7 @@ const CONNECTORS: ConnectorDef[] = [
     name: "Shopify",
     description: "Auto-sync product inventory & order triggers into agent workflows.",
     icon: ShoppingBag,
-    accent: "from-lime-400/20 to-emerald-500/10",
+    accent: "from-lime-400/20 to-blue-500/10",
     fields: [
       {
         key: "apiKey",
@@ -80,7 +80,7 @@ const CONNECTORS: ConnectorDef[] = [
     name: "Slack / Discord",
     description: "Instant channel alerts & interactive bot hooks for swarm events.",
     icon: MessageSquare,
-    accent: "from-indigo-400/20 to-emerald-500/10",
+    accent: "from-indigo-400/20 to-blue-500/10",
     fields: [
       {
         key: "apiKey",
@@ -105,7 +105,7 @@ const CONNECTORS: ConnectorDef[] = [
     name: "Google Sheets",
     description: "Row appended / updated event triggers for spreadsheet pipelines.",
     icon: Sheet,
-    accent: "from-emerald-400/25 to-teal-500/10",
+    accent: "from-blue-400/25 to-teal-500/10",
     fields: [
       {
         key: "apiKey",
@@ -130,7 +130,7 @@ const CONNECTORS: ConnectorDef[] = [
     name: "GitHub",
     description: "Push events & PR auto-remediation triggers for repo watchers.",
     icon: Github,
-    accent: "from-zinc-300/15 to-emerald-500/10",
+    accent: "from-zinc-300/15 to-blue-500/10",
     fields: [
       {
         key: "apiKey",
@@ -205,8 +205,8 @@ function writeStates(states: Record<ConnectorId, ConnectorState>): void {
 function StatusBadge({ connected }: { connected: boolean }) {
   if (connected) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.35)]">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+      <span className="inline-flex items-center gap-1.5 rounded-md border border-blue-500/40 bg-blue-500/15 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-blue-400 shadow-[0_0_18px_rgba(0, 102, 255,0.35)]">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400 shadow-[0_0_8px_rgba(59, 130, 246,0.9)]" />
         Connected
       </span>
     );
@@ -314,9 +314,9 @@ export default function IntegrationsHub() {
               <header className="flex items-start justify-between gap-3 border-b border-white/5 px-5 py-4">
                 <div className="flex items-start gap-3">
                   <span
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-gradient-to-br ${activeDef.accent}`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/30 bg-gradient-to-br ${activeDef.accent}`}
                   >
-                    <ActiveIcon className="h-5 w-5 text-emerald-300" aria-hidden />
+                    <ActiveIcon className="h-5 w-5 text-blue-300" aria-hidden />
                   </span>
                   <div>
                     <h2
@@ -354,7 +354,7 @@ export default function IntegrationsHub() {
                         setDraft((prev) => ({ ...prev, [field.key]: e.target.value }))
                       }
                       placeholder={field.placeholder}
-                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/30"
+                      className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 font-mono text-xs text-white outline-none transition placeholder:text-slate-600 focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30"
                       autoComplete="off"
                     />
                   </label>
@@ -371,14 +371,14 @@ export default function IntegrationsHub() {
                     }
                     className={`relative h-6 w-11 rounded-full border transition ${
                       draft.syncEnabled
-                        ? "border-emerald-500/50 bg-emerald-500/30"
+                        ? "border-blue-500/50 bg-blue-500/30"
                         : "border-white/10 bg-white/5"
                     }`}
                   >
                     <span
                       className={`absolute top-0.5 h-[18px] w-[18px] rounded-full bg-white transition ${
                         draft.syncEnabled
-                          ? "left-[22px] shadow-[0_0_10px_rgba(52,211,153,0.8)]"
+                          ? "left-[22px] shadow-[0_0_10px_rgba(59, 130, 246,0.8)]"
                           : "left-0.5"
                       }`}
                     />
@@ -401,7 +401,7 @@ export default function IntegrationsHub() {
                   type="button"
                   onClick={saveConnection}
                   disabled={saving || !draft.apiKey.trim()}
-                  className="ml-auto inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="ml-auto inline-flex items-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/15 px-3.5 py-2 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving ? (
                     <Check className="h-3.5 w-3.5" aria-hidden />
@@ -421,9 +421,9 @@ export default function IntegrationsHub() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-white/5 bg-white/[0.03] px-5 py-5 backdrop-blur-xl">
         <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-500/10">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10">
             <Hover3DIcon intensity={14}>
-              <Layers className="h-5 w-5 text-emerald-400" aria-hidden />
+              <Layers className="h-5 w-5 text-blue-400" aria-hidden />
             </Hover3DIcon>
           </span>
           <div>
@@ -436,7 +436,7 @@ export default function IntegrationsHub() {
           </div>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 font-mono text-[11px] text-slate-muted">
-          <span className="text-emerald-400">{connectedCount}</span>
+          <span className="text-blue-400">{connectedCount}</span>
           <span className="text-slate-600">/</span>
           <span>{CONNECTORS.length}</span>
           <span className="ml-1 text-slate-dim">connected</span>
@@ -450,7 +450,7 @@ export default function IntegrationsHub() {
           return (
             <article
               key={connector.id}
-              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.03] p-5 backdrop-blur-xl transition hover:border-emerald-500/25"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-white/[0.03] p-5 backdrop-blur-xl transition hover:border-blue-500/25"
             >
               <div
                 className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${connector.accent} opacity-60`}
@@ -459,7 +459,7 @@ export default function IntegrationsHub() {
               <div className="relative flex items-start justify-between gap-3">
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-black/40">
                   <Hover3DIcon intensity={16}>
-                    <Icon className="h-5 w-5 text-emerald-300" aria-hidden />
+                    <Icon className="h-5 w-5 text-blue-300" aria-hidden />
                   </Hover3DIcon>
                 </span>
                 <StatusBadge connected={state.connected} />
@@ -473,7 +473,7 @@ export default function IntegrationsHub() {
               <button
                 type="button"
                 onClick={() => openDrawer(connector.id)}
-                className="relative mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 transition group-hover:bg-emerald-500/20"
+                className="relative mt-5 inline-flex items-center justify-center gap-2 rounded-xl border border-blue-500/35 bg-blue-500/10 px-3.5 py-2 text-xs font-semibold text-blue-300 transition group-hover:bg-blue-500/20"
               >
                 <Link2 className="h-3.5 w-3.5" aria-hidden />
                 {state.connected ? "Configure" : "Connect"}

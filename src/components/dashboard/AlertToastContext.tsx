@@ -57,9 +57,9 @@ const TONE_META: Record<
   },
   heal: {
     Icon: CheckCircle2,
-    ring: "border-emerald-500/40 bg-[#121212]",
-    icon: "text-emerald-400",
-    bar: "bg-emerald-400",
+    ring: "border-blue-500/40 bg-[#121212]",
+    icon: "text-blue-400",
+    bar: "bg-blue-400",
   },
   threshold: {
     Icon: Shield,

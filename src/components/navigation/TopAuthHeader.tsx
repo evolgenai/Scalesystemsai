@@ -10,6 +10,7 @@ import WorkspaceSwitcher from "@/components/navigation/WorkspaceSwitcher";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
 import TeamPresenceBar from "@/components/org/TeamPresenceBar";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
+import { SwarmBridgeCube, SkillChip } from "@/components/ui/Ecosystem3DIcons";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
   OPEN_AUTH_EVENT,
@@ -100,7 +101,7 @@ export default function TopAuthHeader() {
           <button
             type="button"
             onClick={toggleNav}
-            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/[0.03] p-2 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400 xl:hidden"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/[0.03] p-2 text-slate-muted transition hover:border-blue-500/30 hover:text-blue-400 xl:hidden"
             aria-label={navOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={navOpen}
           >
@@ -114,23 +115,30 @@ export default function TopAuthHeader() {
 
         <Link
           href="/"
-          className="shrink-0 font-display text-sm font-bold text-white xl:hidden"
+          className="inline-flex shrink-0 items-center gap-2 font-display text-sm font-bold text-white xl:hidden"
         >
-          Scale<span className="text-emerald-400">Systems</span>
+          <SwarmBridgeCube size="sm" />
+          Scale<span className="text-blue-400">Systems</span>
         </Link>
 
         <div className="hidden items-center gap-5 text-xs text-slate-dim xl:flex">
-          <Link href="/" className="hover:text-emerald-400">
+          <span className="mr-1 opacity-80" aria-hidden>
+            <SkillChip size="sm" />
+          </span>
+          <Link href="/" className="hover:text-blue-400">
             Home
           </Link>
-          <Link href="/features" className="hover:text-emerald-400">
+          <Link href="/features" className="hover:text-blue-400">
             Features
           </Link>
-          <Link href="/pricing" className="hover:text-emerald-400">
+          <Link href="/pricing" className="hover:text-blue-400">
             Pricing
           </Link>
-          <Link href="/docs" className="hover:text-emerald-400">
+          <Link href="/docs" className="hover:text-blue-400">
             Docs
+          </Link>
+          <Link href="/dashboard?view=checkout" className="hover:text-blue-400">
+            Checkout
           </Link>
         </div>
         <div className="ml-auto flex min-w-0 items-center gap-2">
@@ -158,7 +166,7 @@ export default function TopAuthHeader() {
               <button
                 type="button"
                 onClick={() => router.push("/settings")}
-                className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400"
+                className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-slate-muted transition hover:border-blue-500/30 hover:text-blue-400"
                 aria-label="Open account settings"
               >
                 <Hover3DIcon intensity={16}>

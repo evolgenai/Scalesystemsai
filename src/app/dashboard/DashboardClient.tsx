@@ -322,6 +322,20 @@ const SubscriptionPlans = dynamic(
   }
 );
 
+const PaymentGatewayModal = dynamic(
+  () => import("@/components/checkout/PaymentGatewayModal"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="mx-auto h-80 max-w-xl animate-pulse rounded-2xl border border-blue-500/20 bg-white/[0.03] backdrop-blur-xl"
+        aria-busy
+        aria-label="Loading payment gateway"
+      />
+    ),
+  }
+);
+
 const IntegrationsHub = dynamic(
   () => import("@/components/integrations/IntegrationsHub"),
   {
@@ -400,6 +414,7 @@ type ConsoleView =
   | "security"
   | "team"
   | "billing"
+  | "checkout"
   | "integrations"
   | "webhooks"
   | "analytics";
@@ -503,6 +518,7 @@ export default function DashboardClient({
     else if (view === "security") setConsoleView("security");
     else if (view === "team") setConsoleView("team");
     else if (view === "billing") setConsoleView("billing");
+    else if (view === "checkout") setConsoleView("checkout");
     else if (view === "integrations") setConsoleView("integrations");
     else if (view === "webhooks") setConsoleView("webhooks");
     else if (view === "analytics") setConsoleView("analytics");
@@ -531,6 +547,7 @@ export default function DashboardClient({
       else if (next === "security") params.set("view", "security");
       else if (next === "team") params.set("view", "team");
       else if (next === "billing") params.set("view", "billing");
+      else if (next === "checkout") params.set("view", "checkout");
       else if (next === "integrations") params.set("view", "integrations");
       else if (next === "webhooks") params.set("view", "webhooks");
       else if (next === "analytics") params.set("view", "analytics");
@@ -805,7 +822,7 @@ export default function DashboardClient({
     pushAlert({
       tone: "heal",
       title: "Self-healing cycle complete",
-      detail: "Telemetry green · emerald restored across stressed nodes",
+      detail: "Telemetry green · Cyber Blue restored across stressed nodes",
     });
     window.setTimeout(() => setChaosOverrideHealth(null), 1200);
   }, [pushAlert]);
@@ -833,7 +850,7 @@ export default function DashboardClient({
         <Server className="h-3.5 w-3.5 text-slate-400" aria-hidden />
         <span>
           Engine{" "}
-          <span className="font-mono text-emerald-400">Gemini</span>
+          <span className="font-mono text-blue-400">Gemini</span>
         </span>
       </div>
       <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs text-slate-muted">
@@ -859,7 +876,7 @@ export default function DashboardClient({
             onClick={() => setView("workforce")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "workforce"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -875,7 +892,7 @@ export default function DashboardClient({
             onClick={() => setView("marketplace")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "marketplace"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -891,7 +908,7 @@ export default function DashboardClient({
             onClick={() => setView("plugins")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "plugins"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -907,7 +924,7 @@ export default function DashboardClient({
             onClick={() => setView("alerts")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "alerts"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -923,7 +940,7 @@ export default function DashboardClient({
             onClick={() => setView("audit")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "audit"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -939,7 +956,7 @@ export default function DashboardClient({
             onClick={() => setView("settings")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "settings"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -955,7 +972,7 @@ export default function DashboardClient({
             onClick={() => setView("teletraffic")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "teletraffic"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -987,7 +1004,7 @@ export default function DashboardClient({
             onClick={() => setView("universe")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "universe"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1004,7 +1021,7 @@ export default function DashboardClient({
               onClick={() => setView("sre-control")}
               className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
                 consoleView === "sre-control"
-                  ? "bg-emerald-500/15 text-emerald-400"
+                  ? "bg-blue-500/15 text-blue-400"
                   : "text-slate-muted hover:text-white"
               }`}
             >
@@ -1021,7 +1038,7 @@ export default function DashboardClient({
             onClick={() => setView("builder")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "builder"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1037,7 +1054,7 @@ export default function DashboardClient({
             onClick={() => setView("cli")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "cli"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1053,7 +1070,7 @@ export default function DashboardClient({
             onClick={() => setView("domains")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "domains"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1069,7 +1086,7 @@ export default function DashboardClient({
             onClick={() => setView("team")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "team"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1085,7 +1102,7 @@ export default function DashboardClient({
             onClick={() => setView("integrations")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "integrations"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1101,7 +1118,7 @@ export default function DashboardClient({
             onClick={() => setView("webhooks")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "webhooks"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1117,7 +1134,7 @@ export default function DashboardClient({
             onClick={() => setView("analytics")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "analytics"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1133,7 +1150,7 @@ export default function DashboardClient({
             onClick={() => setView("billing")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "billing"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1149,7 +1166,7 @@ export default function DashboardClient({
             onClick={() => setView("catalog")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
               consoleView === "catalog"
-                ? "bg-emerald-500/15 text-emerald-400"
+                ? "bg-blue-500/15 text-blue-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -1167,7 +1184,7 @@ export default function DashboardClient({
                 onClick={() => setView("inventory")}
                 className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
                   consoleView === "inventory"
-                    ? "bg-emerald-500/15 text-emerald-400"
+                    ? "bg-blue-500/15 text-blue-400"
                     : "text-slate-muted hover:text-white"
                 }`}
               >
@@ -1183,7 +1200,7 @@ export default function DashboardClient({
                 onClick={() => setView("sre-health")}
                 className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
                   consoleView === "sre-health"
-                    ? "bg-emerald-500/15 text-emerald-400"
+                    ? "bg-blue-500/15 text-blue-400"
                     : "text-slate-muted hover:text-white"
                 }`}
               >
@@ -1199,7 +1216,7 @@ export default function DashboardClient({
                 onClick={() => setView("security")}
                 className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
                   consoleView === "security"
-                    ? "bg-emerald-500/15 text-emerald-400"
+                    ? "bg-blue-500/15 text-blue-400"
                     : "text-slate-muted hover:text-white"
                 }`}
               >
@@ -1217,7 +1234,7 @@ export default function DashboardClient({
               <CircleDot
                 className={`h-3.5 w-3.5 ${
                   activeCount > 0
-                    ? "animate-pulse text-emerald-400"
+                    ? "animate-pulse text-blue-400"
                     : "text-slate-500"
                 }`}
                 aria-hidden
@@ -1313,6 +1330,10 @@ export default function DashboardClient({
           <span className="text-xs text-slate-dim">
             Starter · Pro · Enterprise · Stripe subscription checkout
           </span>
+        ) : consoleView === "checkout" ? (
+          <span className="text-xs text-slate-dim">
+            Stripe / Google Pay · PayPal · Bitcoin Lightning gas top-up
+          </span>
         ) : consoleView === "security" ? (
           <span className="text-xs text-slate-dim">
             Live threat stream · geo badges · snapshot vault
@@ -1343,6 +1364,14 @@ export default function DashboardClient({
       ) : consoleView === "billing" ? (
         <ErrorBoundary label="Subscription Plans">
           <SubscriptionPlans embedded />
+        </ErrorBoundary>
+      ) : consoleView === "checkout" ? (
+        <ErrorBoundary label="Payment Gateway">
+          <PaymentGatewayModal
+            open
+            embedded
+            onClose={() => setView("billing")}
+          />
         </ErrorBoundary>
       ) : consoleView === "domains" ? (
         <ErrorBoundary label="Domain Manager">
@@ -1506,7 +1535,7 @@ export default function DashboardClient({
               <button
                 type="button"
                 onClick={() => setWorkspaceOpen(true)}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl px-3 py-2.5 text-xs font-semibold text-emerald-400 transition hover:border-emerald-500/30"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl px-3 py-2.5 text-xs font-semibold text-blue-400 transition hover:border-blue-500/30"
                 aria-expanded={workspaceOpen}
               >
                 <PanelsTopLeft className="h-4 w-4" aria-hidden />

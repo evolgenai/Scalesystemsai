@@ -18,9 +18,9 @@ function ringClass(member: PresenceMember): string {
     return "ring-cyan-accent/70 shadow-[0_0_12px_rgba(0,242,254,0.35)]";
   }
   if (member.currentActivity === "spectating") {
-    return "ring-emerald-400/70 shadow-[0_0_12px_rgba(52,211,153,0.3)]";
+    return "ring-blue-400/70 shadow-[0_0_12px_rgba(59, 130, 246,0.3)]";
   }
-  return "ring-emerald-400/40";
+  return "ring-blue-400/40";
 }
 
 export default function TeamPresenceBar() {

@@ -106,7 +106,7 @@ export default function QuotaManager({
               <div
                 className={`h-full rounded-full transition-all duration-500 ${
                   isSuperAdmin
-                    ? "w-full bg-gradient-to-r from-cyan-accent to-emerald-400 shadow-[0_0_12px_rgba(0,242,254,0.5)]"
+                    ? "w-full bg-gradient-to-r from-cyan-accent to-blue-400 shadow-[0_0_12px_rgba(0,242,254,0.5)]"
                     : quotaExhausted
                       ? "bg-gradient-to-r from-amber-500 to-rose-500"
                       : nearLimit

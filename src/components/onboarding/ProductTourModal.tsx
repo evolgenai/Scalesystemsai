@@ -179,7 +179,7 @@ export default function ProductTourModal({
             className="pointer-events-none absolute inset-0"
             aria-hidden
           >
-            <div className="absolute left-1/2 top-[18%] h-40 w-40 -translate-x-1/2 rounded-full bg-emerald-500/20 blur-[80px]" />
+            <div className="absolute left-1/2 top-[18%] h-40 w-40 -translate-x-1/2 rounded-full bg-blue-500/20 blur-[80px]" />
             <div className="absolute bottom-[12%] right-[18%] h-32 w-48 rounded-full bg-cyan-accent/15 blur-[70px]" />
           </motion.div>
 
@@ -191,13 +191,13 @@ export default function ProductTourModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 340, damping: 32 }}
-            className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/92 shadow-[0_0_64px_rgba(16,185,129,0.14)] backdrop-blur-xl"
+            className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/92 shadow-[0_0_64px_rgba(0, 102, 255,0.14)] backdrop-blur-xl"
           >
-            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
 
             <header className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400/80">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-400/80">
                   Product tour · {step + 1} / {STEPS.length}
                 </p>
                 <h2
@@ -244,9 +244,9 @@ export default function ProductTourModal({
                   aria-current={i === step ? "step" : undefined}
                   className={`h-1.5 flex-1 rounded-full transition ${
                     i === step
-                      ? "bg-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.55)]"
+                      ? "bg-blue-400 shadow-[0_0_12px_rgba(0, 102, 255,0.55)]"
                       : i < step
-                        ? "bg-emerald-500/45"
+                        ? "bg-blue-500/45"
                         : "bg-white/10"
                   }`}
                 />
@@ -263,11 +263,11 @@ export default function ProductTourModal({
                 className="space-y-4 px-5 py-5"
               >
                 <div className="flex items-start gap-4">
-                  <div className="inline-flex shrink-0 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 shadow-[0_0_24px_rgba(16,185,129,0.12)]">
-                    <Icon className="h-6 w-6 text-emerald-400" aria-hidden />
+                  <div className="inline-flex shrink-0 rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 shadow-[0_0_24px_rgba(0, 102, 255,0.12)]">
+                    <Icon className="h-6 w-6 text-blue-400" aria-hidden />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300/90">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-300/90">
                       {current.eyebrow}
                     </p>
                     <p className="mt-2 text-sm leading-relaxed text-slate-muted">
@@ -283,7 +283,7 @@ export default function ProductTourModal({
                       className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5"
                     >
                       <b.icon
-                        className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                        className="h-3.5 w-3.5 shrink-0 text-blue-400"
                         aria-hidden
                       />
                       <span className="text-xs text-white/90">{b.label}</span>
@@ -293,12 +293,12 @@ export default function ProductTourModal({
 
                 {/* Glassmorphic highlight tooltip */}
                 <div
-                  className="relative overflow-hidden rounded-xl border border-emerald-500/25 bg-emerald-500/[0.07] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(16,185,129,0.15)] backdrop-blur-sm"
+                  className="relative overflow-hidden rounded-xl border border-blue-500/25 bg-blue-500/[0.07] px-3.5 py-3 shadow-[inset_0_1px_0_rgba(0, 102, 255,0.15)] backdrop-blur-sm"
                   data-tour-highlight={current.highlight}
                 >
-                  <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-emerald-400/20 blur-2xl" />
-                  <p className="relative text-[11px] font-medium leading-relaxed text-emerald-100/90">
-                    <span className="mr-1.5 inline-block rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-emerald-300">
+                  <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-blue-400/20 blur-2xl" />
+                  <p className="relative text-[11px] font-medium leading-relaxed text-blue-100/90">
+                    <span className="mr-1.5 inline-block rounded bg-blue-500/20 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-blue-300">
                       Tip
                     </span>
                     {current.tip}
@@ -322,7 +322,7 @@ export default function ProductTourModal({
                 <button
                   type="button"
                   onClick={() => finish("1")}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-xs font-semibold text-[#09090B] shadow-[0_0_24px_rgba(16,185,129,0.35)] transition hover:bg-emerald-400"
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-[0_0_24px_rgba(0, 102, 255,0.35)] transition hover:bg-blue-400"
                 >
                   Launch Console
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -331,7 +331,7 @@ export default function ProductTourModal({
                 <button
                   type="button"
                   onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2.5 text-xs font-semibold text-[#09090B] shadow-[0_0_24px_rgba(16,185,129,0.35)] transition hover:bg-emerald-400"
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white shadow-[0_0_24px_rgba(0, 102, 255,0.35)] transition hover:bg-blue-400"
                 >
                   Next
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden />

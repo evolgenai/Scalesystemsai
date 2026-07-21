@@ -5,7 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
 
-const EMERALD = "#34d399";
+const SAPPHIRE = "#3B82F6";
 const ROBOT_HEIGHT = 1.15;
 const GROUND_Y = 0;
 const PROXIMITY_DEFAULT = 3;
@@ -96,7 +96,7 @@ function RobotMesh({
           color="#0b1220"
           metalness={0.85}
           roughness={0.22}
-          emissive={EMERALD}
+          emissive={SAPPHIRE}
           emissiveIntensity={0.5}
         />
       </mesh>
@@ -124,8 +124,8 @@ function RobotMesh({
       <mesh ref={eyeL} position={[-0.1, 1.18, 0.22]}>
         <sphereGeometry args={[0.045, 12, 12]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={1}
           metalness={0.2}
           roughness={0.15}
@@ -134,8 +134,8 @@ function RobotMesh({
       <mesh ref={eyeR} position={[0.1, 1.18, 0.22]}>
         <sphereGeometry args={[0.045, 12, 12]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={1}
           metalness={0.2}
           roughness={0.15}
@@ -149,8 +149,8 @@ function RobotMesh({
       <mesh position={[0.12, 1.55, 0]}>
         <sphereGeometry args={[0.035, 8, 8]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={0.9}
         />
       </mesh>
@@ -176,8 +176,8 @@ function RobotMesh({
       <mesh ref={thrusterL} position={[-0.16, 0.04, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.09, 0.28, 8]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={0.4}
           transparent
           opacity={0.85}
@@ -188,8 +188,8 @@ function RobotMesh({
       <mesh ref={thrusterR} position={[0.16, 0.04, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.09, 0.28, 8]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={0.4}
           transparent
           opacity={0.85}
@@ -449,7 +449,7 @@ export default function RobotAvatar({
         position={[0, 1.2, 0.4]}
         intensity={0.55}
         distance={4}
-        color={EMERALD}
+        color={SAPPHIRE}
       />
     </group>
   );

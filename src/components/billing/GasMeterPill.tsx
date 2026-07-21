@@ -3,8 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Crown, Fuel, X, Zap, Sparkles } from "lucide-react";
+import { Crown, X, Zap, Sparkles } from "lucide-react";
 import SubscriptionPlans from "@/components/billing/SubscriptionPlans";
+import PaymentGatewayModal from "@/components/checkout/PaymentGatewayModal";
+import {
+  GasBatteryCrystal,
+  SkillChip,
+  SwarmBridgeCube,
+} from "@/components/ui/Ecosystem3DIcons";
+import type { CheckoutPlan } from "@/lib/billing/commercialPlans";
 
 const STORAGE_KEY = "scalesystems.workspace.gasBalance";
 const DEFAULT_BALANCE = 42_500;
@@ -71,6 +78,8 @@ export default function GasMeterPill({
   const [balance, setBalance] = useState(DEFAULT_BALANCE);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutPlan, setCheckoutPlan] = useState<CheckoutPlan>("STARTER");
   const [mounted, setMounted] = useState(false);
   const [canvasBusy, setCanvasBusy] = useState(false);
   const [pulseTick, setPulseTick] = useState(0);
@@ -149,7 +158,7 @@ export default function GasMeterPill({
         type="button"
         onClick={() => setDrawerOpen(true)}
         aria-label={`Workspace gas balance ${formatGas(balance)}. Open recharge.`}
-        className={`group relative inline-flex items-center gap-2 overflow-hidden rounded-xl border border-emerald-500/25 bg-white/[0.03] px-3.5 py-2 text-xs text-slate-muted backdrop-blur-xl transition hover:border-emerald-500/45 hover:text-white ${className}`}
+        className={`group relative inline-flex items-center gap-2 overflow-hidden rounded-xl border border-blue-500/25 bg-white/[0.03] px-3.5 py-2 text-xs text-slate-muted backdrop-blur-xl transition hover:border-blue-500/45 hover:text-white ${className}`}
       >
         <AnimatePresence>
           {isConsuming ? (
@@ -159,26 +168,26 @@ export default function GasMeterPill({
               animate={{ opacity: [0.35, 0.85, 0.2], scale: [0.85, 1.35, 1.6] }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.85, ease: "easeOut" }}
-              className="pointer-events-none absolute inset-0 rounded-xl bg-emerald-500/15"
+              className="pointer-events-none absolute inset-0 rounded-xl bg-blue-500/15"
               aria-hidden
             />
           ) : null}
         </AnimatePresence>
         <span
-          className={`relative flex h-5 w-5 items-center justify-center rounded-md border border-emerald-500/30 bg-emerald-500/10 ${
-            isConsuming ? "animate-pulse shadow-[0_0_12px_rgba(16,185,129,0.45)]" : ""
+          className={`relative flex h-5 w-5 items-center justify-center ${
+            isConsuming ? "animate-pulse" : ""
           }`}
         >
-          <Zap
-            className={`h-3 w-3 ${isConsuming ? "text-emerald-300" : "text-emerald-400"}`}
-            aria-hidden
-          />
+          <GasBatteryCrystal size="sm" />
         </span>
-        <span className="relative font-mono tabular-nums text-emerald-300">
+        <span className="relative font-mono tabular-nums text-blue-300">
           {formatGas(balance)}
         </span>
-        <span className="relative font-semibold tracking-wide text-emerald-400/90">
+        <span className="relative font-semibold tracking-wide text-blue-400/90">
           GAS
+        </span>
+        <span className="pointer-events-none absolute -right-1 -top-2 opacity-0 transition group-hover:opacity-100">
+          <SkillChip size="sm" />
         </span>
       </button>
 
@@ -198,13 +207,11 @@ export default function GasMeterPill({
                 initial={{ opacity: 0, y: 24, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.22, ease: "easeOut" }}
-                className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/95 shadow-[0_0_48px_rgba(16,185,129,0.12)] backdrop-blur-xl"
+                className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/95 shadow-[0_0_48px_rgba(0, 102, 255,0.12)] backdrop-blur-xl"
               >
                 <div className="flex items-start justify-between border-b border-white/5 px-5 py-4">
                   <div className="flex items-center gap-2.5">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
-                      <Fuel className="h-4 w-4 text-emerald-400" aria-hidden />
-                    </span>
+                    <GasBatteryCrystal size="md" />
                     <div>
                       <h3
                         id="gas-recharge-title"
@@ -217,14 +224,17 @@ export default function GasMeterPill({
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setDrawerOpen(false)}
-                    className="rounded-lg p-1.5 text-slate-muted transition hover:bg-white/5 hover:text-white"
-                    aria-label="Close"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <SwarmBridgeCube size="sm" />
+                    <button
+                      type="button"
+                      onClick={() => setDrawerOpen(false)}
+                      className="rounded-lg p-1.5 text-slate-muted transition hover:bg-white/5 hover:text-white"
+                      aria-label="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-3 px-5 py-5">
@@ -240,18 +250,18 @@ export default function GasMeterPill({
                           type="button"
                           disabled={recharging !== null}
                           onClick={() => recharge(pack)}
-                          className="group flex w-full items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3.5 text-left transition hover:border-emerald-500/35 hover:bg-emerald-500/[0.06] disabled:opacity-60"
+                          className="group flex w-full items-center justify-between gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3.5 text-left transition hover:border-blue-500/35 hover:bg-blue-500/[0.06] disabled:opacity-60"
                         >
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-sm font-semibold text-white">
                                 ${pack.priceUsd}
                               </span>
-                              <span className="font-mono text-xs text-emerald-400">
+                              <span className="font-mono text-xs text-blue-400">
                                 = {formatGas(pack.gas)} GAS
                               </span>
                               {pack.badge ? (
-                                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+                                <span className="inline-flex items-center gap-1 rounded-md border border-blue-500/25 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
                                   <Sparkles className="h-2.5 w-2.5" aria-hidden />
                                   {pack.badge}
                                 </span>
@@ -261,7 +271,7 @@ export default function GasMeterPill({
                               {pack.label}
                             </p>
                           </div>
-                          <span className="shrink-0 rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 transition group-hover:shadow-[0_0_16px_rgba(16,185,129,0.25)]">
+                          <span className="shrink-0 rounded-lg border border-blue-500/30 bg-blue-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-blue-300 transition group-hover:shadow-[0_0_16px_rgba(0, 102, 255,0.25)]">
                             {recharging === pack.id ? "Adding…" : "Recharge"}
                           </span>
                         </button>
@@ -269,14 +279,26 @@ export default function GasMeterPill({
                     ))}
                   </ul>
 
-                  <div className="border-t border-white/5 pt-3">
+                  <div className="border-t border-white/5 pt-3 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDrawerOpen(false);
+                        setCheckoutPlan("STARTER");
+                        setCheckoutOpen(true);
+                      }}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-600/20 px-4 py-2.5 text-xs font-semibold text-blue-200 transition hover:bg-blue-600/30"
+                    >
+                      <Zap className="h-3.5 w-3.5" aria-hidden />
+                      PayPal · Google Pay · Lightning
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
                         setDrawerOpen(false);
                         setPlansOpen(true);
                       }}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/35 bg-blue-500/10 px-4 py-2.5 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/20"
                     >
                       <Crown className="h-3.5 w-3.5" aria-hidden />
                       Upgrade Workspace
@@ -293,6 +315,11 @@ export default function GasMeterPill({
         : null}
 
       <SubscriptionPlans open={plansOpen} onClose={() => setPlansOpen(false)} />
+      <PaymentGatewayModal
+        open={checkoutOpen}
+        initialPlan={checkoutPlan}
+        onClose={() => setCheckoutOpen(false)}
+      />
     </>
   );
 }

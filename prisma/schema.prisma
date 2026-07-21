@@ -480,6 +480,23 @@ enum GasTransactionType {
   REFUND
 }
 
+/** External Gas top-up payment rails. */
+enum GasPaymentProvider {
+  PAYPAL
+  STRIPE
+  LIGHTNING
+}
+
+/** Lifecycle for prepaid Gas purchase intents. */
+enum GasPaymentStatus {
+  PENDING
+  REQUIRES_ACTION
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
 model Workspace {
   id                String               @id @default(uuid())
   name              String
@@ -536,6 +553,7 @@ model Workspace {
   integrations       WorkspaceIntegration[]
   inboundWebhooks    InboundWebhook[]
   skillInstalls      AgentSkillInstall[]
+  gasPayments        GasPayment[]
 
   @@index([createdAt])
   @@index([meterLastAt])
@@ -544,6 +562,37 @@ model Workspace {
   @@index([gasBalance])
   @@index([isDemo, demoExpiresAt])
   @@index([isDemo, createdAt])
+}
+
+/**
+ * Idempotent prepaid Gas purchase — one row per provider external id.
+ * Crediting Workspace.gasBalance happens only when status → COMPLETED.
+ */
+model GasPayment {
+  id            String            @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  provider      GasPaymentProvider
+  packageId     String
+  gasAmount     Int
+  /** Fiat cents (USD) or Lightning millisatoshis depending on provider. */
+  amountMinor   Int
+  currency      String            @default("usd")
+  status        GasPaymentStatus  @default(PENDING)
+  /** PayPal order id | Stripe PaymentIntent id | Lightning payment_hash (hex). */
+  externalId    String            @unique
+  /** Capture id / charge id / bolt11 invoice string. */
+  externalIdAlt String?
+  ledgerId      String?
+  metadataJson  Json              @default("{}")
+  creditedAt    DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([workspaceId, status, createdAt(sort: Desc)])
+  @@index([provider, status])
+  @@index([externalIdAlt])
+  @@index([createdAt(sort: Desc)])
 }
 
 /**

@@ -180,7 +180,7 @@ export default function FleetController({
           )}
 
           {lastManifest && (
-            <p className="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+            <p className="mt-4 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-200">
               {lastManifest}
             </p>
           )}

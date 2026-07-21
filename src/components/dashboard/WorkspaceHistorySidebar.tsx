@@ -164,7 +164,7 @@ export default function WorkspaceHistorySidebar({
     <div className="min-h-0 flex-1 overflow-y-auto p-2">
       {!ready || loading ? (
         <div className="flex items-center justify-center gap-2 px-3 py-8 text-xs text-slate-dim">
-          <Loader2 className="h-4 w-4 animate-spin text-emerald-400" />
+          <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
           Loading…
         </div>
       ) : !user ? (
@@ -198,8 +198,8 @@ export default function WorkspaceHistorySidebar({
                   }}
                   className={`w-full rounded-lg border px-3 py-2.5 text-left transition ${
                     active
-                      ? "border-emerald-500/40 bg-emerald-500/10"
-                      : "border-white/5 bg-white/[0.02] hover:border-emerald-500/25"
+                      ? "border-blue-500/40 bg-blue-500/10"
+                      : "border-white/5 bg-white/[0.02] hover:border-blue-500/25"
                   }`}
                 >
                   <p className="line-clamp-2 break-words text-xs font-medium text-slate-100">
@@ -218,7 +218,7 @@ export default function WorkspaceHistorySidebar({
                   <button
                     type="button"
                     onClick={() => onRerun(session.objective)}
-                    className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2 py-1.5 text-[11px] font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
+                    className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-2 py-1.5 text-[11px] font-semibold text-blue-400 transition hover:bg-blue-500/20"
                   >
                     <Play className="h-3 w-3" aria-hidden />
                     Re-run Agent
@@ -239,7 +239,7 @@ export default function WorkspaceHistorySidebar({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-3 py-2 text-xs font-medium text-emerald-400 transition hover:border-emerald-500/30"
+          className="inline-flex items-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-3 py-2 text-xs font-medium text-blue-400 transition hover:border-blue-500/30"
           aria-expanded={open}
         >
           <History className="h-3.5 w-3.5" aria-hidden />
@@ -261,7 +261,7 @@ export default function WorkspaceHistorySidebar({
           >
             <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/5 px-3 py-3">
               <div className="flex min-w-0 items-center gap-2">
-                <History className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
+                <History className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />
                 <p className="truncate font-display text-xs font-semibold text-white">
                   Workspace History
                 </p>
@@ -270,7 +270,7 @@ export default function WorkspaceHistorySidebar({
                 <button
                   type="button"
                   onClick={() => void load()}
-                  className="rounded-lg border border-white/5 p-1.5 text-slate-muted transition hover:text-emerald-400"
+                  className="rounded-lg border border-white/5 p-1.5 text-slate-muted transition hover:text-blue-400"
                   aria-label="Refresh history"
                 >
                   <RefreshCw
@@ -306,7 +306,7 @@ export default function WorkspaceHistorySidebar({
               <>
                 <div className="flex min-w-0 items-center gap-2">
                   <History
-                    className="h-4 w-4 shrink-0 text-emerald-400"
+                    className="h-4 w-4 shrink-0 text-blue-400"
                     aria-hidden
                   />
                   <div className="min-w-0">
@@ -322,7 +322,7 @@ export default function WorkspaceHistorySidebar({
                   <button
                     type="button"
                     onClick={() => void load()}
-                    className="rounded-lg border border-white/5 p-1.5 text-slate-muted transition hover:text-emerald-400"
+                    className="rounded-lg border border-white/5 p-1.5 text-slate-muted transition hover:text-blue-400"
                     aria-label="Refresh history"
                   >
                     <RefreshCw
@@ -333,7 +333,7 @@ export default function WorkspaceHistorySidebar({
                   <button
                     type="button"
                     onClick={() => setDesktopOpen(false)}
-                    className="rounded-lg border border-white/5 p-1.5 text-slate-muted transition hover:text-emerald-400"
+                    className="rounded-lg border border-white/5 p-1.5 text-slate-muted transition hover:text-blue-400"
                     aria-label="Collapse history"
                   >
                     <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
@@ -344,7 +344,7 @@ export default function WorkspaceHistorySidebar({
               <button
                 type="button"
                 onClick={() => setDesktopOpen(true)}
-                className="mx-auto flex flex-col items-center gap-2 py-1 text-emerald-400"
+                className="mx-auto flex flex-col items-center gap-2 py-1 text-blue-400"
                 aria-label="Expand history"
               >
                 <History className="h-4 w-4" aria-hidden />

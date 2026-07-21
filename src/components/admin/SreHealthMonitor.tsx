@@ -135,20 +135,20 @@ const INITIAL_CONTAINERS: Container[] = [
 ];
 
 function healthBg(h: Health) {
-  if (h === "healthy") return "bg-emerald-500/10 border-emerald-500/20 text-emerald-400";
+  if (h === "healthy") return "bg-blue-500/10 border-blue-500/20 text-blue-400";
   if (h === "degraded") return "bg-amber-500/10 border-amber-500/20 text-amber-400";
   if (h === "incident") return "bg-rose-500/10 border-rose-500/20 text-rose-400";
   return "bg-white/5 border-white/10 text-slate-400";
 }
 
 function containerStatusColor(s: Container["status"]) {
-  if (s === "running") return "text-emerald-400 bg-emerald-500/10";
+  if (s === "running") return "text-blue-400 bg-blue-500/10";
   if (s === "degraded") return "text-amber-400 bg-amber-500/10";
   if (s === "restarting") return "text-violet-400 bg-violet-500/10";
   return "text-rose-400 bg-rose-500/10";
 }
 
-function MiniSparkline({ points, color = "#34d399" }: { points: number[]; color?: string }) {
+function MiniSparkline({ points, color = "#3B82F6" }: { points: number[]; color?: string }) {
   const max = Math.max(...points);
   const min = Math.min(...points);
   const range = max - min || 1;
@@ -175,7 +175,7 @@ function categoryColor(cat: RouteMetric["category"]) {
   if (cat === "api") return "#22d3ee";
   if (cat === "db") return "#a78bfa";
   if (cat === "scraper") return "#fb923c";
-  return "#34d399";
+  return "#3B82F6";
 }
 
 function categoryLabel(cat: RouteMetric["category"]) {
@@ -209,7 +209,7 @@ function MiniGauge({ value, max = 100, color, label }: GaugeProps) {
 }
 
 function HealthDot({ health, pulse }: { health: Health; pulse?: boolean }) {
-  const c = health === "healthy" ? "bg-emerald-400" : health === "degraded" ? "bg-amber-400" : health === "incident" ? "bg-rose-400" : "bg-slate-500";
+  const c = health === "healthy" ? "bg-blue-400" : health === "degraded" ? "bg-amber-400" : health === "incident" ? "bg-rose-400" : "bg-slate-500";
   return (
     <span className={`inline-block h-2 w-2 rounded-full ${c} ${pulse ? "animate-pulse" : ""}`} aria-hidden />
   );
@@ -273,17 +273,17 @@ export default function SreHealthMonitor() {
   const avgErrorRate = (routes.reduce((s, r) => s + r.errorRate, 0) / routes.length).toFixed(2);
 
   const summaryStats = [
-    { label: "Overall Health", value: overall === "healthy" ? "Operational" : overall === "degraded" ? "Degraded" : "Incident", icon: Shield, color: overall === "healthy" ? "#34d399" : overall === "degraded" ? "#fbbf24" : "#f87171" },
+    { label: "Overall Health", value: overall === "healthy" ? "Operational" : overall === "degraded" ? "Degraded" : "Incident", icon: Shield, color: overall === "healthy" ? "#3B82F6" : overall === "degraded" ? "#fbbf24" : "#f87171" },
     { label: "Total RPS", value: totalRps.toFixed(1), icon: Activity, color: "#22d3ee" },
     { label: "Avg Latency", value: `${avgLatency}ms`, icon: Clock, color: "#a78bfa" },
-    { label: "Avg Error Rate", value: `${avgErrorRate}%`, icon: AlertTriangle, color: Number(avgErrorRate) > 1 ? "#fbbf24" : "#34d399" },
+    { label: "Avg Error Rate", value: `${avgErrorRate}%`, icon: AlertTriangle, color: Number(avgErrorRate) > 1 ? "#fbbf24" : "#3B82F6" },
   ];
 
   return (
     <div className="space-y-6" style={{ backgroundColor: "#09090B" }}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
             Super-Admin · SRE Telemetry
           </p>
           <h2 className="mt-1 font-display text-xl font-semibold text-white sm:text-2xl">
@@ -296,8 +296,8 @@ export default function SreHealthMonitor() {
 
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <span className={`flex h-5 w-9 rounded-full border transition ${autoRefresh ? "border-emerald-500/40 bg-emerald-500/20" : "border-white/10 bg-white/[0.03]"}`}>
-              <span className={`m-0.5 h-4 w-4 rounded-full transition ${autoRefresh ? "translate-x-4 bg-emerald-400" : "bg-slate-600"}`} />
+            <span className={`flex h-5 w-9 rounded-full border transition ${autoRefresh ? "border-blue-500/40 bg-blue-500/20" : "border-white/10 bg-white/[0.03]"}`}>
+              <span className={`m-0.5 h-4 w-4 rounded-full transition ${autoRefresh ? "translate-x-4 bg-blue-400" : "bg-slate-600"}`} />
             </span>
             <span className="text-xs text-slate-dim">Auto</span>
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} className="sr-only" />
@@ -402,7 +402,7 @@ export default function SreHealthMonitor() {
                         </div>
                         <div className="space-y-0.5">
                           <p className="text-[10px] text-slate-dim">Error Rate</p>
-                          <p className={`font-mono text-sm ${route.errorRate > 1 ? "text-amber-400" : "text-emerald-400"}`}>{route.errorRate.toFixed(2)}%</p>
+                          <p className={`font-mono text-sm ${route.errorRate > 1 ? "text-amber-400" : "text-blue-400"}`}>{route.errorRate.toFixed(2)}%</p>
                         </div>
                         <div className="col-span-3">
                           <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${healthBg(route.health)}`}>
@@ -455,7 +455,7 @@ export default function SreHealthMonitor() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <MiniGauge value={c.cpu} label="CPU" color={c.cpu > 70 ? "#f87171" : c.cpu > 50 ? "#fbbf24" : "#34d399"} />
+                    <MiniGauge value={c.cpu} label="CPU" color={c.cpu > 70 ? "#f87171" : c.cpu > 50 ? "#fbbf24" : "#3B82F6"} />
                     <MiniGauge value={c.mem} label="MEM" color={c.mem > 80 ? "#f87171" : c.mem > 60 ? "#fbbf24" : "#22d3ee"} />
                   </div>
                 </motion.div>
@@ -466,7 +466,7 @@ export default function SreHealthMonitor() {
           <section className="rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl p-4 space-y-3" aria-label="Infrastructure summary">
             <div className="flex items-center gap-2">
               <Hover3DIcon intensity={10}>
-                <Globe className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+                <Globe className="h-3.5 w-3.5 text-blue-400" aria-hidden />
               </Hover3DIcon>
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-dim">
                 Infrastructure
@@ -482,7 +482,7 @@ export default function SreHealthMonitor() {
                 const Icon = row.icon;
                 return (
                   <div key={row.label} className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2">
-                    <Icon className={`h-3.5 w-3.5 shrink-0 ${row.ok ? "text-emerald-400" : "text-amber-400"}`} aria-hidden />
+                    <Icon className={`h-3.5 w-3.5 shrink-0 ${row.ok ? "text-blue-400" : "text-amber-400"}`} aria-hidden />
                     <div className="min-w-0">
                       <p className="text-[10px] text-slate-dim">{row.label}</p>
                       <p className="truncate text-[10px] font-medium text-white">{row.val}</p>

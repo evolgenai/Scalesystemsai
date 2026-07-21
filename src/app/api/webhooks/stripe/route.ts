@@ -6,6 +6,10 @@ import {
   planFromStripePriceId,
   type CheckoutPlan,
 } from "@/lib/billing/commercialPlans";
+import {
+  findGasPaymentByExternalId,
+  settleGasPayment,
+} from "@/lib/payments/settleGasPayment";
 import { getStripe } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +39,59 @@ async function resolvePlanFromLineItems(
   } catch {
     return fromMetadata;
   }
+}
+
+async function creditGasFromPaymentIntent(
+  intent: Stripe.PaymentIntent
+): Promise<{
+  credited: boolean;
+  alreadyCredited?: boolean;
+  paymentId?: string;
+  gasAmount?: number;
+  ignored?: string;
+}> {
+  if (intent.metadata?.purpose !== "gas_topup") {
+    return { credited: false, ignored: "not_gas_topup" };
+  }
+
+  if (intent.status !== "succeeded") {
+    return { credited: false, ignored: `status_${intent.status}` };
+  }
+
+  const payment = await findGasPaymentByExternalId(intent.id);
+  if (!payment) {
+    return { credited: false, ignored: "payment_row_missing" };
+  }
+
+  if (payment.status === "COMPLETED") {
+    return {
+      credited: false,
+      alreadyCredited: true,
+      paymentId: payment.id,
+      gasAmount: payment.gasAmount,
+    };
+  }
+
+  const settled = await settleGasPayment({
+    paymentId: payment.id,
+    externalIdAlt:
+      typeof intent.latest_charge === "string"
+        ? intent.latest_charge
+        : intent.latest_charge?.id ?? null,
+    metadata: {
+      purpose: "gas_topup",
+      stripeStatus: intent.status,
+      amountReceived: intent.amount_received,
+    },
+    description: `Stripe/Google Pay Gas recharge · ${payment.packageId} · ${intent.id}`,
+  });
+
+  return {
+    credited: !settled.alreadyCredited,
+    alreadyCredited: settled.alreadyCredited,
+    paymentId: settled.paymentId,
+    gasAmount: settled.gasAmount,
+  };
 }
 
 export async function POST(request: Request) {
@@ -76,6 +133,16 @@ export async function POST(request: Request) {
   }
 
   try {
+    if (event.type === "payment_intent.succeeded") {
+      const intent = event.data.object as Stripe.PaymentIntent;
+      const gasResult = await creditGasFromPaymentIntent(intent);
+      return NextResponse.json({
+        received: true,
+        type: event.type,
+        ...gasResult,
+      });
+    }
+
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
       const plan = await resolvePlanFromLineItems(session);

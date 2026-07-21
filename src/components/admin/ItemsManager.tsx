@@ -136,13 +136,13 @@ const INITIAL_ITEMS: ManagedItem[] = [
 
 const CATEGORY_META: Record<Category, { label: string; icon: React.ElementType; color: string }> = {
   wines: { label: "Wines", icon: Wine, color: "text-rose-400 bg-rose-500/10 border-rose-500/20" },
-  tastings: { label: "Tastings", icon: Sparkles, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+  tastings: { label: "Tastings", icon: Sparkles, color: "text-blue-400 bg-blue-500/10 border-blue-500/20" },
   merch: { label: "Merch", icon: Shirt, color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },
   passes: { label: "Passes", icon: Ticket, color: "text-violet-400 bg-violet-500/10 border-violet-500/20" },
 };
 
 const STATUS_OPTIONS: { value: StockStatus; label: string; color: string }[] = [
-  { value: "in-stock", label: "In Stock", color: "text-emerald-400" },
+  { value: "in-stock", label: "In Stock", color: "text-blue-400" },
   { value: "low-stock", label: "Low Stock", color: "text-amber-400" },
   { value: "out-of-stock", label: "Out of Stock", color: "text-rose-400" },
   { value: "pre-order", label: "Pre-Order", color: "text-violet-400" },
@@ -152,7 +152,7 @@ function stockStatusColor(s: StockStatus) {
   if (s === "out-of-stock") return "bg-rose-500/15 text-rose-400 border-rose-500/20";
   if (s === "low-stock") return "bg-amber-500/15 text-amber-400 border-amber-500/20";
   if (s === "pre-order") return "bg-violet-500/15 text-violet-400 border-violet-500/20";
-  return "bg-emerald-500/15 text-emerald-400 border-emerald-500/20";
+  return "bg-blue-500/15 text-blue-400 border-blue-500/20";
 }
 
 function InlineEdit({
@@ -195,7 +195,7 @@ function InlineEdit({
       <button
         type="button"
         onClick={() => { setVal(String(value)); setEditing(true); }}
-        className="group inline-flex items-center gap-1 text-left text-white transition hover:text-emerald-300"
+        className="group inline-flex items-center gap-1 text-left text-white transition hover:text-blue-300"
         aria-label={`Edit value ${value}`}
       >
         {prefix ? <span className="text-slate-dim">{prefix}</span> : null}
@@ -214,13 +214,13 @@ function InlineEdit({
         value={val}
         onChange={(e) => setVal(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") cancel(); }}
-        className="w-28 rounded-md border border-emerald-500/40 bg-emerald-500/[0.06] px-2 py-0.5 text-sm text-white outline-none focus:ring-1 focus:ring-emerald-500/40"
+        className="w-28 rounded-md border border-blue-500/40 bg-blue-500/[0.06] px-2 py-0.5 text-sm text-white outline-none focus:ring-1 focus:ring-blue-500/40"
       />
       {saving ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-400" aria-hidden />
+        <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400" aria-hidden />
       ) : (
         <>
-          <button type="button" onClick={commit} className="text-emerald-400 hover:text-emerald-300" aria-label="Save">
+          <button type="button" onClick={commit} className="text-blue-400 hover:text-blue-300" aria-label="Save">
             <Check className="h-3.5 w-3.5" aria-hidden />
           </button>
           <button type="button" onClick={cancel} className="text-slate-muted hover:text-white" aria-label="Cancel">
@@ -276,7 +276,7 @@ function ImageDropzone({ itemId, current, onUpload }: { itemId: string; current?
       onClick={() => inputRef.current?.click()}
       className={`relative flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border transition ${
         dragging
-          ? "border-emerald-400/50 bg-emerald-500/10"
+          ? "border-blue-400/50 bg-blue-500/10"
           : "border-white/10 bg-white/[0.03] hover:border-white/20"
       }`}
       role="button"
@@ -285,7 +285,7 @@ function ImageDropzone({ itemId, current, onUpload }: { itemId: string; current?
     >
       <input ref={inputRef} type="file" accept="image/*" className="sr-only" onChange={onChange} />
       {uploading ? (
-        <Loader2 className="h-5 w-5 animate-spin text-emerald-400" aria-hidden />
+        <Loader2 className="h-5 w-5 animate-spin text-blue-400" aria-hidden />
       ) : preview ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={preview} alt="Item preview" className="h-full w-full object-cover" />
@@ -389,7 +389,7 @@ export default function ItemsManager() {
     <div className="space-y-6" style={{ backgroundColor: "#09090B" }}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
             Super-Admin · Inventory
           </p>
           <h2 className="mt-1 font-display text-xl font-semibold text-white sm:text-2xl">
@@ -402,7 +402,7 @@ export default function ItemsManager() {
         <button
           type="button"
           onClick={addItem}
-          className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
+          className="inline-flex items-center gap-1.5 rounded-xl border border-blue-500/40 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-400 transition hover:bg-blue-500/20"
         >
           <Plus className="h-4 w-4" aria-hidden />
           Add Item
@@ -412,7 +412,7 @@ export default function ItemsManager() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { label: "Total Items", value: stats.total, color: "text-white" },
-          { label: "Active", value: stats.active, color: "text-emerald-400" },
+          { label: "Active", value: stats.active, color: "text-blue-400" },
           { label: "Low Stock", value: stats.lowStock, color: "text-amber-400" },
           { label: "Out of Stock", value: stats.outOfStock, color: "text-rose-400" },
         ].map((stat) => (
@@ -431,7 +431,7 @@ export default function ItemsManager() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search items or tags…"
-            className="w-full rounded-xl border border-white/5 bg-white/[0.03] pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-dim outline-none transition focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/20"
+            className="w-full rounded-xl border border-white/5 bg-white/[0.03] pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-dim outline-none transition focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/20"
           />
         </div>
 
@@ -451,7 +451,7 @@ export default function ItemsManager() {
                 aria-pressed={filterCategory === c}
                 className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   filterCategory === c
-                    ? "bg-emerald-500/15 text-emerald-400"
+                    ? "bg-blue-500/15 text-blue-400"
                     : "text-slate-muted hover:text-white"
                 }`}
               >
@@ -489,7 +489,7 @@ export default function ItemsManager() {
                 >
                   {isSaving ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-white/[0.01] backdrop-blur-[1px]">
-                      <div className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400">
+                      <div className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400">
                         <Save className="h-3.5 w-3.5 animate-pulse" aria-hidden />
                         Saving…
                       </div>
@@ -524,8 +524,8 @@ export default function ItemsManager() {
                             onChange={(e) => updateItem(item.id, { active: e.target.checked })}
                             className="sr-only"
                           />
-                          <span className={`flex h-5 w-9 rounded-full border transition ${item.active ? "border-emerald-500/40 bg-emerald-500/20" : "border-white/10 bg-white/[0.03]"}`}>
-                            <span className={`m-0.5 h-4 w-4 rounded-full transition ${item.active ? "translate-x-4 bg-emerald-400" : "bg-slate-600"}`} />
+                          <span className={`flex h-5 w-9 rounded-full border transition ${item.active ? "border-blue-500/40 bg-blue-500/20" : "border-white/10 bg-white/[0.03]"}`}>
+                            <span className={`m-0.5 h-4 w-4 rounded-full transition ${item.active ? "translate-x-4 bg-blue-400" : "bg-slate-600"}`} />
                           </span>
                           <span className="text-xs text-slate-dim">{item.active ? "Active" : "Hidden"}</span>
                         </label>
@@ -601,7 +601,7 @@ export default function ItemsManager() {
 
           {filtered.length === 0 ? (
             <div className="px-4 py-12 text-center text-sm text-slate-dim">
-              No items match your filter. <button type="button" onClick={() => { setSearch(""); setFilterCategory("all"); }} className="text-emerald-400 hover:underline">Clear filters</button>
+              No items match your filter. <button type="button" onClick={() => { setSearch(""); setFilterCategory("all"); }} className="text-blue-400 hover:underline">Clear filters</button>
             </div>
           ) : null}
         </div>

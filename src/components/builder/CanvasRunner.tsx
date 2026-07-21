@@ -49,7 +49,7 @@ function LogRow({ entry }: { entry: ExecutionLogEntry }) {
         <span
           className={`text-[9px] font-semibold uppercase tracking-wider ${
             entry.status === "running"
-              ? "text-emerald-400"
+              ? "text-blue-400"
               : entry.status === "paused"
                 ? "text-amber-300"
                 : entry.status === "error"
@@ -87,8 +87,8 @@ export default function CanvasRunner({
           aria-expanded={paletteOpen}
           className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition ${
             paletteOpen
-              ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
-              : "border-white/10 bg-white/[0.03] text-emerald-400 hover:border-emerald-500/40"
+              ? "border-blue-500/40 bg-blue-500/15 text-blue-400"
+              : "border-white/10 bg-white/[0.03] text-blue-400 hover:border-blue-500/40"
           }`}
         >
           <Layers className="h-3.5 w-3.5" aria-hidden />
@@ -96,7 +96,7 @@ export default function CanvasRunner({
         </button>
 
         <div className="mr-auto min-w-0 pl-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
             Execution control
           </p>
           <p className="truncate text-sm font-semibold text-white">
@@ -108,7 +108,7 @@ export default function CanvasRunner({
           type="button"
           onClick={onRunSimulation}
           disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-[11px] font-semibold text-blue-400 transition hover:bg-blue-500/20 disabled:opacity-40"
         >
           {runner.status === "simulating" ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -134,10 +134,10 @@ export default function CanvasRunner({
           type="button"
           onClick={onSave}
           disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:border-emerald-500/30 disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:border-blue-500/30 disabled:opacity-40"
         >
           {runner.status === "saved" ? (
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+            <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" aria-hidden />
           ) : (
             <Save className="h-3.5 w-3.5" aria-hidden />
           )}
@@ -190,12 +190,12 @@ export default function CanvasRunner({
                 runner.activeNodeId
                   ? runner.status === "paused"
                     ? "animate-pulse bg-amber-400"
-                    : "animate-pulse bg-emerald-400"
+                    : "animate-pulse bg-blue-400"
                   : "bg-slate-600"
               }`}
             />
             Active node{" "}
-            <span className="font-mono text-emerald-400">
+            <span className="font-mono text-blue-400">
               {runner.activeNodeId ?? "—"}
             </span>
           </div>

@@ -13,7 +13,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh, PointLight } from "three";
 
-const EMERALD = "#10B981";
+const SAPPHIRE = "#0066FF";
 const METAL = "#c8d0d8";
 const BODY = "#12141a";
 
@@ -76,7 +76,7 @@ function VaultAssembly({
           color={METAL}
           metalness={1}
           roughness={0.12}
-          emissive={EMERALD}
+          emissive={SAPPHIRE}
           emissiveIntensity={0.15}
         />
       </mesh>
@@ -84,8 +84,8 @@ function VaultAssembly({
       <mesh ref={core} position={[0, 0, 0.4]}>
         <octahedronGeometry args={[0.12, 0]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={1}
           metalness={0.4}
           roughness={0.2}
@@ -101,8 +101,8 @@ function VaultAssembly({
         <mesh key={i} position={pos as [number, number, number]}>
           <boxGeometry args={[0.06, 0.06, 0.06]} />
           <meshStandardMaterial
-            color={EMERALD}
-            emissive={EMERALD}
+            color={SAPPHIRE}
+            emissive={SAPPHIRE}
             emissiveIntensity={0.8}
             metalness={0.6}
             roughness={0.25}
@@ -113,8 +113,8 @@ function VaultAssembly({
       <mesh ref={ring} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.62, 0.018, 12, 64]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={0.7}
           metalness={0.8}
           roughness={0.2}
@@ -126,7 +126,7 @@ function VaultAssembly({
       <pointLight
         ref={glow}
         position={[0, 0.2, 0.8]}
-        color={EMERALD}
+        color={SAPPHIRE}
         intensity={0.6}
         distance={3}
         decay={2}
@@ -165,13 +165,13 @@ class WebGLBoundary extends Component<
 function FlatFallback({ className }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 ${className ?? "h-10 w-10"}`}
+      className={`inline-flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 ${className ?? "h-10 w-10"}`}
       aria-hidden
-      style={{ boxShadow: `0 0 14px ${EMERALD}55` }}
+      style={{ boxShadow: `0 0 14px ${SAPPHIRE}55` }}
     >
       <span
         className="h-3 w-3 rounded-sm"
-        style={{ background: EMERALD, boxShadow: `0 0 10px ${EMERALD}` }}
+        style={{ background: SAPPHIRE, boxShadow: `0 0 10px ${SAPPHIRE}` }}
       />
     </span>
   );
@@ -240,7 +240,7 @@ export default function CryptographicVaultMesh({
               intensity={1.2}
               color="#e8eef5"
             />
-            <pointLight position={[-1.4, 1.2, 1]} intensity={0.4} color={EMERALD} />
+            <pointLight position={[-1.4, 1.2, 1]} intensity={0.4} color={SAPPHIRE} />
             <VaultAssembly scale={0.95} active={active} />
           </Suspense>
         </Canvas>

@@ -50,7 +50,7 @@ export default function LoginForm({
           type="text"
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
-          className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500/40"
+          className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-blue-500/40"
           autoComplete="username"
           placeholder="Superadmin or Superadmin@scalesystemsai.com"
           spellCheck={false}
@@ -64,12 +64,12 @@ export default function LoginForm({
           minLength={1}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500/40"
+          className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-blue-500/40"
           autoComplete="current-password"
         />
       </label>
       {info ? (
-        <p className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+        <p className="rounded-xl border border-blue-500/25 bg-blue-500/10 px-3 py-2 text-xs text-blue-300">
           {info}
         </p>
       ) : null}
@@ -81,7 +81,7 @@ export default function LoginForm({
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-4 py-2.5 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/15 px-4 py-2.5 text-sm font-semibold text-blue-300 transition hover:bg-blue-500/25 disabled:opacity-50"
       >
         <UserRound className="h-4 w-4" aria-hidden />
         {pending ? "Working…" : "Sign In"}
@@ -91,7 +91,7 @@ export default function LoginForm({
           Need an account?{" "}
           <button
             type="button"
-            className="text-emerald-400 hover:underline"
+            className="text-blue-400 hover:underline"
             onClick={onNeedAccount}
           >
             Sign up

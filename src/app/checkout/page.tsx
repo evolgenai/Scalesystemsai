@@ -4,7 +4,7 @@ import CheckoutClient from "./CheckoutClient";
 export const metadata: Metadata = {
   title: "Checkout",
   description:
-    "Upgrade ScaleSystems swarm capacity with Stripe billing or BVNK crypto checkout.",
+    "Upgrade ScaleSystems swarm capacity with Stripe, PayPal, or Bitcoin Lightning checkout.",
   robots: { index: false, follow: false },
 };
 

@@ -651,11 +651,11 @@ function BlueprintCanvasInner() {
             variant={BackgroundVariant.Dots}
             gap={22}
             size={1.2}
-            color="rgba(16,185,129,0.14)"
+            color="rgba(0, 102, 255,0.14)"
             bgColor="#09090B"
           />
           <Controls
-            className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#0c0c0f]/90 !shadow-none [&>button]:!border-white/10 [&>button]:!bg-transparent [&>button]:!fill-emerald-400"
+            className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#0c0c0f]/90 !shadow-none [&>button]:!border-white/10 [&>button]:!bg-transparent [&>button]:!fill-blue-400"
             showInteractive={false}
           />
           <MiniMap
@@ -664,7 +664,7 @@ function BlueprintCanvasInner() {
               const kind = (n.data as BlueprintNodeData | undefined)?.kind;
               if (kind === "trigger") return "#22d3ee";
               if (kind === "action") return "#fbbf24";
-              return "#34d399";
+              return "#3B82F6";
             }}
             maskColor="rgba(9,9,11,0.75)"
           />
@@ -678,7 +678,7 @@ export default function BlueprintCanvas() {
   return (
     <div className="space-y-4" style={{ backgroundColor: "#09090B" }}>
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
           Visual blueprint
         </p>
         <h2 className="mt-1 font-display text-xl font-bold text-white sm:text-2xl">
@@ -686,7 +686,7 @@ export default function BlueprintCanvas() {
         </h2>
         <p className="mt-1 max-w-2xl text-sm text-slate-muted">
           Drag trigger, agent, and action blocks onto an infinite canvas. Wire
-          glowing emerald cables, load presets, then simulate sequential
+          glowing SAPPHIRE cables, load presets, then simulate sequential
           execution.
         </p>
       </div>

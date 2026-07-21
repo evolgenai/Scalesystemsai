@@ -202,9 +202,9 @@ export default function ApiKeyPortal() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden border-t border-emerald-500/20 bg-emerald-500/5"
+              className="overflow-hidden border-t border-blue-500/20 bg-blue-500/5"
             >
-              <p className="px-5 py-3 text-xs text-emerald-400">
+              <p className="px-5 py-3 text-xs text-blue-400">
                 Cloud runtime connection established. All deployed agents will
                 use updated credentials on next heartbeat cycle.
               </p>

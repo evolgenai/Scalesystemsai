@@ -68,12 +68,12 @@ export default class ErrorBoundary extends Component<
       return (
         <div
           role="alert"
-          className={`overflow-hidden rounded-lg border border-emerald-500/25 bg-[#121212] ${
+          className={`overflow-hidden rounded-lg border border-blue-500/25 bg-[#121212] ${
             compact ? "p-3.5" : "p-5"
           }`}
         >
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 transition-transform duration-300 hover:scale-105">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 transition-transform duration-300 hover:scale-105">
               <AlertTriangle className="h-4 w-4" aria-hidden />
             </div>
             <div className="min-w-0 flex-1">
@@ -92,7 +92,7 @@ export default class ErrorBoundary extends Component<
               <button
                 type="button"
                 onClick={this.hotReload}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 active:scale-[0.98]"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 transition hover:border-blue-400/60 hover:bg-blue-500/20 active:scale-[0.98]"
               >
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden />
                 Hot-reload {label}

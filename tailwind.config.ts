@@ -9,9 +9,13 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        obsidian: "#09090B",
+        obsidian: "#060810",
+        midnight: {
+          glass: "#0A0F1D",
+        },
         cyber: {
-          emerald: "#10B981",
+          sapphire: "#0066FF",
+          electric: "#3B82F6",
           amber: "#F59E0B",
         },
         cyan: {
@@ -27,8 +31,8 @@ const config: Config = {
         display: ["var(--font-space-grotesk)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        glow: "0 0 40px rgba(16, 185, 129, 0.15)",
-        "glow-sm": "0 0 20px rgba(16, 185, 129, 0.25)",
+        glow: "0 0 40px rgba(0, 102, 255, 0.15)",
+        "glow-sm": "0 0 20px rgba(0, 102, 255, 0.25)",
         "glow-amber": "0 0 24px rgba(245, 158, 11, 0.2)",
       },
       animation: {

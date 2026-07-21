@@ -28,7 +28,7 @@ const STATUS_META: Record<
 > = {
   success: {
     label: "Success",
-    className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+    className: "border-blue-500/30 bg-blue-500/10 text-blue-400",
     Icon: CheckCircle2,
   },
   denied: {
@@ -163,7 +163,7 @@ export default function AuditLog() {
     <section aria-labelledby="audit-log-heading" className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400">
             <Hover3DIcon intensity={12}>
               <ClipboardList className="h-3 w-3" aria-hidden />
             </Hover3DIcon>
@@ -181,7 +181,7 @@ export default function AuditLog() {
           </p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-3 py-2 font-mono text-[10px] text-zinc-500">
-          <KeyRound className="h-3 w-3 text-emerald-400" aria-hidden />
+          <KeyRound className="h-3 w-3 text-blue-400" aria-hidden />
           HASH-REDACTED · WORM
         </div>
       </div>
@@ -227,7 +227,7 @@ export default function AuditLog() {
                         borderLeftWidth: 2,
                         borderLeftColor:
                           index % 2 === 0
-                            ? "rgba(52, 211, 153, 0.35)"
+                            ? "rgba(59, 130, 246, 0.35)"
                             : "transparent",
                       }}
                     >
@@ -240,7 +240,7 @@ export default function AuditLog() {
                         </time>
                       </td>
                       <td className="px-4 py-3 align-middle">
-                        <code className="rounded border border-white/5 bg-black/40 px-1.5 py-0.5 font-mono text-[11px] text-emerald-400/90">
+                        <code className="rounded border border-white/5 bg-black/40 px-1.5 py-0.5 font-mono text-[11px] text-blue-400/90">
                           {row.apiKeyHash}
                         </code>
                       </td>
@@ -292,7 +292,7 @@ function StatChip({
       </p>
       <p
         className={`mt-1 font-mono text-sm font-semibold ${
-          accent ? "text-emerald-400" : "text-white"
+          accent ? "text-blue-400" : "text-white"
         }`}
       >
         {value}

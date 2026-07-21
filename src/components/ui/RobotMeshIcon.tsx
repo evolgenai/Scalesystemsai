@@ -14,7 +14,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh, PointLight } from "three";
 
-const EMERALD = "#34d399";
+const SAPPHIRE = "#3B82F6";
 const AMBER = "#f59e0b";
 const ROSE = "#f43f5e";
 const METAL = "#c8d0d8";
@@ -33,10 +33,10 @@ export type RobotMeshProps = {
 };
 
 const VARIANT_TINT: Record<RobotMeshVariant, string> = {
-  supervisor: "#34d399",
-  writer: "#6ee7b7",
-  validator: "#10b981",
-  agent: "#34d399",
+  supervisor: "#3B82F6",
+  writer: "#60A5FA",
+  validator: "#0066FF",
+  agent: "#3B82F6",
 };
 
 function resolveAccent(
@@ -44,7 +44,7 @@ function resolveAccent(
   status: RobotMeshStatus
 ): string {
   if (status === "error") return ROSE;
-  if (status === "working") return EMERALD;
+  if (status === "working") return SAPPHIRE;
   return VARIANT_TINT[variant];
 }
 
@@ -80,7 +80,7 @@ function statusMotion(status: RobotMeshStatus, hot: boolean) {
 }
 
 /**
- * Polished geometric agent rig — metallic visor capsule, hover rings, emerald core.
+ * Polished geometric agent rig — metallic visor capsule, hover rings, SAPPHIRE core.
  * Status drives ring velocity, core pulse, and glow palette.
  */
 export function RobotMesh({
@@ -104,7 +104,7 @@ export function RobotMesh({
     [variant, status]
   );
   const secondary =
-    status === "error" ? AMBER : status === "working" ? "#a7f3d0" : "#a7f3d0";
+    status === "error" ? AMBER : status === "working" ? "#93C5FD" : "#93C5FD";
   const trailPos = useRef(new Float32Array(24 * 3));
 
   useEffect(() => {
@@ -358,7 +358,7 @@ function FlatRobotFallback({
 }) {
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 ${className ?? "h-10 w-10"}`}
+      className={`inline-flex items-center justify-center rounded-full border border-blue-500/30 bg-blue-500/10 ${className ?? "h-10 w-10"}`}
       aria-hidden
       style={{ boxShadow: `0 0 12px ${accent}44` }}
     >

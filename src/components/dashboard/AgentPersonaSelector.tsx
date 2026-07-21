@@ -43,7 +43,7 @@ export default function AgentPersonaSelector({
         </label>
         <div className="flex flex-wrap items-center gap-2">
           {isSuperAdmin ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-200">
+            <span className="inline-flex items-center gap-1 rounded-full border border-blue-400/30 bg-blue-400/10 px-2 py-0.5 text-[10px] font-medium text-blue-200">
               Overlord bypass
             </span>
           ) : null}
@@ -122,7 +122,7 @@ export default function AgentPersonaSelector({
                   }}
                   className={`group relative min-w-0 w-full flex-1 basis-[min(100%,16rem)] overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-3.5 text-left transition-all duration-300 sm:min-w-[200px] ${
                     selected
-                      ? "border-l-2 border-l-emerald-400 bg-[#161616]"
+                      ? "border-l-2 border-l-blue-400 bg-[#161616]"
                       : "opacity-90 hover:bg-[#161616]"
                   } ${customOverrideActive ? "opacity-55" : ""}`}
                 >

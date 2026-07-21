@@ -14,7 +14,7 @@ type ToastState = {
 } | null;
 
 const TOAST_STYLES: Record<ToastTone, string> = {
-  success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
+  success: "border-blue-500/30 bg-blue-500/10 text-blue-300",
   error: "border-rose-500/30 bg-rose-500/10 text-rose-300",
   info: "border-amber-500/30 bg-amber-500/10 text-amber-200",
 };

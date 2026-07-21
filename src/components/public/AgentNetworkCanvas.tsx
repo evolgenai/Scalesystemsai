@@ -14,10 +14,10 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
 
-const OBSIDIAN = "#09090B";
-const EMERALD = "#10B981";
-const EMERALD_DIM = "#059669";
-const GLASS = "#a7f3d0";
+const OBSIDIAN = "#060810";
+const SAPPHIRE = "#0066FF";
+const SAPPHIRE_DIM = "#0052CC";
+const GLASS = "#93C5FD";
 
 type NodeDef = {
   id: string;
@@ -53,7 +53,7 @@ function SceneBackdrop() {
     gl.setClearColor(color, 1);
     gl.setClearAlpha(1);
     const canvas = gl.domElement;
-    canvas.classList.add("block", "h-full", "w-full", "bg-[#09090B]");
+    canvas.classList.add("block", "h-full", "w-full", "bg-[#060810]");
     canvas.style.display = "block";
     canvas.style.width = "100%";
     canvas.style.height = "100%";
@@ -155,8 +155,8 @@ function AgentNode({
         <octahedronGeometry args={[0.28, 0]} />
       )}
       <meshPhysicalMaterial
-        color={isRouter ? EMERALD : GLASS}
-        emissive={EMERALD}
+        color={isRouter ? SAPPHIRE : GLASS}
+        emissive={SAPPHIRE}
         emissiveIntensity={0.4}
         metalness={0.2}
         roughness={0.12}
@@ -212,7 +212,7 @@ function ConnectionBeam({
   return (
     <mesh ref={mesh} position={mid} quaternion={quat}>
       <cylinderGeometry args={[0.012, 0.012, length, 6]} />
-      <meshBasicMaterial color={EMERALD_DIM} transparent opacity={0.28} />
+      <meshBasicMaterial color={SAPPHIRE_DIM} transparent opacity={0.28} />
     </mesh>
   );
 }
@@ -243,7 +243,7 @@ function Packet({
   return (
     <mesh ref={mesh}>
       <sphereGeometry args={[0.045, 10, 10]} />
-      <meshBasicMaterial color={EMERALD} />
+      <meshBasicMaterial color={SAPPHIRE} />
     </mesh>
   );
 }
@@ -265,7 +265,7 @@ function SwarmScene() {
   return (
     <group ref={root} position={[0, 0, 0]}>
       <ambientLight intensity={0.35} />
-      <pointLight position={[2.2, 2.4, 1.5]} intensity={1.1} color={EMERALD} />
+      <pointLight position={[2.2, 2.4, 1.5]} intensity={1.1} color={SAPPHIRE} />
       <pointLight position={[-2, -1, -1.5]} intensity={0.45} color="#67e8f9" />
 
       {NODES.map((n, i) => (
@@ -313,11 +313,11 @@ class CanvasErrorBoundary extends Component<
 
 function FallbackMesh() {
   return (
-    <div className="flex h-full w-full items-center justify-center bg-[#09090B]">
+    <div className="flex h-full w-full items-center justify-center bg-[#060810]">
       <div className="relative h-40 w-40">
-        <div className="absolute inset-0 animate-pulse rounded-full border border-emerald-500/30 bg-emerald-500/10 blur-sm" />
-        <div className="absolute inset-6 rounded-full border border-emerald-400/40 bg-emerald-500/15 shadow-[0_0_40px_rgba(16,185,129,0.25)]" />
-        <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-400">
+        <div className="absolute inset-0 animate-pulse rounded-full border border-blue-500/30 bg-blue-600/10 blur-sm" />
+        <div className="absolute inset-6 rounded-full border border-blue-400/40 bg-blue-600/15 shadow-[0_0_40px_rgba(0,102,255,0.25)]" />
+        <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] uppercase tracking-[0.2em] text-blue-400">
           Swarm live
         </div>
       </div>
@@ -336,17 +336,17 @@ export default function AgentNetworkCanvas({
   return (
     <div
       ref={containerRef}
-      className={`relative isolate aspect-[4/3] h-full w-full min-h-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#09090B] sm:min-h-[340px] ${className}`}
+      className={`relative isolate aspect-[4/3] h-full w-full min-h-[220px] overflow-hidden rounded-2xl border border-white/10 bg-[#060810] sm:min-h-[280px] ${className}`}
     >
-      <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] text-emerald-300">
-        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+      <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-lg border border-blue-500/25 bg-blue-600/10 px-2.5 py-1 font-mono text-[10px] text-blue-300">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-400" />
         Agent mesh · live
       </div>
-      <div className="absolute inset-0 bg-[#09090B]">
+      <div className="absolute inset-0 bg-[#060810]">
         <CanvasErrorBoundary fallback={<FallbackMesh />}>
           <Suspense fallback={<FallbackMesh />}>
             <Canvas
-              className="block h-full w-full bg-[#09090B]"
+              className="block h-full w-full bg-[#060810]"
               style={{
                 display: "block",
                 width: "100%",
@@ -365,9 +365,9 @@ export default function AgentNetworkCanvas({
                 camera.lookAt(0, 0, 0);
                 const color = new THREE.Color(OBSIDIAN);
                 scene.background = color;
-                gl.setClearColor(0x09090b, 1);
+                gl.setClearColor(0x060810, 1);
                 gl.setClearAlpha(1);
-                gl.domElement.className = "block h-full w-full bg-[#09090B]";
+                gl.domElement.className = "block h-full w-full bg-[#060810]";
                 gl.domElement.style.backgroundColor = OBSIDIAN;
                 gl.clear(true, true, true);
                 setReady(true);
@@ -382,7 +382,7 @@ export default function AgentNetworkCanvas({
         </CanvasErrorBoundary>
       </div>
       {!ready ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#09090B]">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#060810]">
           <FallbackMesh />
         </div>
       ) : null}

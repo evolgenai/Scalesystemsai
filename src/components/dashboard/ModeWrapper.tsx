@@ -125,7 +125,7 @@ export function ModeToggle({ className = "" }: { className?: string }) {
         aria-pressed={mode === "USER"}
         className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
           mode === "USER"
-            ? "bg-emerald-500 text-[#121212] shadow-[0_0_24px_rgba(52,211,153,0.35)]"
+            ? "bg-blue-600 text-white shadow-[0_0_24px_rgba(59, 130, 246,0.35)]"
             : "text-slate-muted hover:bg-white/5 hover:text-white"
         }`}
       >
@@ -140,7 +140,7 @@ export function ModeToggle({ className = "" }: { className?: string }) {
         aria-pressed={mode === "DEVELOPER"}
         className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
           mode === "DEVELOPER"
-            ? "bg-emerald-500 text-[#121212] shadow-[0_0_24px_rgba(52,211,153,0.35)]"
+            ? "bg-blue-600 text-white shadow-[0_0_24px_rgba(59, 130, 246,0.35)]"
             : "text-slate-muted hover:bg-white/5 hover:text-white"
         }`}
       >
@@ -171,9 +171,9 @@ const TEMPLATES: TemplateCard[] = [
     id: "scraper",
     title: "Web Scraper Bot",
     blurb: "Pull structured leads from any public URL in one click.",
-    accent: "text-emerald-400",
-    border: "hover:border-emerald-500/40",
-    glow: "from-emerald-500/20 via-transparent to-transparent",
+    accent: "text-blue-400",
+    border: "hover:border-blue-500/40",
+    glow: "from-blue-500/20 via-transparent to-transparent",
     cta: "Launch scraper",
     icon: Globe,
     mesh: "writer",
@@ -226,7 +226,7 @@ function TemplateCardStack({
             transition={{ delay: 0.06 * i, duration: 0.35 }}
             onClick={() => onSelect(t.id)}
             className={`group relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.03] backdrop-blur-xl p-5 text-left transition ${t.border} ${
-              selected ? "border-emerald-500/50 ring-1 ring-emerald-500/30" : ""
+              selected ? "border-blue-500/50 ring-1 ring-blue-500/30" : ""
             }`}
           >
             <div
@@ -257,7 +257,7 @@ function TemplateCardStack({
                 className="rounded-xl"
               />
             </div>
-            <div className="relative mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+            <div className="relative mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-blue-400">
               {t.cta}
               <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
             </div>
@@ -295,11 +295,11 @@ function ActionWizard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 8 }}
-      className="overflow-hidden rounded-2xl border border-emerald-500/25 bg-white/[0.03] backdrop-blur-xl"
+      className="overflow-hidden rounded-2xl border border-blue-500/25 bg-white/[0.03] backdrop-blur-xl"
     >
       <div className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3 sm:px-5">
         <div className="flex items-center gap-2.5">
-          <Wand2 className="h-4 w-4 text-emerald-400" aria-hidden />
+          <Wand2 className="h-4 w-4 text-blue-400" aria-hidden />
           <div>
             <p className="text-sm font-semibold text-white">{template.title}</p>
             <p className="text-[11px] text-slate-dim">
@@ -322,7 +322,7 @@ function ActionWizard({
             <div
               key={i}
               className={`h-1 flex-1 rounded-full ${
-                i <= step ? "bg-emerald-500" : "bg-white/10"
+                i <= step ? "bg-blue-600" : "bg-white/10"
               }`}
             />
           ))}
@@ -336,7 +336,7 @@ function ActionWizard({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={placeholders[step] ?? "Enter value…"}
-            className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-slate-dim focus:border-emerald-500/40"
+            className="w-full rounded-xl border border-white/10 bg-black/40 px-3.5 py-2.5 text-sm text-white outline-none placeholder:text-slate-dim focus:border-blue-500/40"
           />
         </label>
 
@@ -362,7 +362,7 @@ function ActionWizard({
                 `${template.title}: ${input || template.steps[step]}`
               );
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3.5 py-2 text-xs font-semibold text-[#121212] transition hover:bg-emerald-400"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-blue-400"
           >
             {isLast ? (
               <>
@@ -393,7 +393,7 @@ export function UserModeDashboard({
     <div className="space-y-8">
       <section aria-labelledby="user-metrics-heading" className="space-y-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-emerald-400" aria-hidden />
+          <Sparkles className="h-4 w-4 text-blue-400" aria-hidden />
           <h2
             id="user-metrics-heading"
             className="font-display text-sm font-semibold uppercase tracking-wider text-slate-muted"
@@ -483,7 +483,7 @@ export default function ModeWrapper({
       >
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-1.5 text-xs font-medium text-emerald-400">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/5 px-3.5 py-1.5 text-xs font-medium text-blue-400">
               <Hover3DIcon intensity={14}>
                 {isUser ? (
                   <UserRound className="h-3.5 w-3.5" aria-hidden />

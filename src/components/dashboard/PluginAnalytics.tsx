@@ -112,7 +112,7 @@ const LEASE_STYLES: Record<
 > = {
   active: {
     label: "Active",
-    className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
+    className: "border-blue-500/30 bg-blue-500/10 text-blue-400",
   },
   trial: {
     label: "Trial",
@@ -152,7 +152,7 @@ function StatChip({
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border border-white/5 bg-[#121212] px-3.5 py-3">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-400">
         <Hover3DIcon intensity={12}>
           <Icon className="h-3.5 w-3.5" aria-hidden />
         </Hover3DIcon>
@@ -186,7 +186,7 @@ export default function PluginAnalytics() {
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400">
             <Hover3DIcon intensity={12}>
               <Plug className="h-3 w-3" aria-hidden />
             </Hover3DIcon>
@@ -277,7 +277,7 @@ export default function PluginAnalytics() {
                       {formatCount(plugin.invocations)}
                     </td>
                     <td className="px-4 py-3">
-                      <p className="font-mono text-sm text-emerald-400">
+                      <p className="font-mono text-sm text-blue-400">
                         {formatUsd(plugin.revenueTotal)}
                       </p>
                       <p className="font-mono text-[10px] text-zinc-500">

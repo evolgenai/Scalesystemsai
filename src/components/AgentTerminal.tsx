@@ -27,7 +27,7 @@ function stamp(iso: string): string {
 function lineTone(event: AgentStreamEvent): string {
   if (event.type === 'error' || event.status === 'ERROR') return 'text-rose-400';
   if (event.status === 'SUCCESS' || event.type === 'workflow_complete') {
-    return 'text-emerald-400';
+    return 'text-blue-400';
   }
   if (event.status === 'EXECUTING') return 'text-cyan-400';
   if (event.status === 'THINKING') return 'text-amber-400';
@@ -72,7 +72,7 @@ export default function AgentTerminal({
             <Radio
               className={`h-3 w-3 ${
                 connection === 'live'
-                  ? 'animate-pulse text-emerald-400'
+                  ? 'animate-pulse text-blue-400'
                   : 'text-slate-500'
               }`}
               aria-hidden
@@ -84,7 +84,7 @@ export default function AgentTerminal({
           <div className="flex gap-1.5">
             <div className="h-2.5 w-2.5 rounded-full bg-rose-500/60" />
             <div className="h-2.5 w-2.5 rounded-full bg-amber-500/60" />
-            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
+            <div className="h-2.5 w-2.5 rounded-full bg-blue-500/60" />
           </div>
         </div>
       </div>
@@ -137,7 +137,7 @@ export default function AgentTerminal({
           <p className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
             Active Nodes
           </p>
-          <p className="mt-0.5 font-mono text-lg font-bold text-emerald-400">
+          <p className="mt-0.5 font-mono text-lg font-bold text-blue-400">
             {String(activeNodes).padStart(2, '0')} / Online
           </p>
         </div>

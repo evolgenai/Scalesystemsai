@@ -14,9 +14,9 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh, PointLight } from "three";
 
-const EMERALD = "#10B981";
-const CYAN = "#34d399";
-const GLASS = "#a7f3d0";
+const SAPPHIRE = "#0066FF";
+const CYAN = "#3B82F6";
+const GLASS = "#93C5FD";
 
 export type TeletrafficCrystalMeshProps = {
   className?: string;
@@ -55,7 +55,7 @@ function Prism({
       <octahedronGeometry args={[0.38, 0]} />
       <meshPhysicalMaterial
         color={GLASS}
-        emissive={EMERALD}
+        emissive={SAPPHIRE}
         emissiveIntensity={0.3}
         metalness={0.15}
         roughness={0.08}
@@ -129,7 +129,7 @@ function CrystalCluster({
         <torusGeometry args={[0.55, 0.012, 10, 64]} />
         <meshStandardMaterial
           color={CYAN}
-          emissive={EMERALD}
+          emissive={SAPPHIRE}
           emissiveIntensity={0.55}
           metalness={0.7}
           roughness={0.25}
@@ -140,7 +140,7 @@ function CrystalCluster({
       <pointLight
         ref={glow}
         position={[0.2, 0.4, 0.7]}
-        color={EMERALD}
+        color={SAPPHIRE}
         intensity={0.5}
         distance={3}
         decay={2}
@@ -179,13 +179,13 @@ class WebGLBoundary extends Component<
 function FlatFallback({ className }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-lg border border-emerald-500/25 bg-white/[0.03] ${className ?? "h-10 w-10"}`}
+      className={`inline-flex items-center justify-center rounded-lg border border-blue-500/25 bg-white/[0.03] ${className ?? "h-10 w-10"}`}
       aria-hidden
-      style={{ boxShadow: `0 0 14px ${EMERALD}44` }}
+      style={{ boxShadow: `0 0 14px ${SAPPHIRE}44` }}
     >
       <span
-        className="h-3.5 w-3.5 rotate-45 border border-emerald-400/60 bg-emerald-400/30"
-        style={{ boxShadow: `0 0 10px ${EMERALD}` }}
+        className="h-3.5 w-3.5 rotate-45 border border-blue-400/60 bg-blue-400/30"
+        style={{ boxShadow: `0 0 10px ${SAPPHIRE}` }}
       />
     </span>
   );

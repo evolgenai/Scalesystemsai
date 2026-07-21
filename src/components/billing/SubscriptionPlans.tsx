@@ -128,12 +128,12 @@ export default function SubscriptionPlans({
 
   const panel = (
     <div
-      className={`overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/95 shadow-[0_0_48px_rgba(16,185,129,0.12)] backdrop-blur-xl ${className}`}
+      className={`overflow-hidden rounded-2xl border border-white/10 bg-[#09090B]/95 shadow-[0_0_48px_rgba(0, 102, 255,0.12)] backdrop-blur-xl ${className}`}
     >
       <div className="flex items-start justify-between border-b border-white/5 px-5 py-4">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
-            <Crown className="h-4 w-4 text-emerald-400" aria-hidden />
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10">
+            <Crown className="h-4 w-4 text-blue-400" aria-hidden />
           </span>
           <div>
             <h3 className="font-display text-sm font-bold tracking-wide text-white">
@@ -170,24 +170,24 @@ export default function SubscriptionPlans({
                 onClick={() => void launchCheckout(id)}
                 className={`group flex w-full items-start justify-between gap-3 rounded-xl border px-4 py-4 text-left transition disabled:opacity-60 ${
                   featured
-                    ? "border-emerald-500/40 bg-emerald-500/[0.08] hover:border-emerald-400/55"
-                    : "border-white/5 bg-white/[0.03] hover:border-emerald-500/30 hover:bg-emerald-500/[0.05]"
+                    ? "border-blue-500/40 bg-blue-500/[0.08] hover:border-blue-400/55"
+                    : "border-white/5 bg-white/[0.03] hover:border-blue-500/30 hover:bg-blue-500/[0.05]"
                 }`}
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10">
-                      <Icon className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/10">
+                      <Icon className="h-3.5 w-3.5 text-blue-400" aria-hidden />
                     </span>
                     <span className="text-sm font-semibold text-white">
                       {plan.label}
                     </span>
-                    <span className="font-mono text-sm text-emerald-300">
+                    <span className="font-mono text-sm text-blue-300">
                       ${plan.priceMonthly}
                       <span className="text-[11px] text-slate-dim">/mo</span>
                     </span>
                     {featured ? (
-                      <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-blue-500/25 bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-300">
                         <Sparkles className="h-2.5 w-2.5" aria-hidden />
                         Popular
                       </span>
@@ -203,7 +203,7 @@ export default function SubscriptionPlans({
                         className="flex items-start gap-1.5 text-[11px] text-slate-muted"
                       >
                         <Check
-                          className="mt-0.5 h-3 w-3 shrink-0 text-emerald-400"
+                          className="mt-0.5 h-3 w-3 shrink-0 text-blue-400"
                           aria-hidden
                         />
                         {feature}
@@ -211,7 +211,7 @@ export default function SubscriptionPlans({
                     ))}
                   </ul>
                 </div>
-                <span className="shrink-0 rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 transition group-hover:shadow-[0_0_16px_rgba(16,185,129,0.25)]">
+                <span className="shrink-0 rounded-lg border border-blue-500/30 bg-blue-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-blue-300 transition group-hover:shadow-[0_0_16px_rgba(0, 102, 255,0.25)]">
                   {pending === id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                   ) : id === "ENTERPRISE" ? (

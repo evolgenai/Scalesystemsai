@@ -29,7 +29,7 @@ const FEED_POOL: Omit<FeedEntry, "id" | "timestamp">[] = [
   {
     agent: "Support Specialist",
     message: "Resolved ticket #4821 — API timeout root cause identified",
-    tone: "emerald",
+    tone: "sapphire",
   },
   {
     agent: "Lead Sentinel",
@@ -64,14 +64,14 @@ const FEED_POOL: Omit<FeedEntry, "id" | "timestamp">[] = [
   {
     agent: "Support Specialist",
     message: "Answered 23 tier-1 inquiries from knowledge base in 0.9s avg",
-    tone: "emerald",
+    tone: "sapphire",
   },
 ];
 
 const TONE_CLASSES: Record<FeedTone, string> = {
   cyan: "text-cyan-accent",
   purple: "text-purple-400",
-  emerald: "text-emerald-400",
+  sapphire: "text-blue-400",
   amber: "text-amber-400",
   system: "text-rose-400",
 };
@@ -152,9 +152,9 @@ export default function LiveIntegrationFeed({
             Real-time background worker execution stream
           </p>
         </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5">
-          <Radio className="h-3 w-3 animate-pulse text-emerald-400" aria-hidden />
-          <span className="text-[11px] font-medium text-emerald-400">Streaming</span>
+        <div className="flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1.5">
+          <Radio className="h-3 w-3 animate-pulse text-blue-400" aria-hidden />
+          <span className="text-[11px] font-medium text-blue-400">Streaming</span>
         </div>
       </div>
 
@@ -182,7 +182,7 @@ export default function LiveIntegrationFeed({
             <div className="flex gap-1.5" aria-hidden>
               <span className="h-2.5 w-2.5 rounded-full bg-rose-500/50" />
               <span className="h-2.5 w-2.5 rounded-full bg-amber-500/50" />
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/50" />
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-500/50" />
             </div>
           </div>
         </div>

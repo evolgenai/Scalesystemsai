@@ -155,7 +155,7 @@ export default function MetaSreCommandDeck() {
     <div className="space-y-5" style={{ backgroundColor: "#09090B" }}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
             Super-Admin · Meta-SRE
           </p>
           <h2 className="mt-1 font-display text-xl font-semibold text-white sm:text-2xl">
@@ -169,7 +169,7 @@ export default function MetaSreCommandDeck() {
         <div className="inline-flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-xs text-slate-dim backdrop-blur-xl">
           <Hover3DIcon intensity={12}>
             <Radar
-              className={`h-3.5 w-3.5 ${running ? "animate-pulse text-emerald-400" : "text-slate-500"}`}
+              className={`h-3.5 w-3.5 ${running ? "animate-pulse text-blue-400" : "text-slate-500"}`}
               aria-hidden
             />
           </Hover3DIcon>
@@ -194,7 +194,7 @@ export default function MetaSreCommandDeck() {
             onChange={(e) => setDirective(e.target.value)}
             disabled={running}
             placeholder="e.g. Harden agent stream reconnects and open a PR with sandbox-verified patches…"
-            className="w-full resize-y rounded-lg border border-white/10 bg-obsidian/80 px-3.5 py-3 font-mono text-sm text-slate-100 placeholder:text-slate-dim outline-none transition focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60"
+            className="w-full resize-y rounded-lg border border-white/10 bg-obsidian/80 px-3.5 py-3 font-mono text-sm text-slate-100 placeholder:text-slate-dim outline-none transition focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30 disabled:opacity-60"
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-[11px] text-slate-dim">
@@ -203,7 +203,7 @@ export default function MetaSreCommandDeck() {
             <button
               type="submit"
               disabled={running || !directive.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/15 px-3.5 py-2 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {running ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -234,15 +234,15 @@ export default function MetaSreCommandDeck() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.04, duration: 0.3 }}
                   className={`flex items-start gap-3 px-4 py-3.5 transition ${
-                    isActive ? "bg-emerald-500/[0.06]" : ""
+                    isActive ? "bg-blue-500/[0.06]" : ""
                   }`}
                 >
                   <span className="mt-0.5 shrink-0">
                     {status === "done" ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden />
+                      <CheckCircle2 className="h-4 w-4 text-blue-400" aria-hidden />
                     ) : status === "active" ? (
                       <Loader2
-                        className="h-4 w-4 animate-spin text-emerald-400"
+                        className="h-4 w-4 animate-spin text-blue-400"
                         aria-hidden
                       />
                     ) : (
@@ -293,7 +293,7 @@ export default function MetaSreCommandDeck() {
                     transition={{ duration: 0.2 }}
                     className={`flex gap-2 rounded px-1.5 py-0.5 ${
                       line.tone === "ok"
-                        ? "text-emerald-400"
+                        ? "text-blue-400"
                         : line.tone === "phase"
                           ? "text-cyan-accent"
                           : line.tone === "warn"

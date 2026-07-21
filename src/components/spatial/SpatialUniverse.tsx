@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import RobotAvatar from "@/components/spatial/RobotAvatar";
 
-const EMERALD = "#34d399";
+const SAPPHIRE = "#3B82F6";
 const CYAN = "#22d3ee";
 const AMBER = "#f59e0b";
 const YELLOW = "#facc15";
@@ -79,7 +79,7 @@ const TOWERS: TowerDef[] = [
         "[gas] claim window open · free tier active",
         "[*] burn rate 0.42 u/s · swarm-alpha",
         "[*] ceiling 10k · remaining 7.8k",
-        "[ok] emerald path · recharge ready",
+        "[ok] SAPPHIRE path · recharge ready",
       ],
     },
   },
@@ -111,7 +111,7 @@ const TOWERS: TowerDef[] = [
     status: "Encrypted",
     position: [0, 0, 8],
     height: 4.2,
-    accent: EMERALD,
+    accent: SAPPHIRE,
     script: {
       id: "vault-orb",
       label: "encrypted glass orb",
@@ -132,14 +132,14 @@ const TOWERS: TowerDef[] = [
     status: "Radar clear",
     position: [-5, 0, 5],
     height: 6.0,
-    accent: EMERALD,
+    accent: SAPPHIRE,
     script: {
       id: "sre-radar",
       label: "latency · error · heal",
       runtime: "meta-sre-deck",
       status: "healthy",
       lines: [
-        "[sre] radar sweep · 360° emerald",
+        "[sre] radar sweep · 360° SAPPHIRE",
         "[*] p95 38ms · err 0.02%",
         "[*] heal budget 4/5 remaining",
         "[ok] signal tower nominal",
@@ -246,7 +246,7 @@ function HudTooltip({
   if (!visible) return null;
   return (
     <div
-      className="pointer-events-none whitespace-nowrap rounded-lg border border-white/15 bg-[#09090B]/90 px-2.5 py-1.5 shadow-[0_0_24px_rgba(16,185,129,0.2)] backdrop-blur-md"
+      className="pointer-events-none whitespace-nowrap rounded-lg border border-white/15 bg-[#09090B]/90 px-2.5 py-1.5 shadow-[0_0_24px_rgba(0, 102, 255,0.2)] backdrop-blur-md"
       style={{ borderColor: `${accent}55` }}
     >
       <p className="font-mono text-[10px] font-semibold text-white">{name}</p>
@@ -321,8 +321,8 @@ function GasObelisk({
       <mesh ref={core} position={[0, tower.height * 0.55, 0]}>
         <boxGeometry args={[0.35, tower.height * 0.7, 0.35]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={active || hovered ? 1.4 : 0.7}
           transparent
           opacity={0.85}
@@ -473,7 +473,7 @@ function VaultSphere({
   const pMat = useMemo(
     () =>
       new THREE.PointsMaterial({
-        color: EMERALD,
+        color: SAPPHIRE,
         size: 0.06,
         transparent: true,
         opacity: 0.7,
@@ -512,8 +512,8 @@ function VaultSphere({
       <mesh ref={orb} position={[0, 2.4, 0]}>
         <sphereGeometry args={[1.05, 32, 32]} />
         <meshPhysicalMaterial
-          color="#a7f3d0"
-          emissive={EMERALD}
+          color="#93C5FD"
+          emissive={SAPPHIRE}
           emissiveIntensity={active || hovered ? 0.55 : 0.25}
           metalness={0.1}
           roughness={0.08}
@@ -528,7 +528,7 @@ function VaultSphere({
         <HudTooltip
           name={tower.name}
           status={tower.status}
-          accent={EMERALD}
+          accent={SAPPHIRE}
           visible={hovered || active}
         />
       </Html>
@@ -583,23 +583,23 @@ function SreBeacon({
           color="#0b1220"
           metalness={0.85}
           roughness={0.25}
-          emissive={EMERALD}
+          emissive={SAPPHIRE}
           emissiveIntensity={active || hovered ? 0.35 : 0.12}
         />
       </mesh>
       <mesh ref={tip} position={[0, tower.height + 0.25, 0]}>
         <sphereGeometry args={[0.28, 16, 16]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={1}
         />
       </mesh>
       <mesh ref={ring} position={[0, tower.height * 0.72, 0]}>
         <torusGeometry args={[1.15, 0.04, 8, 48]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={SAPPHIRE}
+          emissive={SAPPHIRE}
           emissiveIntensity={0.85}
           transparent
           opacity={0.75}
@@ -607,13 +607,13 @@ function SreBeacon({
       </mesh>
       <mesh position={[0, tower.height * 0.45, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.75, 0.03, 6, 32]} />
-        <meshBasicMaterial color={EMERALD} transparent opacity={0.35} />
+        <meshBasicMaterial color={SAPPHIRE} transparent opacity={0.35} />
       </mesh>
       <Html position={[0, tower.height + 1.2, 0]} center distanceFactor={12}>
         <HudTooltip
           name={tower.name}
           status={tower.status}
-          accent={EMERALD}
+          accent={SAPPHIRE}
           visible={hovered || active}
         />
       </Html>
@@ -794,7 +794,7 @@ function ProximityBillboard({ tower }: { tower: TowerDef }) {
         <planeGeometry args={[2.8, 0.55]} />
         <meshStandardMaterial
           color="#04120e"
-          emissive={EMERALD}
+          emissive={SAPPHIRE}
           emissiveIntensity={0.55}
           metalness={0.35}
           roughness={0.25}
@@ -804,7 +804,7 @@ function ProximityBillboard({ tower }: { tower: TowerDef }) {
         />
       </mesh>
       <Html center distanceFactor={10} zIndexRange={[40, 0]}>
-        <div className="pointer-events-none whitespace-nowrap rounded-md border border-emerald-400/50 bg-[#09090B]/92 px-3 py-1.5 font-mono text-[11px] font-semibold text-emerald-300 shadow-[0_0_28px_rgba(52,211,153,0.45)] backdrop-blur-md">
+        <div className="pointer-events-none whitespace-nowrap rounded-md border border-blue-400/50 bg-[#09090B]/92 px-3 py-1.5 font-mono text-[11px] font-semibold text-blue-300 shadow-[0_0_28px_rgba(59, 130, 246,0.45)] backdrop-blur-md">
           [Press E to Connect / Open Script]
         </div>
       </Html>
@@ -867,7 +867,7 @@ function Scene({
         shadow-camera-bottom={-25}
         shadow-bias={-0.0002}
       />
-      <pointLight position={[-10, 8, -6]} intensity={1.15} color={EMERALD} />
+      <pointLight position={[-10, 8, -6]} intensity={1.15} color={SAPPHIRE} />
       <pointLight position={[8, 6, 5]} intensity={1} color={CYAN} />
       <pointLight position={[0, 10, 0]} intensity={0.45} color={YELLOW} />
       <CyberGrid />
@@ -912,11 +912,11 @@ function InspectModal({
         role="dialog"
         aria-modal
         aria-labelledby="inspect-tower-title"
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-500/25 bg-[#09090B]/95 shadow-[0_0_48px_rgba(16,185,129,0.18)] backdrop-blur-xl"
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-blue-500/25 bg-[#09090B]/95 shadow-[0_0_48px_rgba(0, 102, 255,0.18)] backdrop-blur-xl"
       >
         <div className="flex items-start justify-between gap-3 border-b border-white/5 px-4 py-3">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-emerald-400/80">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-blue-400/80">
               inspect · constellation node
             </p>
             <h3
@@ -943,7 +943,7 @@ function InspectModal({
             <Radio className="h-3 w-3" aria-hidden />
             {script.runtime}
           </span>
-          <span className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 font-mono text-emerald-300">
+          <span className="inline-flex items-center gap-1 rounded border border-blue-500/30 bg-blue-500/10 px-1.5 py-0.5 font-mono text-blue-300">
             <Activity className="h-3 w-3" aria-hidden />
             {script.status}
           </span>
@@ -960,7 +960,7 @@ function InspectModal({
             {tower.status}
           </span>
         </div>
-        <pre className="max-h-52 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed text-emerald-200/90">
+        <pre className="max-h-52 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed text-blue-200/90">
           {script.lines.map((line, i) => (
             <div key={i} className="whitespace-pre-wrap">
               {line}
@@ -983,16 +983,16 @@ function ProximityChip({
 }) {
   return (
     <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-20 sm:left-auto sm:right-4 sm:w-[min(20rem,calc(100%-2rem))]">
-      <div className="overflow-hidden rounded-xl border border-emerald-500/30 bg-[#09090B]/90 shadow-[0_0_40px_rgba(16,185,129,0.2)] backdrop-blur-xl">
+      <div className="overflow-hidden rounded-xl border border-blue-500/30 bg-[#09090B]/90 shadow-[0_0_40px_rgba(0, 102, 255,0.2)] backdrop-blur-xl">
         <div className="flex items-start justify-between gap-3 px-3.5 py-2.5">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-emerald-400/80">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-blue-400/80">
               proximity · 3u
             </p>
             <h3 className="truncate text-sm font-semibold text-white">
               {tower.name}
             </h3>
-            <p className="mt-0.5 font-mono text-[11px] text-emerald-300/90">
+            <p className="mt-0.5 font-mono text-[11px] text-blue-300/90">
               [Press E to Connect / Open Script]
             </p>
           </div>
@@ -1009,7 +1009,7 @@ function ProximityChip({
           <button
             type="button"
             onClick={onInspect}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/35 bg-emerald-500/15 px-3 py-2 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-500/25"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-500/35 bg-blue-500/15 px-3 py-2 text-[11px] font-semibold text-blue-300 transition hover:bg-blue-500/25"
           >
             Connect / Open Script
           </button>
@@ -1085,8 +1085,8 @@ export default function SpatialUniverse({
     >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 px-3.5 py-2.5 sm:px-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-emerald-500/25 bg-emerald-500/10">
-            <Zap className="h-4 w-4 text-emerald-400" aria-hidden />
+          <div className="flex h-8 w-8 items-center justify-center rounded-md border border-blue-500/25 bg-blue-500/10">
+            <Zap className="h-4 w-4 text-blue-400" aria-hidden />
           </div>
           <div>
             <h2 className="text-sm font-semibold text-white">
@@ -1158,7 +1158,7 @@ export default function SpatialUniverse({
         {!locked && webgl && !inspect ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
             <div className="rounded-lg border border-white/10 bg-[#09090B]/80 px-4 py-3 text-center backdrop-blur-xl">
-              <Terminal className="mx-auto mb-2 h-5 w-5 text-emerald-400" />
+              <Terminal className="mx-auto mb-2 h-5 w-5 text-blue-400" />
               <p className="text-sm font-medium text-white">
                 Click to pilot robot avatar
               </p>

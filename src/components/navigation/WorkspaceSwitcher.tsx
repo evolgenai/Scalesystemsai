@@ -59,7 +59,7 @@ function ComputeBadge({
     tone === "hot"
       ? "border-amber-400/35 bg-amber-400/10 text-amber-300"
       : tone === "moderate"
-        ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-400"
+        ? "border-blue-500/35 bg-blue-500/10 text-blue-400"
         : "border-white/10 bg-white/[0.04] text-zinc-400";
 
   return (
@@ -231,13 +231,13 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex max-w-[14rem] items-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-2.5 py-1.5 text-left transition hover:border-emerald-500/30"
+        className="inline-flex max-w-[14rem] items-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-2.5 py-1.5 text-left transition hover:border-blue-500/30"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Switch workspace"
       >
         {activeOrg ? (
-          <Building2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
+          <Building2 className="h-3.5 w-3.5 shrink-0 text-blue-400" aria-hidden />
         ) : (
           <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-muted" aria-hidden />
         )}
@@ -256,7 +256,7 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
           className="absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-lg border border-white/5 bg-[#121212] shadow-2xl"
         >
           <div className="border-b border-white/5 px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
               Tenancy workspace
             </p>
           </div>
@@ -279,13 +279,13 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
                   onClick={() => selectPreset(preset.key)}
                   className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${
                     selected
-                      ? "border-l-2 border-l-emerald-400 bg-emerald-500/10 text-white"
+                      ? "border-l-2 border-l-blue-400 bg-blue-500/10 text-white"
                       : "hover:bg-white/[0.04]"
                   }`}
                 >
                   <UserRound
                     className={`h-3.5 w-3.5 shrink-0 ${
-                      selected ? "text-emerald-400" : "text-slate-muted"
+                      selected ? "text-blue-400" : "text-slate-muted"
                     }`}
                     aria-hidden
                   />
@@ -301,7 +301,7 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
                     </span>
                   </span>
                   {selected ? (
-                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
+                    <Check className="h-3.5 w-3.5 shrink-0 text-blue-400" aria-hidden />
                   ) : null}
                 </button>
               );
@@ -324,12 +324,12 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
                     onClick={() => selectOrg(org.id)}
                     className={`flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${
                       activeOrgId === org.id
-                        ? "border-l-2 border-l-emerald-400 bg-emerald-500/10 text-white"
+                        ? "border-l-2 border-l-blue-400 bg-blue-500/10 text-white"
                         : "hover:bg-white/[0.04]"
                     }`}
                   >
                     <Building2
-                      className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                      className="h-3.5 w-3.5 shrink-0 text-blue-400"
                       aria-hidden
                     />
                     <span className="min-w-0 flex-1">
@@ -345,7 +345,7 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
                     </span>
                     {activeOrgId === org.id ? (
                       <Check
-                        className="h-3.5 w-3.5 shrink-0 text-emerald-400"
+                        className="h-3.5 w-3.5 shrink-0 text-blue-400"
                         aria-hidden
                       />
                     ) : null}
@@ -359,7 +359,7 @@ export default function WorkspaceSwitcher({ enabled }: WorkspaceSwitcherProps) {
             <button
               type="button"
               onClick={openCreateModal}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
+              className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20"
             >
               <Plus className="h-3.5 w-3.5" aria-hidden />
               Create Organization

@@ -3,7 +3,7 @@ export type AgentId =
   | "ops-orchestrator"
   | "support-specialist";
 
-export type FeedTone = "cyan" | "purple" | "emerald" | "amber" | "system";
+export type FeedTone = "cyan" | "purple" | "sapphire" | "amber" | "system";
 
 export type FeedEntry = {
   id: string;

@@ -165,7 +165,7 @@ export default function DebateArena({
               Human consensus vote
             </p>
             {lockedVote ? (
-              <span className="rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+              <span className="rounded-full border border-blue-400/40 bg-blue-400/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
                 Verdict Registered
               </span>
             ) : null}
@@ -201,7 +201,7 @@ export default function DebateArena({
               role="status"
               className={`mt-2 flex items-start gap-2 rounded-xl border px-3 py-2 text-xs ${
                 toast.tone === "success"
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                  ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
                   : "border-rose-500/30 bg-rose-500/10 text-rose-300"
               }`}
             >

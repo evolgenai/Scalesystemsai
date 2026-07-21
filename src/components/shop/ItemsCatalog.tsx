@@ -100,8 +100,8 @@ const CATALOG_ITEMS: CatalogItem[] = [
     rating: 5.0,
     reviews: 209,
     badge: "Best Seller",
-    color: "from-emerald-950/80 to-slate-900/60",
-    accent: "emerald",
+    color: "from-blue-950/80 to-slate-900/60",
+    accent: "sapphire",
     emoji: "🪣",
   },
   {
@@ -233,8 +233,8 @@ function StockBadge({ status, stock }: { status: StockStatus; stock: number }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+    <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2 py-0.5 text-[10px] font-semibold text-blue-400">
+      <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
       In Stock
     </span>
   );
@@ -331,7 +331,7 @@ function QuickAddDrawer({ item, onClose }: { item: DrawerItem; onClose: () => vo
                   <span className="text-sm text-slate-dim line-through">${item.originalPrice}</span>
                 ) : null}
                 {item.originalPrice ? (
-                  <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-400">
+                  <span className="rounded-full bg-blue-500/15 px-2 py-0.5 text-xs font-semibold text-blue-400">
                     Save ${item.originalPrice - item.price}
                   </span>
                 ) : null}
@@ -369,10 +369,10 @@ function QuickAddDrawer({ item, onClose }: { item: DrawerItem; onClose: () => vo
                 disabled={item.stockStatus === "out-of-stock"}
                 className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition ${
                   added
-                    ? "border border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
+                    ? "border border-blue-500/40 bg-blue-500/15 text-blue-400"
                     : item.stockStatus === "out-of-stock"
                       ? "cursor-not-allowed border border-white/5 bg-white/[0.03] text-slate-dim"
-                      : "border border-emerald-500/40 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
+                      : "border border-blue-500/40 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25"
                 }`}
               >
                 <ShoppingCart className="h-4 w-4" aria-hidden />
@@ -452,7 +452,7 @@ function GridCard({ item, onQuickAdd }: { item: CatalogItem; onQuickAdd: (item: 
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
               item.stockStatus === "out-of-stock"
                 ? "cursor-not-allowed border border-white/5 bg-white/[0.02] text-slate-dim"
-                : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                : "border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
             }`}
           >
             <ShoppingCart className="h-3 w-3" aria-hidden />
@@ -509,7 +509,7 @@ function TableRow({ item, onQuickAdd }: { item: CatalogItem; onQuickAdd: (item: 
           className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
             item.stockStatus === "out-of-stock"
               ? "cursor-not-allowed border border-white/5 text-slate-dim"
-              : "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+              : "border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
           }`}
         >
           <ShoppingCart className="h-3 w-3" aria-hidden />
@@ -588,7 +588,7 @@ function CarouselView({ items, onQuickAdd }: { items: CatalogItem[]; onQuickAdd:
                 className={`flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold transition ${
                   item.stockStatus === "out-of-stock"
                     ? "cursor-not-allowed bg-white/10 text-white/30"
-                    : "bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30"
+                    : "bg-blue-500/20 border border-blue-500/40 text-blue-300 hover:bg-blue-500/30"
                 }`}
               >
                 <ShoppingCart className="h-4 w-4" aria-hidden />
@@ -617,7 +617,7 @@ function CarouselView({ items, onQuickAdd }: { items: CatalogItem[]; onQuickAdd:
             aria-selected={i === idx}
             onClick={() => { setDir(i > idx ? 1 : -1); setIdx(i); }}
             className={`h-1.5 rounded-full transition-all ${
-              i === idx ? "w-6 bg-emerald-400" : "w-1.5 bg-white/20"
+              i === idx ? "w-6 bg-blue-400" : "w-1.5 bg-white/20"
             }`}
             aria-label={`Go to item ${i + 1}`}
           />
@@ -638,7 +638,7 @@ export default function ItemsCatalog() {
     <div className="space-y-6" style={{ backgroundColor: "#09090B" }}>
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
             Store · Catalog
           </p>
           <h2 className="mt-1 font-display text-xl font-semibold text-white sm:text-2xl">
@@ -661,7 +661,7 @@ export default function ItemsCatalog() {
                   aria-pressed={viewMode === m}
                   className={`flex h-8 w-8 items-center justify-center rounded-md transition ${
                     viewMode === m
-                      ? "bg-emerald-500/15 text-emerald-400"
+                      ? "bg-blue-500/15 text-blue-400"
                       : "text-slate-muted hover:text-white"
                   }`}
                   aria-label={`${m} view`}
@@ -672,7 +672,7 @@ export default function ItemsCatalog() {
             })}
           </div>
           <div className="inline-flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-dim">
-            <TrendingUp className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+            <TrendingUp className="h-3.5 w-3.5 text-blue-400" aria-hidden />
             {filtered.length} items
           </div>
         </div>
@@ -694,7 +694,7 @@ export default function ItemsCatalog() {
               onClick={() => setCategory(cat.id)}
               className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
                 category === cat.id
-                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
+                  ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
                   : "border-white/5 bg-white/[0.03] text-slate-muted hover:border-white/10 hover:text-white"
               }`}
             >
@@ -702,7 +702,7 @@ export default function ItemsCatalog() {
                 <Icon className="h-3.5 w-3.5" aria-hidden />
               </Hover3DIcon>
               {cat.label}
-              <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${category === cat.id ? "bg-emerald-500/20 text-emerald-400" : "bg-white/[0.05] text-slate-dim"}`}>
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${category === cat.id ? "bg-blue-500/20 text-blue-400" : "bg-white/[0.05] text-slate-dim"}`}>
                 {cat.count}
               </span>
             </button>

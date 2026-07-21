@@ -300,7 +300,7 @@ export default function ROISavingsCalculator() {
                 </div>
                 <span className="hidden h-3 w-px bg-white/10 sm:block" aria-hidden />
                 <div className="flex items-center gap-2 text-xs text-slate-dim">
-                  <DollarSign className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
+                  <DollarSign className="h-3.5 w-3.5 text-blue-400" aria-hidden />
                   {Math.round((1 - AUTONOMOUS_FEE_RATIO) * 100)}% cost retained as savings
                 </div>
               </div>

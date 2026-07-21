@@ -82,7 +82,7 @@ const RULES: AlertRule[] = [
     label: "Chaos Error Rate",
     description: "Trigger when incident density crosses this percentage.",
     tooltip:
-      "Incident density = stressed flow nodes / total nodes over a 5m window. Cascade + partition injects raise this meter until emerald restore.",
+      "Incident density = stressed flow nodes / total nodes over a 5m window. Cascade + partition injects raise this meter until SAPPHIRE restore.",
     unit: "%",
     min: 1,
     max: 40,
@@ -177,7 +177,7 @@ export default function AlertConfig() {
             className="rounded-lg border border-amber-400/20 bg-white/[0.03]"
           />
           <div>
-            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/5 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400">
               <Hover3DIcon intensity={12}>
                 <BellRing className="h-3 w-3" aria-hidden />
               </Hover3DIcon>
@@ -207,7 +207,7 @@ export default function AlertConfig() {
           <button
             type="button"
             onClick={handleSave}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/25"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/15 px-3 py-2 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/25"
           >
             <Save className="h-3.5 w-3.5" aria-hidden />
             {savedFlash ? "Saved" : "Save rules"}
@@ -254,13 +254,13 @@ export default function AlertConfig() {
                       type="checkbox"
                       checked={state.enabled}
                       onChange={() => toggleRule(rule.id)}
-                      className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-white/20 bg-obsidian text-emerald-500 accent-emerald-500 focus:ring-emerald-500/40"
+                      className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border-white/20 bg-obsidian text-blue-500 accent-blue-500 focus:ring-blue-500/40"
                     />
                     <span className="min-w-0">
                       <span className="flex items-center gap-2 text-sm font-medium text-white">
                         <Icon
                           className={`h-3.5 w-3.5 ${
-                            state.enabled ? "text-emerald-400" : "text-zinc-500"
+                            state.enabled ? "text-blue-400" : "text-zinc-500"
                           }`}
                           aria-hidden
                         />
@@ -282,17 +282,17 @@ export default function AlertConfig() {
                         Threshold
                         <MetricTooltip text={rule.tooltip} />
                       </span>
-                      <span className="group/value relative font-mono text-sm font-semibold text-emerald-400">
+                      <span className="group/value relative font-mono text-sm font-semibold text-blue-400">
                         {rule.format(state.threshold)}
                         <span className="ml-1 text-[10px] font-medium text-zinc-500">
                           {rule.unit}
                         </span>
                         <span
                           role="tooltip"
-                          className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 w-52 rounded-lg border border-emerald-500/25 bg-obsidian px-2.5 py-2 text-left text-[10px] font-normal normal-case tracking-normal text-zinc-300 opacity-0 shadow-xl shadow-black/50 transition duration-150 group-hover/value:opacity-100"
+                          className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 w-52 rounded-lg border border-blue-500/25 bg-obsidian px-2.5 py-2 text-left text-[10px] font-normal normal-case tracking-normal text-zinc-300 opacity-0 shadow-xl shadow-black/50 transition duration-150 group-hover/value:opacity-100"
                         >
                           Live ceiling ·{" "}
-                          <span className="text-emerald-400">
+                          <span className="text-blue-400">
                             {rule.format(state.threshold)} {rule.unit}
                           </span>
                           <br />
@@ -315,7 +315,7 @@ export default function AlertConfig() {
                         setThreshold(rule.id, Number(e.target.value))
                       }
                       aria-label={`${rule.label} threshold`}
-                      className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-emerald-400 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400"
+                      className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-blue-400 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-400"
                       style={{
                         background: `linear-gradient(to right, rgb(52 211 153 / 0.7) ${pct}%, rgb(255 255 255 / 0.08) ${pct}%)`,
                       }}
@@ -348,7 +348,7 @@ export default function AlertConfig() {
                 type="checkbox"
                 checked={channels[ch.id]}
                 onChange={() => toggleChannel(ch.id)}
-                className="h-4 w-4 cursor-pointer rounded border-white/20 bg-obsidian text-emerald-500 accent-emerald-500 focus:ring-emerald-500/40"
+                className="h-4 w-4 cursor-pointer rounded border-white/20 bg-obsidian text-blue-500 accent-blue-500 focus:ring-blue-500/40"
               />
               <span className="text-sm text-white">{ch.label}</span>
             </label>
@@ -364,7 +364,7 @@ function MetricTooltip({ text }: { text: string }) {
     <span className="group/tip relative inline-flex">
       <button
         type="button"
-        className="rounded-full text-zinc-500 transition hover:text-emerald-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/50"
+        className="rounded-full text-zinc-500 transition hover:text-blue-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500/50"
         aria-label="Metric help"
       >
         <HelpCircle className="h-3 w-3" aria-hidden />
@@ -399,7 +399,7 @@ function StatChip({
       </p>
       <p
         className={`mt-1 text-sm font-semibold text-white ${
-          mono ? "font-mono text-emerald-400" : ""
+          mono ? "font-mono text-blue-400" : ""
         }`}
       >
         {value}

@@ -37,7 +37,7 @@ function statusLabel(
 
 function statusTone(status: SandboxExecutionStatus): string {
   if (status === "running") return "text-cyan-accent";
-  if (status === "success") return "text-emerald-300";
+  if (status === "success") return "text-blue-300";
   if (status === "error") return "text-rose-300";
   return "text-slate-dim";
 }
@@ -80,7 +80,7 @@ function StdoutBlock({
 }) {
   return (
     <pre
-      className={`whitespace-pre-wrap rounded-lg border border-emerald-400/30 bg-[#03140c] px-3 py-2.5 font-mono text-[12px] leading-relaxed text-emerald-300 shadow-[0_0_24px_rgba(52,211,153,0.22)] ${
+      className={`whitespace-pre-wrap rounded-lg border border-blue-400/30 bg-[#03140c] px-3 py-2.5 font-mono text-[12px] leading-relaxed text-blue-300 shadow-[0_0_24px_rgba(59, 130, 246,0.22)] ${
         compact ? "max-h-48 overflow-y-auto" : ""
       }`}
     >
@@ -148,7 +148,7 @@ export default function SandboxConsole({
           aria-live="polite"
         >
           {!cleanStdout && !cleanStderr && status === "idle" ? (
-            <p className="font-mono text-[11px] text-emerald-500/40">$</p>
+            <p className="font-mono text-[11px] text-blue-500/40">$</p>
           ) : null}
           {hasStdout ? <StdoutBlock text={cleanStdout} compact /> : null}
           {cleanStderr ? (
@@ -157,7 +157,7 @@ export default function SandboxConsole({
             </pre>
           ) : null}
           {status === "running" && !cleanStdout && !cleanStderr ? (
-            <p className="animate-pulse font-mono text-[11px] text-emerald-400/70">
+            <p className="animate-pulse font-mono text-[11px] text-blue-400/70">
               …
             </p>
           ) : null}
@@ -168,14 +168,14 @@ export default function SandboxConsole({
 
   return (
     <section
-      className={`overflow-hidden rounded-xl border border-emerald-400/25 bg-[#050807] shadow-[0_0_28px_rgba(52,211,153,0.12)] ${
+      className={`overflow-hidden rounded-xl border border-blue-400/25 bg-[#050807] shadow-[0_0_28px_rgba(59, 130, 246,0.12)] ${
         compact ? "" : "mt-3"
       }`}
     >
-      <header className="flex items-center justify-between gap-2 border-b border-emerald-400/20 bg-black/50 px-3 py-2">
+      <header className="flex items-center justify-between gap-2 border-b border-blue-400/20 bg-black/50 px-3 py-2">
         <div className="flex items-center gap-2">
-          <Terminal className="h-3.5 w-3.5 text-emerald-300" aria-hidden />
-          <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-300/90">
+          <Terminal className="h-3.5 w-3.5 text-blue-300" aria-hidden />
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-blue-300/90">
             {title}
           </span>
           {language ? (
@@ -193,7 +193,7 @@ export default function SandboxConsole({
             <span
               className={`h-1.5 w-1.5 rounded-full ${
                 status === "success"
-                  ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"
+                  ? "bg-blue-400 shadow-[0_0_8px_rgba(59, 130, 246,0.8)]"
                   : status === "error"
                     ? "bg-rose-400"
                     : status === "running"
@@ -216,7 +216,7 @@ export default function SandboxConsole({
         aria-live="polite"
       >
         {!cleanStdout && !cleanStderr && status === "idle" ? (
-          <p className="font-mono text-[11px] text-emerald-500/50">
+          <p className="font-mono text-[11px] text-blue-500/50">
             $ awaiting sandbox output…
           </p>
         ) : null}

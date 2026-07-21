@@ -346,3 +346,80 @@ export async function deductGasForNodes(
   }
   return results;
 }
+
+export type CreditGasResult = {
+  workspaceId: string;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  ledgerId: string;
+};
+
+/**
+ * Atomically credit Gas (RECHARGE) under FOR UPDATE + Serializable retries.
+ */
+export async function creditGas(
+  workspaceId: string,
+  amount: number,
+  description: string
+): Promise<CreditGasResult> {
+  const units = Math.max(0, Math.trunc(amount));
+  if (units <= 0) {
+    throw new Error("creditGas requires a positive integer amount.");
+  }
+
+  const prisma = getPrisma();
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < MAX_TX_RETRIES; attempt += 1) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const locked = await lockWorkspaceGas(tx, workspaceId);
+          if (!locked) {
+            throw new Error(`Workspace not found: ${workspaceId}`);
+          }
+
+          const balanceBefore = locked.gasBalance;
+          const balanceAfter = balanceBefore + units;
+
+          await tx.workspace.update({
+            where: { id: locked.id },
+            data: { gasBalance: balanceAfter },
+          });
+
+          const ledger = await tx.gasLedger.create({
+            data: {
+              workspaceId: locked.id,
+              amount: units,
+              transactionType: "RECHARGE" satisfies GasTransactionType,
+              description,
+            },
+          });
+
+          return {
+            workspaceId: locked.id,
+            amount: units,
+            balanceBefore,
+            balanceAfter,
+            ledgerId: ledger.id,
+          };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          timeout: TX_TIMEOUT_MS,
+          maxWait: TX_MAX_WAIT_MS,
+        }
+      );
+    } catch (err) {
+      lastError = err;
+      if (!isRetryableTxError(err) || attempt >= MAX_TX_RETRIES - 1) {
+        throw err;
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Gas credit failed after retries.");
+}

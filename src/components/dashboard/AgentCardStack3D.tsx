@@ -105,7 +105,7 @@ function AgentDetailFlyout({
         <dl className="mt-3 grid gap-2 rounded-lg border border-white/5 bg-black/30 p-3 text-xs">
           <div className="flex justify-between gap-3">
             <dt className="text-slate-dim">Status</dt>
-            <dd className="font-mono text-emerald-400">{agent.status}</dd>
+            <dd className="font-mono text-blue-400">{agent.status}</dd>
           </div>
           <div className="flex justify-between gap-3">
             <dt className="text-slate-dim">Progress</dt>
@@ -267,7 +267,7 @@ function StackScene({
         intensity={0.6}
         angle={0.5}
         penumbra={0.8}
-        color={troubleshootActive ? "#f59e0b" : "#34d399"}
+        color={troubleshootActive ? "#f59e0b" : "#3B82F6"}
       />
       {agents.map((agent, index) => (
         <StackCard
@@ -371,7 +371,7 @@ export default function AgentCardStack3D({
               setFanned((v) => !v);
               if (fanned) setActiveIndex(null);
             }}
-            className="rounded-lg border border-white/5 bg-[#121212] px-3 py-1.5 text-[11px] font-medium text-emerald-400 transition hover:border-emerald-500/30"
+            className="rounded-lg border border-white/5 bg-[#121212] px-3 py-1.5 text-[11px] font-medium text-blue-400 transition hover:border-blue-500/30"
           >
             {fanned ? "Stack cards" : "Fan out"}
           </button>
@@ -400,7 +400,7 @@ export default function AgentCardStack3D({
             }}
           >
             <div
-              className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.06),transparent_70%)]"
+              className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,rgba(59, 130, 246,0.06),transparent_70%)]"
               aria-hidden
             />
             <Canvas

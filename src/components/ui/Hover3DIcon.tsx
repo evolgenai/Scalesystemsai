@@ -14,7 +14,7 @@ type Hover3DIconProps = {
   className?: string;
   /** Depth of the tilt / float response (degrees / px). */
   intensity?: number;
-  /** Emerald glow radius on hover. */
+  /** Sapphire glow radius on hover. */
   glow?: boolean;
   /** Notify parent so labels can spring push-down. */
   onHoverChange?: (hovered: boolean) => void;
@@ -81,10 +81,10 @@ export default function Hover3DIcon({
     onHoverChange?.(false);
   };
 
-  const glowStyle: CSSProperties = glow
+  const glowStyle: CSSProperties | undefined = glow
     ? {
         filter: hovered
-          ? "drop-shadow(0 0 10px rgba(52,211,153,0.65)) drop-shadow(0 0 22px rgba(16,185,129,0.35))"
+          ? "drop-shadow(0 0 10px rgba(59,130,246,0.65)) drop-shadow(0 0 22px rgba(0,102,255,0.35))"
           : "drop-shadow(0 0 0 transparent)",
         transition: "filter 220ms ease",
       }
