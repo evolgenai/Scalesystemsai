@@ -3,6 +3,7 @@
  */
 
 import { z } from "zod";
+import { deductGasForNodes } from "@/lib/billing/gasMeter";
 import { withPrisma } from "@/lib/prisma";
 import {
   SwarmOrchestrator,
@@ -99,6 +100,12 @@ export async function runWorkflowBlueprint(
   }
 
   const { nodes, edges } = parseGraphJson(blueprint.nodes, blueprint.edges);
+
+  // Gas pre-flight: deduct per-node credits before the swarm starts.
+  await deductGasForNodes(
+    options.workspaceId,
+    nodes.map((n) => n.type)
+  );
 
   const execution = await withPrisma(
     (db) =>

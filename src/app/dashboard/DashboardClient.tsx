@@ -23,6 +23,7 @@ import {
   Package,
   HeartPulse,
   GitFork,
+  Terminal,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
@@ -225,9 +226,28 @@ const BlueprintCanvas = dynamic(
     ),
   }
 );
+
+const SwarmCliPanel = dynamic(
+  () => import("@/components/cli/SwarmCliPanel"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading CLI panel">
+        <div className="h-24 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="h-40 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+          <div className="h-40 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        </div>
+        <div className="h-64 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+      </div>
+    ),
+  }
+);
+
 import ModeWrapper, {
   useWorkspaceMode,
 } from "@/components/dashboard/ModeWrapper";
+import GasMeterPill from "@/components/billing/GasMeterPill";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAlertToasts } from "@/components/dashboard/AlertToastContext";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
@@ -277,6 +297,7 @@ export default function DashboardClient({
     | "inventory"
     | "sre-health"
     | "builder"
+    | "cli"
   >("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
@@ -300,7 +321,8 @@ export default function DashboardClient({
       view === "teletraffic" ||
       view === "plugins" ||
       view === "audit" ||
-      view === "universe";
+      view === "universe" ||
+      view === "cli";
     if (view === "sre-control" && !isSuperAdmin) {
       setConsoleView("workforce");
       const params = new URLSearchParams(searchParams.toString());
@@ -338,6 +360,7 @@ export default function DashboardClient({
     else if (view === "inventory") setConsoleView("inventory");
     else if (view === "sre-health") setConsoleView("sre-health");
     else if (view === "builder") setConsoleView("builder");
+    else if (view === "cli") setConsoleView("cli");
     else setConsoleView("workforce");
   }, [searchParams, isUser, isSuperAdmin, router]);
 
@@ -358,6 +381,7 @@ export default function DashboardClient({
         | "inventory"
         | "sre-health"
         | "builder"
+        | "cli"
     ) => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
@@ -374,6 +398,7 @@ export default function DashboardClient({
       else if (next === "inventory") params.set("view", "inventory");
       else if (next === "sre-health") params.set("view", "sre-health");
       else if (next === "builder") params.set("view", "builder");
+      else if (next === "cli") params.set("view", "cli");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -573,6 +598,13 @@ export default function DashboardClient({
 
   const headerAside = (
     <div className="flex flex-wrap items-center gap-3">
+      <GasMeterPill
+        consuming={
+          connection === "live" ||
+          connection === "connecting" ||
+          activeCount > 0
+        }
+      />
       <div className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-xs text-slate-muted">
         <Server className="h-3.5 w-3.5 text-slate-400" aria-hidden />
         <span>
@@ -777,6 +809,22 @@ export default function DashboardClient({
           <button
             type="button"
             role="tab"
+            aria-selected={consoleView === "cli"}
+            onClick={() => setView("cli")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "cli"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <Terminal className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            CLI
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={consoleView === "catalog"}
             onClick={() => setView("catalog")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -901,6 +949,10 @@ export default function DashboardClient({
           <span className="text-xs text-slate-dim">
             Drag-and-drop agent workflows · simulate · deploy blueprints
           </span>
+        ) : consoleView === "cli" ? (
+          <span className="text-xs text-slate-dim">
+            Global CLI install · API keys · deploy simulator
+          </span>
         ) : (
           <span className="text-xs text-slate-dim">
             Searchable agent gallery · install nodes onto the workflow canvas
@@ -908,7 +960,11 @@ export default function DashboardClient({
         )}
       </div>
 
-      {consoleView === "builder" ? (
+      {consoleView === "cli" ? (
+        <ErrorBoundary label="Swarm CLI">
+          <SwarmCliPanel />
+        </ErrorBoundary>
+      ) : consoleView === "builder" ? (
         <ErrorBoundary label="Workflow Builder">
           <BlueprintCanvas />
         </ErrorBoundary>

@@ -1,0 +1,221 @@
+/**
+ * Gas credit meter — per-node deduction against Workspace.gasBalance + GasLedger.
+ * Concurrent-safe via FOR UPDATE row locks and bounded Serializable retries.
+ */
+
+import { createHash } from "node:crypto";
+import { Prisma, type GasTransactionType } from "@prisma/client";
+import { getPrisma } from "@/lib/prisma";
+import { normalizeNodeType } from "@/lib/swarm/types";
+
+const MAX_TX_RETRIES = 3 as const;
+const TX_TIMEOUT_MS = 15_000;
+const TX_MAX_WAIT_MS = 5_000;
+
+export const INSUFFICIENT_GAS_MESSAGE =
+  "Insufficient Gas Credits. Please top up workspace." as const;
+
+/** Fixed gas costs by metered node family. */
+export const GAS_COSTS = {
+  webhook_trigger: 10,
+  scraper: 50,
+  ai_agent: 100,
+} as const;
+
+export type MeteredGasKind = keyof typeof GAS_COSTS;
+
+export class InsufficientGasError extends Error {
+  readonly code = "INSUFFICIENT_GAS" as const;
+
+  constructor(message: string = INSUFFICIENT_GAS_MESSAGE) {
+    super(message);
+    this.name = "InsufficientGasError";
+  }
+}
+
+export type DeductGasResult = {
+  workspaceId: string;
+  nodeType: string;
+  gasKind: MeteredGasKind | null;
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  ledgerId: string | null;
+  skipped: boolean;
+};
+
+type LockedGasRow = {
+  id: string;
+  gasBalance: number;
+};
+
+function isRetryableTxError(err: unknown): boolean {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    return err.code === "P2034" || err.code === "P2002";
+  }
+  if (err instanceof Error) {
+    const m = err.message.toLowerCase();
+    return (
+      m.includes("serialization") ||
+      m.includes("deadlock") ||
+      m.includes("could not serialize") ||
+      m.includes("write conflict")
+    );
+  }
+  return false;
+}
+
+async function lockWorkspaceGas(
+  tx: Prisma.TransactionClient,
+  workspaceId: string
+): Promise<LockedGasRow | null> {
+  const rows = await tx.$queryRaw<LockedGasRow[]>`
+    SELECT id, "gasBalance"
+    FROM "Workspace"
+    WHERE id = ${workspaceId}
+    FOR UPDATE
+  `;
+  return rows[0] ?? null;
+}
+
+/**
+ * Map workflow node types → metered gas kind.
+ * Webhook Trigger = 10, Scraper = 50, AI Agent = 100. Others are free (0).
+ */
+export function resolveGasKind(nodeType: string): MeteredGasKind | null {
+  const normalized = normalizeNodeType(nodeType);
+  const raw = nodeType.trim().toLowerCase().replace(/[\s-]+/g, "_");
+
+  if (
+    normalized === "trigger" ||
+    raw === "webhook" ||
+    raw === "webhook_trigger" ||
+    raw.includes("webhook")
+  ) {
+    return "webhook_trigger";
+  }
+  if (normalized === "scraper") return "scraper";
+  if (normalized === "ai" || normalized === "agent") return "ai_agent";
+  return null;
+}
+
+export function resolveGasCost(nodeType: string): number {
+  const kind = resolveGasKind(nodeType);
+  return kind ? GAS_COSTS[kind] : 0;
+}
+
+export function hashCliApiKey(rawKey: string): string {
+  return createHash("sha256").update(rawKey.trim()).digest("hex");
+}
+
+/**
+ * Atomically deduct gas for a single workflow node execution.
+ * Throws InsufficientGasError when gasBalance <= 0 or balance < cost.
+ */
+export async function deductGas(
+  workspaceId: string,
+  nodeType: string
+): Promise<DeductGasResult> {
+  const amount = resolveGasCost(nodeType);
+  const gasKind = resolveGasKind(nodeType);
+  const prisma = getPrisma();
+
+  if (amount <= 0 || !gasKind) {
+    const ws = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { gasBalance: true },
+    });
+    if (!ws) {
+      throw new Error(`Workspace not found: ${workspaceId}`);
+    }
+    if (ws.gasBalance <= 0) {
+      throw new InsufficientGasError();
+    }
+    return {
+      workspaceId,
+      nodeType,
+      gasKind: null,
+      amount: 0,
+      balanceBefore: ws.gasBalance,
+      balanceAfter: ws.gasBalance,
+      ledgerId: null,
+      skipped: true,
+    };
+  }
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_TX_RETRIES; attempt += 1) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const locked = await lockWorkspaceGas(tx, workspaceId);
+          if (!locked) {
+            throw new Error(`Workspace not found: ${workspaceId}`);
+          }
+
+          if (locked.gasBalance <= 0 || locked.gasBalance < amount) {
+            throw new InsufficientGasError();
+          }
+
+          const balanceBefore = locked.gasBalance;
+          const balanceAfter = balanceBefore - amount;
+
+          await tx.workspace.update({
+            where: { id: locked.id },
+            data: { gasBalance: balanceAfter },
+          });
+
+          const ledger = await tx.gasLedger.create({
+            data: {
+              workspaceId: locked.id,
+              amount,
+              transactionType: "EXECUTION_FEE" satisfies GasTransactionType,
+              description: `Execution fee: ${gasKind} (${nodeType}) — ${amount} GAS`,
+            },
+          });
+
+          return {
+            workspaceId: locked.id,
+            nodeType,
+            gasKind,
+            amount,
+            balanceBefore,
+            balanceAfter,
+            ledgerId: ledger.id,
+            skipped: false,
+          };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          timeout: TX_TIMEOUT_MS,
+          maxWait: TX_MAX_WAIT_MS,
+        }
+      );
+    } catch (err) {
+      lastError = err;
+      if (err instanceof InsufficientGasError) throw err;
+      if (!isRetryableTxError(err) || attempt >= MAX_TX_RETRIES - 1) {
+        throw err;
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Gas deduction failed after retries.");
+}
+
+/**
+ * Deduct gas for every node in a blueprint graph (pre-execution reserve).
+ * Fail-fast on first insufficient balance.
+ */
+export async function deductGasForNodes(
+  workspaceId: string,
+  nodeTypes: string[]
+): Promise<DeductGasResult[]> {
+  const results: DeductGasResult[] = [];
+  for (const nodeType of nodeTypes) {
+    results.push(await deductGas(workspaceId, nodeType));
+  }
+  return results;
+}

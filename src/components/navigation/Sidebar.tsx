@@ -19,6 +19,7 @@ import {
   Package,
   HeartPulse,
   GitFork,
+  Terminal,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -44,7 +45,8 @@ type NavLink = {
     | "catalog"
     | "inventory"
     | "sre-health"
-    | "builder";
+    | "builder"
+    | "cli";
   /** Only shown in Developer mode on dashboard surfaces. */
   developerOnly?: boolean;
   /** Only shown when Super-Admin env bypass is armed. */
@@ -114,6 +116,13 @@ const NAV_LINKS: NavLink[] = [
     label: "Workflow Builder",
     icon: GitFork,
     match: "builder",
+  },
+  {
+    href: "/dashboard?view=cli",
+    label: "CLI Integration",
+    icon: Terminal,
+    match: "cli",
+    developerOnly: true,
   },
   {
     href: "/dashboard?view=catalog",
@@ -190,6 +199,7 @@ function SidebarNav() {
   const universeOpen = onDashboard && view === "universe";
   const sreControlOpen = onDashboard && view === "sre-control";
   const builderOpen = onDashboard && view === "builder";
+  const cliOpen = onDashboard && view === "cli";
   const catalogOpen = onDashboard && view === "catalog";
   const inventoryOpen = onDashboard && view === "inventory";
   const sreHealthOpen = onDashboard && view === "sre-health";
@@ -218,6 +228,7 @@ function SidebarNav() {
     if (link.match === "universe") return universeOpen;
     if (link.match === "sre-control") return sreControlOpen;
     if (link.match === "builder") return builderOpen;
+    if (link.match === "cli") return cliOpen;
     if (link.match === "catalog") return catalogOpen;
     if (link.match === "inventory") return inventoryOpen;
     if (link.match === "sre-health") return sreHealthOpen;
@@ -234,6 +245,7 @@ function SidebarNav() {
         !universeOpen &&
         !sreControlOpen &&
         !builderOpen &&
+        !cliOpen &&
         !catalogOpen &&
         !inventoryOpen &&
         !sreHealthOpen

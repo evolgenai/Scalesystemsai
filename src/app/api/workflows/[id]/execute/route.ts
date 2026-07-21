@@ -14,6 +14,10 @@ import {
   assertResourceWorkspace,
   resolveWorkspaceGate,
 } from "@/lib/auth/workspaceGate";
+import {
+  InsufficientGasError,
+  INSUFFICIENT_GAS_MESSAGE,
+} from "@/lib/billing/gasMeter";
 import { apiError, apiSuccess } from "@/lib/http/apiResponse";
 import { withPrisma } from "@/lib/prisma";
 import {
@@ -148,6 +152,9 @@ export async function POST(request: Request, ctx: RouteCtx) {
         }
       );
     } catch (err) {
+      if (err instanceof InsufficientGasError) {
+        return apiError(INSUFFICIENT_GAS_MESSAGE, "INSUFFICIENT_GAS", 402);
+      }
       console.error("[api/workflows/execute] JSON run failed:", err);
       return apiError(
         err instanceof Error ? err.message : "Workflow execution failed.",
@@ -243,15 +250,22 @@ export async function POST(request: Request, ctx: RouteCtx) {
           pausedNodeId: summary.pausedNodeId,
         });
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Workflow execution failed.";
-        push("error", {
-          message,
-          code:
-            err instanceof DOMException && err.name === "AbortError"
-              ? "ABORTED"
-              : "WORKFLOW_EXECUTE_FAILED",
-        });
+        if (err instanceof InsufficientGasError) {
+          push("error", {
+            message: INSUFFICIENT_GAS_MESSAGE,
+            code: "INSUFFICIENT_GAS",
+          });
+        } else {
+          const message =
+            err instanceof Error ? err.message : "Workflow execution failed.";
+          push("error", {
+            message,
+            code:
+              err instanceof DOMException && err.name === "AbortError"
+                ? "ABORTED"
+                : "WORKFLOW_EXECUTE_FAILED",
+          });
+        }
       } finally {
         if (!closed) {
           try {

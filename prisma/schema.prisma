@@ -420,6 +420,13 @@ model OrgMembership {
  * Multi-tenant heal / MCP scope. apiKey authenticates workspace-scoped telemetry + heal.
  * credentialCipher holds AES-256-GCM sealed injection secrets (ssv1:…); never return raw.
  */
+/** Gas credit ledger entry kinds — recharge, execution burn, or refund. */
+enum GasTransactionType {
+  RECHARGE
+  EXECUTION_FEE
+  REFUND
+}
+
 model Workspace {
   id                String               @id @default(uuid())
   name              String
@@ -431,6 +438,8 @@ model Workspace {
   /** Lifetime metered spend in USD. */
   meterSpendUsd     Float                @default(0)
   meterLastAt       DateTime?
+  /** Prepaid gas credits for workflow node execution (integer units). */
+  gasBalance        Int                  @default(50000)
   /** Tenant navigation / viewport mode — mirrored to Edge KV on write. */
   uiPreference      UiPreference         @default(USER)
   /**
@@ -453,11 +462,49 @@ model Workspace {
   catalogItems       CatalogItem[]
   workflowBlueprints WorkflowBlueprint[]
   approvalRequests   ApprovalRequest[]
+  gasLedgers         GasLedger[]
+  apiKeys            ApiKey[]
 
   @@index([createdAt])
   @@index([meterLastAt])
   @@index([uiPreference])
   @@index([requiredAuthLevel])
+  @@index([gasBalance])
+}
+
+/**
+ * Append-only gas credit ledger — RECHARGE / EXECUTION_FEE / REFUND.
+ * amount is positive integer units; sign is implied by transactionType.
+ */
+model GasLedger {
+  id              String             @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  amount          Int
+  transactionType GasTransactionType
+  description     String?
+  createdAt       DateTime           @default(now())
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, transactionType, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+}
+
+/**
+ * CLI-scoped API keys — store keyHash only; never persist raw tokens.
+ * Authenticate terminal / local CLI against workspace-bound hashes.
+ */
+model ApiKey {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  keyHash     String    @unique
+  name        String
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, name])
 }
 
 /**

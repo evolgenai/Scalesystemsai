@@ -43,6 +43,7 @@ import type {
   RunnerState,
   WorkflowTemplate,
 } from "@/components/builder/types";
+import { emitCanvasRunBusy } from "@/components/billing/GasMeterPill";
 
 const STORAGE_KEY = "scalesystems.blueprint.v1";
 const MARKETPLACE_INSTALL_KEY = "scalesystems.marketplace.install";
@@ -127,6 +128,11 @@ function BlueprintCanvasInner() {
 
   const busy =
     runner.status === "simulating" || runner.status === "deploying";
+
+  useEffect(() => {
+    emitCanvasRunBusy(busy);
+    return () => emitCanvasRunBusy(false);
+  }, [busy]);
 
   const selectedNode = useMemo(
     () => nodes.find((n) => n.id === selectedId) ?? null,
