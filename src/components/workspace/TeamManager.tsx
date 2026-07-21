@@ -212,7 +212,7 @@ export default function TeamManager() {
           const invited: TeamMember = {
             id: `active-${trimmed}`,
             email: payload.membership?.user?.email ?? trimmed,
-            name: payload.membership?.user?.name ?? trimmed.split("@")[0] || "Member",
+            name: (payload.membership?.user?.name ?? trimmed.split("@")[0]) || "Member",
             role,
             status: "active",
           };
