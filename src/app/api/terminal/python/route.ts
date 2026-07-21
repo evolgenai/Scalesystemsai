@@ -2,7 +2,7 @@
  * POST /api/terminal/python
  * Virtual Terminal Python runner — sandboxed exec + ScaleAgent alias parsing + gas.
  *
- * Auth: x-workspace-key (required)
+ * Auth: x-workspace-key + RBAC `terminal.execute`
  * Body: { code: string, agentId?: string, enforceSkills?: boolean }
  */
 
@@ -12,7 +12,7 @@ import {
   deductGasUnits,
   InsufficientGasError,
 } from "@/lib/billing/gasMeter";
-import { requireWorkspaceApiKeyGate } from "@/lib/auth/workspaceGate";
+import { enforcePermission } from "@/lib/auth/rbacMiddleware";
 import { parseJsonBody } from "@/lib/http/parseJsonBody";
 import { apiError, apiSuccess } from "@/lib/http/apiResponse";
 import {
@@ -52,13 +52,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const gate = await requireWorkspaceApiKeyGate(
+  const rbac = await enforcePermission(
     request,
+    "terminal.execute",
     parsedBody.data.workspaceId ?? null
   );
-  if (!gate.ok) {
-    return apiError(gate.message, gate.code, gate.status);
-  }
+  if (!rbac.ok) return rbac.response;
+  const gate = rbac.ctx.gate;
 
   const code = parsedBody.data.code;
   const agentParsed = parseScaleAgentScript(code);

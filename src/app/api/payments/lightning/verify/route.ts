@@ -3,7 +3,7 @@
  * Polls LND for invoice settlement and atomically credits Gas on settle.
  */
 
-import { requireWorkspaceApiKeyGate } from "@/lib/auth/workspaceGate";
+import { enforcePermission } from "@/lib/auth/rbacMiddleware";
 import { apiError, apiSuccess } from "@/lib/http/apiResponse";
 import {
   isLightningConfigured,
@@ -23,10 +23,9 @@ export async function GET(request: Request) {
   const paymentHash = url.searchParams.get("paymentHash")?.trim() ?? "";
   const workspaceId = url.searchParams.get("workspaceId")?.trim() ?? null;
 
-  const gate = await requireWorkspaceApiKeyGate(request, workspaceId);
-  if (!gate.ok) {
-    return apiError(gate.message, gate.code, gate.status);
-  }
+  const rbac = await enforcePermission(request, "payments.mutate", workspaceId);
+  if (!rbac.ok) return rbac.response;
+  const gate = rbac.ctx.gate;
 
   if (!paymentHash) {
     return apiError("paymentHash query param is required.", "HASH_REQUIRED", 400);

@@ -3,14 +3,14 @@
  * Synthesize a composite agent/tool from Spatial Universe source node IDs.
  * Deducts ⚡ 250 GAS and persists the morphed tool definition on the workspace.
  *
- * Auth: x-workspace-key (required)
+ * Auth: x-workspace-key + RBAC `spatial.morph`
  * Body: { sourceNodeIds: string[], workspaceId?: string }
  */
 
 import { z } from "zod";
 import { apiError, apiSuccess } from "@/lib/http/apiResponse";
 import { parseJsonBody } from "@/lib/http/parseJsonBody";
-import { requireWorkspaceApiKeyGate } from "@/lib/auth/workspaceGate";
+import { enforcePermission } from "@/lib/auth/rbacMiddleware";
 import { InsufficientGasError } from "@/lib/billing/gasMeter";
 import {
   SYNTHESIS_GAS_COST,
@@ -46,13 +46,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const gate = await requireWorkspaceApiKeyGate(
+  const rbac = await enforcePermission(
     request,
+    "spatial.morph",
     parsed.data.workspaceId ?? null
   );
-  if (!gate.ok) {
-    return apiError(gate.message, gate.code, gate.status);
-  }
+  if (!rbac.ok) return rbac.response;
+  const gate = rbac.ctx.gate;
 
   try {
     const tool = await synthesizeMorphedTool({

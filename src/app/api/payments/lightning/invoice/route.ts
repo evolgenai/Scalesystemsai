@@ -3,7 +3,7 @@
  * Creates a Bolt11 Lightning invoice (optional LNURL-pay payload) for Gas top-up.
  */
 
-import { requireWorkspaceApiKeyGate } from "@/lib/auth/workspaceGate";
+import { enforcePermission } from "@/lib/auth/rbacMiddleware";
 import {
   getGasPackage,
   isGasPackageId,
@@ -36,13 +36,13 @@ export async function POST(request: Request) {
     body = {};
   }
 
-  const gate = await requireWorkspaceApiKeyGate(
+  const rbac = await enforcePermission(
     request,
+    "payments.mutate",
     body.workspaceId ?? null
   );
-  if (!gate.ok) {
-    return apiError(gate.message, gate.code, gate.status);
-  }
+  if (!rbac.ok) return rbac.response;
+  const gate = rbac.ctx.gate;
 
   if (!isLightningConfigured()) {
     return apiError(

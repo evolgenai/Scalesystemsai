@@ -3,7 +3,7 @@
  * Captures an approved PayPal order, verifies COMPLETED status, credits Gas.
  */
 
-import { requireWorkspaceApiKeyGate } from "@/lib/auth/workspaceGate";
+import { enforcePermission } from "@/lib/auth/rbacMiddleware";
 import { apiError, apiSuccess } from "@/lib/http/apiResponse";
 import {
   capturePayPalOrder,
@@ -34,13 +34,13 @@ export async function POST(request: Request) {
     body = {};
   }
 
-  const gate = await requireWorkspaceApiKeyGate(
+  const rbac = await enforcePermission(
     request,
+    "payments.mutate",
     body.workspaceId ?? null
   );
-  if (!gate.ok) {
-    return apiError(gate.message, gate.code, gate.status);
-  }
+  if (!rbac.ok) return rbac.response;
+  const gate = rbac.ctx.gate;
 
   if (!isPayPalConfigured()) {
     return apiError(

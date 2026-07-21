@@ -19,6 +19,18 @@ export type {
   AggressiveSchemaParseResult,
 } from "@/lib/mcp/mcpClient";
 export {
+  McpClientHost,
+  withMcpClientHost,
+  discoverMcpHostTools,
+  McpHostConnectSchema,
+} from "@/lib/mcp/mcpClientHost";
+export type {
+  McpHostConnectInput,
+  McpHostTool,
+  McpHostCallResult,
+  McpHostSessionState,
+} from "@/lib/mcp/mcpClientHost";
+export {
   issueVaultToken,
   hashAgentKey,
   agentKeyPrefix,

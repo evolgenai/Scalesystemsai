@@ -3,7 +3,7 @@
  * Isolated GitHub script execution for the Virtual Terminal beside Spatial Universe.
  * Streams SSE log frames; only allowlisted targets (e.g. github:blackeye) may run.
  *
- * Auth: x-workspace-key (required)
+ * Auth: x-workspace-key + RBAC `terminal.execute`
  * Body: { script: string, workspaceId?: string, stream?: boolean }
  */
 
@@ -14,7 +14,7 @@ import {
   deductGasUnits,
   InsufficientGasError,
 } from "@/lib/billing/gasMeter";
-import { requireWorkspaceApiKeyGate } from "@/lib/auth/workspaceGate";
+import { enforcePermission } from "@/lib/auth/rbacMiddleware";
 import { parseJsonBody } from "@/lib/http/parseJsonBody";
 import { apiError, apiSuccess } from "@/lib/http/apiResponse";
 import {
@@ -93,13 +93,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const gate = await requireWorkspaceApiKeyGate(
+  const rbac = await enforcePermission(
     request,
+    "terminal.execute",
     parsedBody.data.workspaceId ?? null
   );
-  if (!gate.ok) {
-    return apiError(gate.message, gate.code, gate.status);
-  }
+  if (!rbac.ok) return rbac.response;
+  const gate = rbac.ctx.gate;
 
   let gas;
   try {

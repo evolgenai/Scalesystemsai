@@ -8,6 +8,7 @@ import { Prisma, type GasTransactionType } from "@prisma/client";
 import { recordDailyUsageInTx } from "@/lib/billing/usageAnalytics";
 import { getPrisma } from "@/lib/prisma";
 import { normalizeNodeType } from "@/lib/swarm/types";
+import { publishGasEvent } from "@/lib/telemetry/telemetryBus";
 
 const MAX_TX_RETRIES = 3 as const;
 const TX_TIMEOUT_MS = 15_000;
@@ -49,6 +50,26 @@ type LockedGasRow = {
   id: string;
   gasBalance: number;
 };
+
+function emitGasDeduction(
+  result: DeductGasResult,
+  description?: string | null
+): void {
+  if (result.skipped || result.amount <= 0) return;
+  try {
+    publishGasEvent(result.workspaceId, {
+      amount: result.amount,
+      balanceBefore: result.balanceBefore,
+      balanceAfter: result.balanceAfter,
+      gasKind: result.gasKind,
+      nodeType: result.nodeType,
+      ledgerId: result.ledgerId,
+      description: description ?? null,
+    });
+  } catch {
+    /* telemetry must never break metering */
+  }
+}
 
 function isRetryableTxError(err: unknown): boolean {
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
@@ -161,7 +182,7 @@ export async function deductGasUnits(
   let lastError: unknown;
   for (let attempt = 0; attempt < MAX_TX_RETRIES; attempt += 1) {
     try {
-      return await prisma.$transaction(
+      const result = await prisma.$transaction(
         async (tx) => {
           const locked = await lockWorkspaceGas(tx, workspaceId);
           if (!locked) {
@@ -210,6 +231,8 @@ export async function deductGasUnits(
           maxWait: TX_MAX_WAIT_MS,
         }
       );
+      emitGasDeduction(result, options?.description);
+      return result;
     } catch (err) {
       lastError = err;
       if (err instanceof InsufficientGasError) throw err;
@@ -271,7 +294,7 @@ export async function deductGas(
   let lastError: unknown;
   for (let attempt = 0; attempt < MAX_TX_RETRIES; attempt += 1) {
     try {
-      return await prisma.$transaction(
+      const result = await prisma.$transaction(
         async (tx) => {
           const locked = await lockWorkspaceGas(tx, workspaceId);
           if (!locked) {
@@ -318,6 +341,11 @@ export async function deductGas(
           maxWait: TX_MAX_WAIT_MS,
         }
       );
+      emitGasDeduction(
+        result,
+        `Execution fee: ${gasKind} (${nodeType}) — ${amount} GAS`
+      );
+      return result;
     } catch (err) {
       lastError = err;
       if (err instanceof InsufficientGasError) throw err;
