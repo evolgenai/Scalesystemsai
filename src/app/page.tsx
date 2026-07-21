@@ -2,7 +2,7 @@ import AgentTerminal from "@/components/AgentTerminal";
 import ROISavingsCalculator from "@/components/ROISavingsCalculator";
 import type { Metadata } from "next";
 import Link from "next/link";
-import Hero from "@/components/Hero";
+import LandingHero from "@/components/public/LandingHero";
 import {
   Bot,
   Layers,
@@ -15,18 +15,19 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "ScaleSystems | Multi-Agent Orchestration Workspace",
+  title: "ScaleSystems | Autonomous Agent Operating System",
   description:
-    "ScaleSystems is the premier multi-agent orchestration workspace — Router–Worker swarms, parallel tool channels, and Obsidian/cyan dual-pane control.",
+    "The Autonomous Agent Operating System for Modern Teams — Router–Worker swarms, User vs Developer modes, and gas-metered Obsidian workspaces.",
   keywords: [
     "multi-agent orchestration",
     "AI swarm workspace",
     "ScaleSystems",
     "Router Worker agents",
     "agentic automation",
+    "agent operating system",
   ],
   openGraph: {
-    title: "ScaleSystems | Multi-Agent Orchestration Workspace",
+    title: "ScaleSystems | Autonomous Agent Operating System",
     description:
       "Deploy autonomous worker fleets with parallel execution and live dual-pane telemetry.",
     url: "/",
@@ -81,7 +82,7 @@ function PillarCard({
 export default function HomePage() {
   return (
     <main>
-      <Hero />
+      <LandingHero />
       <AgentTerminal />
 
       <section

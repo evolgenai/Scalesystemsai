@@ -282,6 +282,11 @@ import ModeWrapper, {
   useWorkspaceMode,
 } from "@/components/dashboard/ModeWrapper";
 import GasMeterPill from "@/components/billing/GasMeterPill";
+import OnboardingWizard, {
+  dismissOnboardingPermanently,
+  isOnboardingComplete,
+  type OnboardingTenant,
+} from "@/components/onboarding/OnboardingWizard";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useAlertToasts } from "@/components/dashboard/AlertToastContext";
 import { useAgentStream } from "@/lib/agents/useAgentStream";
@@ -316,6 +321,7 @@ export default function DashboardClient({
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
   const [troubleshootActive, setTroubleshootActive] = useState(false);
   const [crashAlert, setCrashAlert] = useState<string | null>(null);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [consoleView, setConsoleView] = useState<
     | "workforce"
     | "marketplace"
@@ -455,6 +461,40 @@ export default function DashboardClient({
     if (!authReady) return;
     setPersonasLocked(!(isSuperAdmin || Boolean(user)));
   }, [authReady, isSuperAdmin, user]);
+
+  useEffect(() => {
+    if (!authReady) return;
+    const forceOnboard = searchParams.get("onboard") === "1";
+    if (forceOnboard || !isOnboardingComplete()) {
+      setOnboardingOpen(true);
+    }
+  }, [authReady, searchParams]);
+
+  const handleOnboardingComplete = useCallback(
+    (tenant: OnboardingTenant) => {
+      pushAlert({
+        tone: "heal",
+        title: "Workspace ready",
+        detail: `${tenant.name} · ${tenant.gasClaimed.toLocaleString("en-US")} gas claimed`,
+      });
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("onboard");
+      const qs = params.toString();
+      router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+    },
+    [pushAlert, router, searchParams]
+  );
+
+  const dismissOnboarding = useCallback(() => {
+    dismissOnboardingPermanently();
+    setOnboardingOpen(false);
+    if (searchParams.get("onboard") === "1") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete("onboard");
+      const qs = params.toString();
+      router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
+    }
+  }, [router, searchParams]);
 
   useEffect(() => {
     try {
@@ -1291,6 +1331,11 @@ export default function DashboardClient({
 
   return (
     <div className="relative min-h-full bg-obsidian text-white">
+      <OnboardingWizard
+        open={onboardingOpen}
+        onClose={dismissOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
       <div
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
         aria-hidden

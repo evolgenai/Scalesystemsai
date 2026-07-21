@@ -82,6 +82,22 @@ export default function GasMeterPill({
   }, []);
 
   useEffect(() => {
+    const onGasBalance = (event: Event) => {
+      const detail = (event as CustomEvent<{ balance?: number }>).detail;
+      if (typeof detail?.balance === "number" && Number.isFinite(detail.balance)) {
+        const next = Math.max(0, Math.floor(detail.balance));
+        writeBalance(next);
+        setBalance(next);
+      } else {
+        setBalance(readBalance());
+      }
+    };
+    window.addEventListener("scalesystems:gas-balance", onGasBalance);
+    return () =>
+      window.removeEventListener("scalesystems:gas-balance", onGasBalance);
+  }, []);
+
+  useEffect(() => {
     const onCanvasRun = (event: Event) => {
       const detail = (event as CustomEvent<{ busy?: boolean }>).detail;
       setCanvasBusy(Boolean(detail?.busy));

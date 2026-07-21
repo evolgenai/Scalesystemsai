@@ -4,6 +4,11 @@ import {
   verifyAgentEdgeToken,
 } from "@/lib/security/edgeToken";
 import {
+  applyRateLimitHeaders,
+  checkRateLimit,
+  resolveRateLimitConfig,
+} from "@/lib/security/rateLimiter";
+import {
   encodeFlagsHeader,
   getWorkspaceFlagsFromKv,
 } from "@/lib/workspace/settingsCache";
@@ -191,10 +196,29 @@ async function attachWorkspaceEdgeStateFromKv(
   }
 }
 
+function rateLimitedResponse(verdict: ReturnType<typeof checkRateLimit>) {
+  const headers = new Headers({
+    "content-type": "application/json",
+    "cache-control": "no-store",
+    "x-scale-theme": "#121212",
+    "x-scale-accent": "#1DB954",
+  });
+  applyRateLimitHeaders(headers, verdict);
+  return NextResponse.json(
+    {
+      success: false,
+      error: "Rate limit exceeded. Slow down and retry after the reset window.",
+      code: "RATE_LIMIT_EXCEEDED",
+    },
+    { status: 429, headers }
+  );
+}
+
 async function passThrough(
   request: NextRequest,
   requestHeaders: Headers,
-  geo: ReturnType<typeof resolveRegion>
+  geo: ReturnType<typeof resolveRegion>,
+  rateVerdict?: ReturnType<typeof checkRateLimit>
 ) {
   applyGeoHeaders(requestHeaders, geo);
 
@@ -212,6 +236,10 @@ async function passThrough(
     response.headers.set(key, value);
   });
 
+  if (rateVerdict) {
+    applyRateLimitHeaders(response.headers, rateVerdict);
+  }
+
   if (isTelemetryPath(request.nextUrl.pathname)) {
     response.headers.set("x-scale-telemetry-route", "edge");
     const affinityOff =
@@ -227,6 +255,16 @@ async function passThrough(
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const geo = resolveRegion(request);
+
+  // Sliding-window DDoS / credit-exhaustion shield for all /api/* surfaces.
+  let rateVerdict: ReturnType<typeof checkRateLimit> | undefined;
+  if (pathname.startsWith("/api/")) {
+    const rlConfig = resolveRateLimitConfig(pathname);
+    rateVerdict = checkRateLimit(request, rlConfig);
+    if (!rateVerdict.allowed) {
+      return rateLimitedResponse(rateVerdict);
+    }
+  }
 
   const agentHost = request.headers.get("x-agent-host")?.trim();
   const requestHeaders = new Headers(request.headers);
@@ -248,12 +286,12 @@ export async function middleware(request: NextRequest) {
     if (verdict.subject) {
       requestHeaders.set("x-agent-subject", verdict.subject.slice(0, 128));
     }
-    return await passThrough(request, requestHeaders, geo);
+    return await passThrough(request, requestHeaders, geo, rateVerdict);
   }
 
   if (!strict && hasSessionHint(request)) {
     requestHeaders.set("x-agent-auth", "session");
-    return await passThrough(request, requestHeaders, geo);
+    return await passThrough(request, requestHeaders, geo, rateVerdict);
   }
 
   if (
@@ -262,12 +300,12 @@ export async function middleware(request: NextRequest) {
     !strict
   ) {
     requestHeaders.set("x-agent-auth", "dev-bypass");
-    return await passThrough(request, requestHeaders, geo);
+    return await passThrough(request, requestHeaders, geo, rateVerdict);
   }
 
   if (!strict) {
     requestHeaders.set("x-agent-auth", "deferred");
-    return await passThrough(request, requestHeaders, geo);
+    return await passThrough(request, requestHeaders, geo, rateVerdict);
   }
 
   return unauthorized(
@@ -277,17 +315,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/api/mcp",
-    "/api/mcp/:path*",
-    "/api/agent",
-    "/api/agent/:path*",
-    "/api/agents/:path*",
-    "/api/telemetry/:path*",
-    "/api/workspace",
-    "/api/workspace/:path*",
-    "/api/workspaces",
-    "/api/workspaces/:path*",
-    "/api/v1/admin/:path*",
-  ],
+  matcher: ["/api/:path*"],
 };
