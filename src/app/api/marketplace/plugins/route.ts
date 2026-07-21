@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getPrisma } from "@/lib/prisma";
+import { withPrisma } from "@/lib/prisma";
 import { resolveWorkspaceId } from "@/lib/workspace/resolveWorkspace";
+import { withEdgeCache } from "@/lib/edge/cacheControl";
 
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const revalidate = 60;
 
 type ErrorBody = { success: false; error: string; code: string };
 
@@ -48,38 +49,46 @@ export async function GET(request: Request) {
     const activeOnly = url.searchParams.get("active") !== "false";
     const workspaceId = await resolveWorkspaceId(request, null);
 
-    const prisma = getPrisma();
-    const plugins = await prisma.agentPlugin.findMany({
-      where: {
-        ...(activeOnly ? { isActive: true } : {}),
-        ...(workspaceId ? { workspaceId } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-      select: {
-        id: true,
-        name: true,
-        developerId: true,
-        walletId: true,
-        pricePerRun: true,
-        version: true,
-        description: true,
-        mcpSchema: true,
-        isActive: true,
-        revenueUsd: true,
-        runCount: true,
-        workspaceId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const plugins = await withPrisma(
+      (db) =>
+        db.agentPlugin.findMany({
+          where: {
+            ...(activeOnly ? { isActive: true } : {}),
+            ...(workspaceId ? { workspaceId } : {}),
+          },
+          orderBy: { createdAt: "desc" },
+          take: 100,
+          select: {
+            id: true,
+            name: true,
+            developerId: true,
+            walletId: true,
+            pricePerRun: true,
+            version: true,
+            description: true,
+            mcpSchema: true,
+            isActive: true,
+            revenueUsd: true,
+            runCount: true,
+            workspaceId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+      "marketplace.plugins.list"
+    );
 
-    return NextResponse.json({
-      success: true,
-      count: plugins.length,
-      workspaceId,
-      plugins,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        count: plugins.length,
+        workspaceId,
+        plugins,
+      },
+      {
+        headers: withEdgeCache("marketplace", request.method),
+      }
+    );
   } catch (err) {
     console.error("[marketplace/plugins] GET failed:", err);
     return jsonError(
@@ -118,46 +127,58 @@ export async function POST(request: Request) {
   );
 
   try {
-    const prisma = getPrisma();
-
     if (workspaceId) {
-      const ws = await prisma.workspace.findUnique({
-        where: { id: workspaceId },
-        select: { id: true },
-      });
+      const ws = await withPrisma(
+        (db) =>
+          db.workspace.findUnique({
+            where: { id: workspaceId },
+            select: { id: true },
+          }),
+        "marketplace.plugins.workspace"
+      );
       if (!ws) {
         return jsonError("Workspace not found.", "WORKSPACE_NOT_FOUND", 404);
       }
     }
 
-    const plugin = await prisma.agentPlugin.create({
-      data: {
-        name: data.name,
-        developerId: data.developerId,
-        pricePerRun: data.pricePerRun ?? 0.001,
-        mcpSchema: normalizeMcpSchema(data.mcpSchema),
-        isActive: data.isActive ?? true,
-        workspaceId,
-      },
-      select: {
-        id: true,
-        name: true,
-        developerId: true,
-        walletId: true,
-        pricePerRun: true,
-        version: true,
-        description: true,
-        mcpSchema: true,
-        isActive: true,
-        revenueUsd: true,
-        runCount: true,
-        workspaceId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const plugin = await withPrisma(
+      (db) =>
+        db.agentPlugin.create({
+          data: {
+            name: data.name,
+            developerId: data.developerId,
+            pricePerRun: data.pricePerRun ?? 0.001,
+            mcpSchema: normalizeMcpSchema(data.mcpSchema),
+            isActive: data.isActive ?? true,
+            workspaceId,
+          },
+          select: {
+            id: true,
+            name: true,
+            developerId: true,
+            walletId: true,
+            pricePerRun: true,
+            version: true,
+            description: true,
+            mcpSchema: true,
+            isActive: true,
+            revenueUsd: true,
+            runCount: true,
+            workspaceId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+      "marketplace.plugins.register"
+    );
 
-    return NextResponse.json({ success: true, plugin }, { status: 201 });
+    return NextResponse.json(
+      { success: true, plugin },
+      {
+        status: 201,
+        headers: withEdgeCache("marketplace", "POST"),
+      }
+    );
   } catch (err) {
     console.error("[marketplace/plugins] POST failed:", err);
     return jsonError(

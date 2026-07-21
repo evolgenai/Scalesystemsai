@@ -11,10 +11,11 @@ import { resolveRequestUser } from "@/lib/auth/requestUser";
 import { parseJsonBody } from "@/lib/http/parseJsonBody";
 import { apiError, apiSuccess } from "@/lib/http/apiResponse";
 import { withPrisma } from "@/lib/prisma";
+import { withEdgeCache } from "@/lib/edge/cacheControl";
 import type { Prisma } from "@prisma/client";
 
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const revalidate = 60;
 
 const PublishAgentSchema = z.object({
   title: z.string().trim().min(1).max(255),
@@ -226,18 +227,22 @@ export async function GET(request: Request) {
       "marketplace.agents.list"
     );
 
-    return apiSuccess({
-      data: agents,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        workspaceId: gate.workspaceId,
-        category: category ?? null,
-        q: q ?? null,
+    return apiSuccess(
+      {
+        data: agents,
+        meta: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          workspaceId: gate.workspaceId,
+          category: category ?? null,
+          q: q ?? null,
+        },
       },
-    });
+      200,
+      withEdgeCache("marketplace", request.method)
+    );
   } catch (err) {
     console.error("[api/marketplace/agents] GET failed:", err);
     return apiError(

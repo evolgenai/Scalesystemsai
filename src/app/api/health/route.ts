@@ -1,14 +1,17 @@
 /**
  * GET /api/health — public production health gateway.
  * Probes: PostgreSQL, Vercel Blob readiness, Discord webhook dispatch readiness.
+ * Edge-cached: s-maxage=60, stale-while-revalidate=300.
  */
 
 import { head, BlobNotFoundError } from "@vercel/blob";
 import { withPrisma } from "@/lib/prisma";
 import { assertPublicHttpUrl } from "@/lib/security/ssrf";
+import { withEdgeCache } from "@/lib/edge/cacheControl";
+import { probePoolHealth } from "@/lib/db/poolMonitor";
 
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const revalidate = 60;
 
 const SERVER_START_MS = Date.now();
 
@@ -16,6 +19,7 @@ type ServiceFlags = {
   db: boolean;
   blob: boolean;
   discord: boolean;
+  pool: boolean;
 };
 
 async function probeDatabase(): Promise<boolean> {
@@ -79,15 +83,16 @@ async function probeDiscord(): Promise<boolean> {
   }
 }
 
-export async function GET() {
-  const [db, blob, discord] = await Promise.all([
+export async function GET(request: Request) {
+  const [db, blob, discord, pool] = await Promise.all([
     probeDatabase(),
     probeBlob(),
     probeDiscord(),
+    probePoolHealth(),
   ]);
 
-  const services: ServiceFlags = { db, blob, discord };
-  const allHealthy = db && blob && discord;
+  const services: ServiceFlags = { db, blob, discord, pool: pool.ok };
+  const allHealthy = db && blob && discord && pool.ok;
   const status = allHealthy ? "HEALTHY" : "DEGRADED";
   const uptimeMs = Date.now() - SERVER_START_MS;
 
@@ -96,10 +101,16 @@ export async function GET() {
       status,
       uptimeMs,
       services,
+      pool: {
+        ok: pool.ok,
+        latencyMs: pool.latencyMs,
+        generation: pool.generation,
+      },
+      version: "2.0",
     },
     {
       status: allHealthy ? 200 : 503,
-      headers: { "cache-control": "no-store" },
+      headers: withEdgeCache("health", request.method),
     }
   );
 }

@@ -174,35 +174,21 @@ export function getPrisma(): PrismaClient {
   return client;
 }
 
-const MAX_PRISMA_RETRIES = 2 as const;
+/**
+ * Current pool/client generation (increments on reset). Used by pool monitor.
+ */
+export function getPrismaGeneration(): number {
+  return globalForPrisma.prismaGeneration ?? 0;
+}
 
 /**
- * Run a DB operation with one automatic reconnect on sudden disconnect.
+ * Run a DB operation with pool-timeout failover + Meta-SRE auto-heal dispatch.
+ * Delegates to `withPoolFailover` (dynamic import avoids circular deps).
  */
 export async function withPrisma<T>(
   operation: (db: PrismaClient) => Promise<T>,
   label = "query"
 ): Promise<T> {
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt <= MAX_PRISMA_RETRIES; attempt += 1) {
-    const db = getPrisma();
-    try {
-      return await operation(db);
-    } catch (err) {
-      lastError = err;
-      if (!isPrismaDisconnectError(err) || attempt >= MAX_PRISMA_RETRIES) {
-        throw err;
-      }
-      console.warn(`${LOG_PREFIX} disconnect during ${label} — reconnect`, {
-        attempt: attempt + 1,
-        message: err instanceof Error ? err.message : String(err),
-      });
-      await resetPrismaClient(`reconnect:${label}`);
-    }
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error(`${LOG_PREFIX} operation failed: ${label}`);
+  const { withPoolFailover } = await import("@/lib/db/poolMonitor");
+  return withPoolFailover(operation, label);
 }

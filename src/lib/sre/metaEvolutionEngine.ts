@@ -89,6 +89,7 @@ export const MetaEvolutionRequestSchema = z.object({
       "manual_hook",
       "scheduler",
       "chaos_feedback",
+      "pool_failover",
     ])
     .default("autonomous_patch"),
   severity: z.enum(["critical", "high", "medium", "low"]).default("high"),
