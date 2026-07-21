@@ -75,6 +75,24 @@ function ResizeBinder({
     const el = containerRef.current;
     if (!el) return;
 
+    const fitCamera = (width: number, height: number) => {
+      if (!(camera instanceof THREE.PerspectiveCamera)) return;
+      const mobile = width < 640;
+      const aspect = width / Math.max(height, 1);
+      camera.aspect = aspect;
+      // Pull back / widen FOV on narrow viewports so the swarm stays framed
+      if (mobile) {
+        const z = aspect < 0.85 ? 6.1 : 5.35;
+        camera.position.set(0, 0.12, z);
+        camera.fov = aspect < 0.85 ? 52 : 46;
+      } else {
+        camera.position.set(0, 0, 4.35);
+        camera.fov = 40;
+      }
+      camera.lookAt(0, 0, 0);
+      camera.updateProjectionMatrix();
+    };
+
     const applySize = (width: number, height: number) => {
       if (width < 1 || height < 1) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -95,10 +113,7 @@ function ResizeBinder({
       gl.setClearAlpha(1);
       gl.setViewport(0, 0, bw, bh);
       gl.clear(true, true, true);
-      if (camera instanceof THREE.PerspectiveCamera) {
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
-      }
+      fitCamera(width, height);
     };
 
     const onWindowResize = () => {
@@ -336,13 +351,13 @@ export default function AgentNetworkCanvas({
   return (
     <div
       ref={containerRef}
-      className={`relative isolate aspect-[4/3] h-full w-full min-h-[220px] overflow-hidden rounded-2xl border border-white/10 bg-[#040907] sm:min-h-[280px] ${className}`}
+      className={`relative flex w-full max-w-full aspect-[4/3] items-center justify-center overflow-hidden rounded-2xl border border-emerald-900/30 bg-[#040907] sm:aspect-video ${className}`}
     >
-      <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-600/10 px-2.5 py-1 font-mono text-[10px] text-emerald-300">
+      <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-2.5 py-1 font-mono text-[10px] text-emerald-300">
         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
         Agent mesh · live
       </div>
-      <div className="absolute inset-0 bg-[#040907]">
+      <div className="absolute inset-0 flex items-center justify-center bg-[#040907]">
         <CanvasErrorBoundary fallback={<FallbackMesh />}>
           <Suspense fallback={<FallbackMesh />}>
             <Canvas
@@ -361,14 +376,27 @@ export default function AgentNetworkCanvas({
                 powerPreference: "high-performance",
               }}
               resize={{ scroll: false, debounce: { scroll: 0, resize: 0 } }}
-              onCreated={({ camera, gl, scene }) => {
-                camera.lookAt(0, 0, 0);
+              onCreated={({ camera, gl, scene, size }) => {
                 const color = new THREE.Color(OBSIDIAN);
                 scene.background = color;
-                gl.setClearColor(0x060810, 1);
+                gl.setClearColor(OBSIDIAN, 1);
                 gl.setClearAlpha(1);
                 gl.domElement.className = "block h-full w-full bg-[#040907]";
                 gl.domElement.style.backgroundColor = OBSIDIAN;
+                if (camera instanceof THREE.PerspectiveCamera) {
+                  const mobile = size.width < 640;
+                  if (mobile) {
+                    camera.position.set(0, 0.12, size.width / size.height < 0.85 ? 6.1 : 5.35);
+                    camera.fov = size.width / size.height < 0.85 ? 52 : 46;
+                  } else {
+                    camera.position.set(0, 0, 4.35);
+                    camera.fov = 40;
+                  }
+                  camera.lookAt(0, 0, 0);
+                  camera.updateProjectionMatrix();
+                } else {
+                  camera.lookAt(0, 0, 0);
+                }
                 gl.clear(true, true, true);
                 setReady(true);
               }}

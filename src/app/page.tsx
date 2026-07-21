@@ -1,4 +1,4 @@
-import AgentTerminal from "@/components/AgentTerminal";
+import LiveTerminal from "@/components/public/LiveTerminal";
 import ROISavingsCalculator from "@/components/ROISavingsCalculator";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -67,9 +67,9 @@ function PillarCard({
   description,
 }: (typeof pillars)[number]) {
   return (
-    <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 transition-all hover:border-cyan-accent/30 hover:shadow-[0_0_30px_rgba(0,242,254,0.06)]">
-      <div className="mb-5 inline-flex rounded-xl bg-cyan-accent/10 p-3">
-        <Icon className="h-6 w-6 text-cyan-accent" aria-hidden />
+    <article className="rounded-2xl border border-emerald-900/30 bg-[#050d09]/80 p-6 backdrop-blur-md transition hover:border-emerald-500/40 sm:p-8">
+      <div className="mb-5 inline-flex rounded-xl border border-emerald-500/40 bg-emerald-500/20 p-3">
+        <Icon className="h-6 w-6 text-emerald-300" aria-hidden />
       </div>
       <h3 className="font-display text-xl font-semibold text-white">{title}</h3>
       <p className="mt-3 text-sm leading-relaxed text-slate-muted">
@@ -81,22 +81,28 @@ function PillarCard({
 
 export default function HomePage() {
   return (
-    <main className="relative z-10 min-h-screen overflow-hidden bg-[#040907]">
+    <main className="relative z-10 w-full max-w-full min-h-screen overflow-x-hidden bg-[#040907]">
       <LandingHero />
-      <AgentTerminal />
+      <LiveTerminal />
 
       <section
-        className="border-y border-white/5 bg-black/20 px-4 py-12 sm:px-6 lg:px-8"
+        className="w-full max-w-full border-y border-emerald-900/20 px-4 py-12 sm:px-6 lg:px-8"
         aria-labelledby="stats-heading"
       >
         <h2 id="stats-heading" className="sr-only">
           Key runtime signals
         </h2>
-        <div className="mx-auto grid max-w-7xl gap-8 sm:grid-cols-3">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-8 sm:grid sm:grid-cols-3 sm:gap-8">
           {stats.map((stat) => (
-            <div key={stat.label} className="flex items-center gap-4">
-              <stat.icon className="h-8 w-8 text-cyan-accent" aria-hidden />
-              <div>
+            <div
+              key={stat.label}
+              className="flex w-full items-center justify-center gap-4 sm:justify-start"
+            >
+              <stat.icon
+                className="h-8 w-8 shrink-0 text-emerald-400"
+                aria-hidden
+              />
+              <div className="min-w-0">
                 <p className="font-display text-2xl font-bold text-white">
                   {stat.value}
                 </p>
@@ -108,10 +114,10 @@ export default function HomePage() {
       </section>
 
       <section
-        className="px-4 py-20 sm:px-6 lg:px-8"
+        className="w-full max-w-full px-4 py-20 sm:px-6 lg:px-8"
         aria-labelledby="pillars-heading"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-center">
           <div className="mx-auto max-w-2xl text-center">
             <h2
               id="pillars-heading"
@@ -125,7 +131,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="mt-14 grid gap-8 md:grid-cols-3">
+          <div className="mt-14 grid w-full gap-6 md:grid-cols-3 md:gap-8">
             {pillars.map((pillar) => (
               <PillarCard key={pillar.title} {...pillar} />
             ))}
@@ -136,11 +142,11 @@ export default function HomePage() {
       <ROISavingsCalculator />
 
       <section
-        className="px-4 py-20 sm:px-6 lg:px-8"
+        className="w-full max-w-full px-4 py-20 sm:px-6 lg:px-8"
         aria-labelledby="cta-heading"
       >
-        <div className="mx-auto max-w-4xl rounded-3xl border border-cyan-accent/20 bg-gradient-to-b from-cyan-accent/[0.08] to-white/[0.02] p-10 text-center sm:p-14">
-          <Bot className="mx-auto h-12 w-12 text-cyan-accent" aria-hidden />
+        <div className="mx-auto flex w-full max-w-4xl flex-col items-center rounded-3xl border border-emerald-900/30 bg-[#050d09]/80 p-8 text-center backdrop-blur-md sm:p-14">
+          <Bot className="mx-auto h-12 w-12 text-emerald-400" aria-hidden />
           <h2
             id="cta-heading"
             className="mt-6 font-display text-3xl font-bold sm:text-4xl"
@@ -151,16 +157,16 @@ export default function HomePage() {
             Open the Workforce Console or compare Starter and Professional
             capacity — Sign Up unlocks checkout with your plan retained.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/dashboard"
-              className="inline-flex rounded-lg bg-cyan-accent px-8 py-3.5 text-sm font-semibold text-obsidian shadow-glow-sm transition-shadow hover:shadow-glow"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-emerald-600 px-8 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-950/50 transition hover:bg-emerald-500 sm:w-auto"
             >
               Open dashboard
             </Link>
             <Link
               href="/pricing"
-              className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-8 py-3.5 text-sm font-semibold text-white transition hover:border-cyan-accent/50 hover:text-cyan-accent"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-900/30 px-8 py-3.5 text-sm font-semibold text-white transition hover:border-emerald-500/50 hover:text-emerald-400 sm:w-auto"
             >
               <Plug className="h-4 w-4" aria-hidden />
               See pricing

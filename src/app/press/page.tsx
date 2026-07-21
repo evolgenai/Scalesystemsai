@@ -47,7 +47,7 @@ const BRAND_ASSETS = [
     name: "Color tokens (CSS)",
     filename: "scalesystems-colors.css",
     mime: "text/css",
-    body: `:root {\n  --ss-cyber-blue: #059669;\n  --ss-cyber-blue-soft: #10B981;\n  --ss-midnight-glass: #040907;\n  --ss-glass-edge: rgba(255,255,255,0.1);\n}\n`,
+    body: `:root {\n  --ss-cyber-emerald: #059669;\n  --ss-cyber-emerald-soft: #10B981;\n  --ss-midnight-glass: #040907;\n  --ss-glass-edge: rgba(255,255,255,0.1);\n}\n`,
   },
 ];
 

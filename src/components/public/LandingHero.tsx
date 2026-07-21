@@ -19,7 +19,7 @@ import DemoSandboxBanner from "@/components/public/DemoSandboxBanner";
 const AgentNetworkCanvas = dynamic(() => import("./AgentNetworkCanvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex min-h-[220px] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#040907] sm:min-h-[280px]">
+    <div className="relative flex w-full aspect-[4/3] items-center justify-center overflow-hidden rounded-2xl border border-emerald-900/30 bg-[#040907] sm:aspect-video">
       <div className="h-20 w-20 animate-pulse rounded-full border border-emerald-500/30 bg-emerald-600/10" />
     </div>
   ),
@@ -83,19 +83,19 @@ export default function LandingHero() {
   const mode = MODE_COPY[previewMode];
 
   return (
-    <div className="relative z-10 min-h-screen overflow-hidden bg-[#040907]">
-      <section className="relative overflow-hidden px-4 pb-16 pt-14 sm:px-6 lg:px-8 lg:pb-20 lg:pt-20">
+    <div className="relative z-10 w-full max-w-full min-h-screen overflow-x-hidden bg-[#040907]">
+      <section className="relative w-full max-w-full overflow-hidden px-4 pb-16 pt-14 sm:px-6 lg:px-8 lg:pb-20 lg:pt-20">
         <div className="pointer-events-none absolute inset-0" aria-hidden>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16, 185, 129,0.14),_transparent_55%)]" />
-          <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-600/10 blur-[130px]" />
-          <div className="absolute bottom-0 right-0 h-[280px] w-[420px] rounded-full bg-cyan-accent/10 blur-[100px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.14),_transparent_55%)]" />
+          <div className="absolute left-1/2 top-0 h-[420px] w-[min(900px,140vw)] -translate-x-1/2 rounded-full bg-emerald-600/10 blur-[130px]" />
         </div>
 
-        <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+        <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center gap-12 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
+            className="w-full min-w-0 max-w-xl lg:max-w-none"
           >
             <p className="font-display text-sm font-semibold uppercase tracking-[0.22em] text-emerald-400">
               ScaleSystems
@@ -114,7 +114,7 @@ export default function LandingHero() {
             <DemoSandboxBanner className="mt-8" />
 
             <div
-              className="mt-8 inline-flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.03] p-1 backdrop-blur-xl"
+              className="mt-8 inline-flex max-w-full flex-wrap items-center gap-1 rounded-xl border border-emerald-900/30 bg-[#050d09]/80 p-1 backdrop-blur-md"
               role="group"
               aria-label="Mode comparison preview"
             >
@@ -124,7 +124,7 @@ export default function LandingHero() {
                 aria-pressed={previewMode === "USER"}
                 className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                   previewMode === "USER"
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-lg shadow-emerald-950/50"
+                    ? "border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 shadow-lg shadow-emerald-950/50"
                     : "text-slate-muted hover:bg-white/5 hover:text-white"
                 }`}
               >
@@ -137,7 +137,7 @@ export default function LandingHero() {
                 aria-pressed={previewMode === "DEVELOPER"}
                 className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                   previewMode === "DEVELOPER"
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-lg shadow-emerald-950/50"
+                    ? "border border-emerald-500/40 bg-emerald-500/20 text-emerald-300 shadow-lg shadow-emerald-950/50"
                     : "text-slate-muted hover:bg-white/5 hover:text-white"
                 }`}
               >
@@ -153,7 +153,7 @@ export default function LandingHero() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.25 }}
-                className="mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl"
+                className="mt-5 w-full max-w-md rounded-2xl border border-emerald-900/30 bg-[#050d09]/80 p-4 backdrop-blur-md"
               >
                 <p className="text-sm font-semibold text-white">{mode.title}</p>
                 <p className="mt-1.5 text-sm leading-relaxed text-slate-muted">
@@ -173,21 +173,24 @@ export default function LandingHero() {
               </motion.div>
             </AnimatePresence>
 
-            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Link href="/dashboard?onboard=1">
+            <div className="mt-10 flex w-full flex-col gap-3 sm:flex-row">
+              <Link href="/dashboard?onboard=1" className="w-full sm:w-auto">
                 <motion.span
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_0_28px_rgba(16, 185, 129,0.35)] hover:bg-emerald-500 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-emerald-950/50 hover:bg-emerald-500 sm:w-auto"
                 >
                   Launch Workspace Console
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </motion.span>
               </Link>
-              <Link href="/dashboard?view=marketplace">
+              <Link
+                href="/dashboard?view=marketplace"
+                className="w-full sm:w-auto"
+              >
                 <motion.span
                   whileHover={{ scale: 1.02 }}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:border-emerald-500/50 hover:text-emerald-400 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-900/30 bg-[#050d09]/80 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:border-emerald-500/50 hover:text-emerald-400 sm:w-auto"
                 >
                   <Store className="h-4 w-4" aria-hidden />
                   Explore Agent Marketplace
@@ -200,20 +203,20 @@ export default function LandingHero() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.55, delay: 0.12 }}
-            className="relative z-10 mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-[#040907] isolation-isolate lg:ml-auto"
+            className="relative z-10 mx-auto flex w-full min-w-0 max-w-lg items-center justify-center overflow-hidden lg:ml-auto lg:max-w-none"
           >
-            <div className="h-[350px] max-h-[350px] w-full sm:h-[350px]">
-              <AgentNetworkCanvas className="!h-full !min-h-0 w-full !rounded-none !border-0 !aspect-auto" />
+            <div className="relative flex w-full aspect-[4/3] items-center justify-center overflow-hidden rounded-2xl border border-emerald-900/30 bg-[#040907] sm:aspect-video">
+              <AgentNetworkCanvas className="!aspect-auto h-full w-full !rounded-none !border-0" />
             </div>
           </motion.div>
         </div>
       </section>
 
       <section
-        className="relative z-10 border-y border-white/5 bg-black/20 px-4 py-16 sm:px-6 lg:px-8"
+        className="relative z-10 w-full max-w-full border-y border-emerald-900/20 px-4 py-16 sm:px-6 lg:px-8"
         aria-labelledby="feature-showcase-heading"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto flex w-full max-w-7xl flex-col items-center">
           <div className="mx-auto max-w-2xl text-center">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400/80">
               Product feature showcase
@@ -230,7 +233,7 @@ export default function LandingHero() {
             </p>
           </div>
 
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 grid w-full gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f, i) => (
               <motion.article
                 key={f.title}
@@ -238,10 +241,10 @@ export default function LandingHero() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ delay: i * 0.06, duration: 0.4 }}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition hover:border-emerald-500/30 hover:shadow-[0_0_30px_rgba(16, 185, 129,0.08)]"
+                className="rounded-2xl border border-emerald-900/30 bg-[#050d09]/80 p-6 backdrop-blur-md transition hover:border-emerald-500/40"
               >
-                <div className="mb-4 inline-flex rounded-xl border border-emerald-500/25 bg-emerald-600/10 p-2.5">
-                  <f.icon className="h-5 w-5 text-emerald-400" aria-hidden />
+                <div className="mb-4 inline-flex rounded-xl border border-emerald-500/40 bg-emerald-500/20 p-2.5">
+                  <f.icon className="h-5 w-5 text-emerald-300" aria-hidden />
                 </div>
                 <h3 className="font-display text-lg font-semibold text-white">
                   {f.title}

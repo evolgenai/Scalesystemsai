@@ -132,7 +132,7 @@ export default function RootLayout({
                 <div className="flex min-w-0 w-full flex-1 flex-col">
                   <LaunchBanner />
                   <TopAuthHeader />
-                  <main className="w-full min-w-0 flex-1 overflow-y-auto px-3 py-4 sm:px-4 md:p-6 lg:p-8">
+                  <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 md:p-6 lg:p-8">
                     {children}
                   </main>
                 </div>
