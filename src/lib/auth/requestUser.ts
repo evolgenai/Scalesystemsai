@@ -108,6 +108,7 @@ export async function resolveRequestUser(
         id: true,
         email: true,
         role: true,
+        isSuperAdmin: true,
         accountKind: true,
         tier: true,
         maxAgents: true,
@@ -138,7 +139,8 @@ export async function resolveRequestUser(
           tier: user.tier,
           maxAgents: user.maxAgents,
           plan: normalizeCommercialPlan(user.plan),
-          isSuperAdmin: user.role === "SUPER_ADMIN",
+          isSuperAdmin:
+            user.isSuperAdmin === true || user.role === "SUPER_ADMIN",
           isDeveloperAccount: verifiedDeveloper,
           developerAccountId: user.developerAccount?.id ?? null,
         };

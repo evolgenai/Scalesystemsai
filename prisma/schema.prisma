@@ -92,6 +92,20 @@ enum OrgRole {
 
 }
 
+/** Workspace seat roles for tenant team RBAC (invite / membership). */
+enum WorkspaceMemberRole {
+  ADMIN
+  DEVELOPER
+  MEMBER
+}
+
+enum WorkspaceInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
 
 
 /** Navigation / viewport mode for tenant dashboards (edge-mirrored). */
@@ -108,6 +122,9 @@ model User {
 
   name         String?
 
+  /** Public login handle — unique when set; resolved case-insensitively at auth. */
+  username     String?          @unique
+
   email        String           @unique
 
   phone        String?
@@ -115,6 +132,9 @@ model User {
   password     String
 
   role         UserRole         @default(USER)
+
+  /** Explicit Super-Admin privilege flag (always true when role = SUPER_ADMIN). */
+  isSuperAdmin Boolean          @default(false)
 
   /** Absolute profile tier — USER_ACCOUNT vs DEVELOPER_ACCOUNT hierarchy. */
   accountKind  AccountProfileKind @default(USER_ACCOUNT)
@@ -138,6 +158,10 @@ model User {
 
   memberships  OrgMembership[]
 
+  workspaceMemberships WorkspaceMembership[]
+
+  workspaceInvitesSent WorkspaceInvite[]
+
   workspaceMemories WorkspaceMemory[]
 
   agentTokens  AgentTokenVault[]
@@ -154,6 +178,8 @@ model User {
   updatedAt    DateTime         @updatedAt
 
   @@index([accountKind])
+  @@index([isSuperAdmin])
+  @@index([username])
 
 }
 
@@ -440,6 +466,12 @@ model Workspace {
   meterLastAt       DateTime?
   /** Prepaid gas credits for workflow node execution (integer units). */
   gasBalance        Int                  @default(50000)
+  /** Enterprise: bind custom / white-label domains. */
+  hasCustomDomains  Boolean              @default(false)
+  /** Enterprise: Meta-SRE console + heal pipeline access. */
+  hasSreAccess      Boolean              @default(false)
+  /** Enterprise: full marketplace publish + install surface. */
+  hasFullMarketplace Boolean             @default(false)
   /** Tenant navigation / viewport mode — mirrored to Edge KV on write. */
   uiPreference      UiPreference         @default(USER)
   /**
@@ -467,12 +499,56 @@ model Workspace {
   domains            TenantDomain[]
   securityAuditLogs  SecurityAuditLog[]
   vaultBackups       VaultBackup[]
+  memberships        WorkspaceMembership[]
+  invites            WorkspaceInvite[]
 
   @@index([createdAt])
   @@index([meterLastAt])
   @@index([uiPreference])
   @@index([requiredAuthLevel])
   @@index([gasBalance])
+}
+
+/**
+ * Active workspace seat — tenant-isolated RBAC (ADMIN / DEVELOPER / MEMBER).
+ */
+model WorkspaceMembership {
+  id          String              @id @default(cuid())
+  workspaceId String
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        WorkspaceMemberRole @default(MEMBER)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@index([workspaceId, role])
+}
+
+/**
+ * Pending (or historical) workspace invite — token grants seat acceptance.
+ */
+model WorkspaceInvite {
+  id          String                @id @default(cuid())
+  workspaceId String
+  workspace   Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  email       String
+  role        WorkspaceMemberRole   @default(MEMBER)
+  token       String                @unique
+  status      WorkspaceInviteStatus @default(PENDING)
+  invitedById String?
+  invitedBy   User?                 @relation(fields: [invitedById], references: [id], onDelete: SetNull)
+  expiresAt   DateTime
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([workspaceId, status, createdAt(sort: Desc)])
+  @@index([workspaceId, email, status])
+  @@index([email, status])
+  @@index([token])
+  @@index([invitedById])
 }
 
 /**

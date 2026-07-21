@@ -21,8 +21,18 @@ const SANDBOX_PLAN_FALLBACK: Record<
   },
   PREMIUM: {
     label: "Professional",
-    priceMonthly: 99,
+    priceMonthly: 199,
     tagline: "Sandbox pricing · advanced swarm capacity.",
+  },
+  PRO: {
+    label: "Pro",
+    priceMonthly: 199,
+    tagline: "Sandbox pricing · 2M GAS + custom domains.",
+  },
+  ENTERPRISE: {
+    label: "Enterprise",
+    priceMonthly: 999,
+    tagline: "Sandbox pricing · unlimited GAS + Meta-SRE.",
   },
 };
 
@@ -80,7 +90,7 @@ function CheckoutInner() {
   }, [searchParams]);
 
   const planCards = useMemo(() => {
-    return (["STARTER", "PREMIUM"] as const).map((option) => ({
+    return (["STARTER", "PRO", "ENTERPRISE"] as const).map((option) => ({
       option,
       display: resolvePlanDisplay(option),
     }));

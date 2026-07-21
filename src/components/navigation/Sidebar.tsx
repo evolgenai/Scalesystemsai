@@ -22,6 +22,8 @@ import {
   Terminal,
   Globe,
   ShieldCheck,
+  Users,
+  Crown,
   type LucideIcon,
 } from "lucide-react";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
@@ -50,7 +52,9 @@ type NavLink = {
     | "builder"
     | "cli"
     | "domains"
-    | "security";
+    | "security"
+    | "team"
+    | "billing";
   /** Only shown in Developer mode on dashboard surfaces. */
   developerOnly?: boolean;
   /** Only shown when Super-Admin env bypass is armed. */
@@ -133,6 +137,18 @@ const NAV_LINKS: NavLink[] = [
     label: "Domains & Branding",
     icon: Globe,
     match: "domains",
+  },
+  {
+    href: "/dashboard?view=team",
+    label: "Team Members",
+    icon: Users,
+    match: "team",
+  },
+  {
+    href: "/dashboard?view=billing",
+    label: "Upgrade Workspace",
+    icon: Crown,
+    match: "billing",
   },
   {
     href: "/dashboard?view=catalog",
@@ -222,6 +238,8 @@ function SidebarNav() {
   const inventoryOpen = onDashboard && view === "inventory";
   const sreHealthOpen = onDashboard && view === "sre-health";
   const securityOpen = onDashboard && view === "security";
+  const teamOpen = onDashboard && view === "team";
+  const billingOpen = onDashboard && view === "billing";
 
   const closeDrawer = () => setOpen(false);
 
@@ -253,6 +271,8 @@ function SidebarNav() {
     if (link.match === "inventory") return inventoryOpen;
     if (link.match === "sre-health") return sreHealthOpen;
     if (link.match === "security") return securityOpen;
+    if (link.match === "team") return teamOpen;
+    if (link.match === "billing") return billingOpen;
     if (link.match === "dashboard") {
       return (
         onDashboard &&
@@ -271,7 +291,9 @@ function SidebarNav() {
         !catalogOpen &&
         !inventoryOpen &&
         !sreHealthOpen &&
-        !securityOpen
+        !securityOpen &&
+        !teamOpen &&
+        !billingOpen
       );
     }
     const pathOnly = link.href.split("?")[0] ?? link.href;

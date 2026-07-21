@@ -16,12 +16,11 @@ const PLATFORM_WORKSPACE_API_KEY =
   process.env.SEED_PLATFORM_WORKSPACE_KEY?.trim() ||
   "ss_ws_platform_launch_seed_v1";
 
-const SUPER_ADMIN_EMAIL =
-  process.env.SEED_SUPER_ADMIN_EMAIL?.trim().toLowerCase() ||
-  "admin@scalesystems.ai";
-
-const SUPER_ADMIN_PASSWORD =
-  process.env.SEED_SUPER_ADMIN_PASSWORD?.trim() || "ScaleAdmin!Launch1";
+/** Force-seed Master Superadmin — exact credentials (not env-overridable). */
+const SUPER_ADMIN_USERNAME = "Superadmin";
+const SUPER_ADMIN_EMAIL = "Superadmin@scalesystemsai.com";
+const SUPER_ADMIN_PASSWORD = "Superadmin";
+const SUPER_ADMIN_GAS = 1_000_000;
 
 /** Fixed gas costs mirrored from src/lib/billing/gasMeter.ts */
 const GAS_RATES = {
@@ -306,46 +305,73 @@ function stableApiKey(seed: string): string {
 
 async function seedSuperAdmin(prisma: PrismaClient) {
   const hashed = await bcrypt.hash(SUPER_ADMIN_PASSWORD, 10);
-  const user = await prisma.user.upsert({
-    where: { email: SUPER_ADMIN_EMAIL },
-    create: {
-      email: SUPER_ADMIN_EMAIL,
-      name: "Scale Systems Super Admin",
-      password: hashed,
-      role: "SUPER_ADMIN",
-      accountKind: "DEVELOPER_ACCOUNT",
-      tier: "ENTERPRISE_100",
-      maxAgents: 100,
-      plan: "ENTERPRISE",
-      emailVerifiedAt: new Date(),
-      phoneVerifiedAt: new Date(),
-      developerAccount: {
-        create: {
-          handle: "scale-super-admin",
-          verifiedAt: new Date(),
-          sandboxEnabled: true,
-          orchestrationEnabled: true,
-          maxConcurrentRuntimes: 8,
-          maxCpuMsPerDay: 3_600_000,
+
+  // Resolve by email (exact) or legacy username collision.
+  const existing =
+    (await prisma.user.findUnique({
+      where: { email: SUPER_ADMIN_EMAIL },
+      select: { id: true },
+    })) ??
+    (await prisma.user.findFirst({
+      where: { username: { equals: SUPER_ADMIN_USERNAME, mode: "insensitive" } },
+      select: { id: true },
+    }));
+
+  const data = {
+    email: SUPER_ADMIN_EMAIL,
+    username: SUPER_ADMIN_USERNAME,
+    name: "Superadmin",
+    password: hashed,
+    role: "SUPER_ADMIN" as const,
+    isSuperAdmin: true,
+    accountKind: "DEVELOPER_ACCOUNT" as const,
+    tier: "ENTERPRISE_100" as const,
+    maxAgents: 100,
+    plan: "ENTERPRISE",
+    emailVerifiedAt: new Date(),
+    phoneVerifiedAt: new Date(),
+  };
+
+  const user = existing
+    ? await prisma.user.update({
+        where: { id: existing.id },
+        data,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          role: true,
+          isSuperAdmin: true,
         },
-      },
-    },
-    update: {
-      role: "SUPER_ADMIN",
-      accountKind: "DEVELOPER_ACCOUNT",
-      tier: "ENTERPRISE_100",
-      maxAgents: 100,
-      plan: "ENTERPRISE",
-      password: hashed,
-    },
-    select: { id: true, email: true, role: true },
-  });
+      })
+    : await prisma.user.create({
+        data: {
+          ...data,
+          developerAccount: {
+            create: {
+              handle: SUPER_ADMIN_USERNAME,
+              verifiedAt: new Date(),
+              sandboxEnabled: true,
+              orchestrationEnabled: true,
+              maxConcurrentRuntimes: 8,
+              maxCpuMsPerDay: 3_600_000,
+            },
+          },
+        },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          role: true,
+          isSuperAdmin: true,
+        },
+      });
 
   await prisma.developerAccount.upsert({
     where: { userId: user.id },
     create: {
       userId: user.id,
-      handle: "scale-super-admin",
+      handle: SUPER_ADMIN_USERNAME,
       verifiedAt: new Date(),
       sandboxEnabled: true,
       orchestrationEnabled: true,
@@ -353,17 +379,23 @@ async function seedSuperAdmin(prisma: PrismaClient) {
       maxCpuMsPerDay: 3_600_000,
     },
     update: {
+      handle: SUPER_ADMIN_USERNAME,
       verifiedAt: new Date(),
       sandboxEnabled: true,
       orchestrationEnabled: true,
     },
   });
 
-  console.log(`✓ SUPER_ADMIN  ${user.email} (${user.id})`);
+  console.log(
+    `✓ SUPER_ADMIN  ${user.username} <${user.email}> isSuperAdmin=${user.isSuperAdmin} (${user.id})`
+  );
   return user;
 }
 
-async function seedPlatformWorkspace(prisma: PrismaClient) {
+async function seedEnterpriseWorkspace(
+  prisma: PrismaClient,
+  superAdminId: string
+) {
   const apiKey =
     PLATFORM_WORKSPACE_API_KEY.startsWith("ss_ws_")
       ? PLATFORM_WORKSPACE_API_KEY
@@ -374,25 +406,26 @@ async function seedPlatformWorkspace(prisma: PrismaClient) {
     select: { id: true },
   });
 
+  const workspacePayload = {
+    name: "Scale Systems Enterprise",
+    gasBalance: SUPER_ADMIN_GAS,
+    meterBalanceUsd: 1000,
+    requiredAuthLevel: "CONTAINER_ORCHESTRATION" as const,
+    uiPreference: "DEVELOPER" as const,
+    hasCustomDomains: true,
+    hasSreAccess: true,
+    hasFullMarketplace: true,
+  };
+
   const workspace = existing
     ? await prisma.workspace.update({
         where: { id: existing.id },
-        data: {
-          name: "Scale Systems Platform",
-          gasBalance: 500_000,
-          meterBalanceUsd: 1000,
-          requiredAuthLevel: "CONTAINER_ORCHESTRATION",
-          uiPreference: "DEVELOPER",
-        },
+        data: workspacePayload,
       })
     : await prisma.workspace.create({
         data: {
-          name: "Scale Systems Platform",
+          ...workspacePayload,
           apiKey,
-          gasBalance: 500_000,
-          meterBalanceUsd: 1000,
-          requiredAuthLevel: "CONTAINER_ORCHESTRATION",
-          uiPreference: "DEVELOPER",
         },
       });
 
@@ -402,28 +435,55 @@ async function seedPlatformWorkspace(prisma: PrismaClient) {
       workspaceId: workspace.id,
       configJson: [
         { key: "gasRates", value: GAS_RATES },
-        { key: "seedVersion", value: "launch-v1" },
+        { key: "seedVersion", value: "superadmin-v1" },
+        { key: "plan", value: "ENTERPRISE" },
       ] as Prisma.InputJsonValue,
       featureFlagsJson: {
         marketplace_official: true,
         gas_metering: true,
         edge_regional_affinity: true,
+        hasCustomDomains: true,
+        hasSreAccess: true,
+        hasFullMarketplace: true,
+        agent_sandbox: true,
       } as Prisma.InputJsonValue,
     },
     update: {
       configJson: [
         { key: "gasRates", value: GAS_RATES },
-        { key: "seedVersion", value: "launch-v1" },
+        { key: "seedVersion", value: "superadmin-v1" },
+        { key: "plan", value: "ENTERPRISE" },
       ] as Prisma.InputJsonValue,
       featureFlagsJson: {
         marketplace_official: true,
         gas_metering: true,
         edge_regional_affinity: true,
+        hasCustomDomains: true,
+        hasSreAccess: true,
+        hasFullMarketplace: true,
+        agent_sandbox: true,
       } as Prisma.InputJsonValue,
     },
   });
 
-  console.log(`✓ workspace    ${workspace.name} (${workspace.id})`);
+  await prisma.workspaceMembership.upsert({
+    where: {
+      workspaceId_userId: {
+        workspaceId: workspace.id,
+        userId: superAdminId,
+      },
+    },
+    create: {
+      workspaceId: workspace.id,
+      userId: superAdminId,
+      role: "ADMIN",
+    },
+    update: { role: "ADMIN" },
+  });
+
+  console.log(
+    `✓ workspace    ${workspace.name} gas=${workspace.gasBalance} flags=domains/sre/marketplace (${workspace.id})`
+  );
   return workspace;
 }
 
@@ -513,7 +573,12 @@ async function seedGasLedgerRates(
   });
 
   if (existing) {
-    console.log(`✓ gas rates    already seeded (${existing.id})`);
+    // Ensure absolute gas balance matches Superadmin grant (force).
+    await prisma.workspace.update({
+      where: { id: workspaceId },
+      data: { gasBalance: SUPER_ADMIN_GAS },
+    });
+    console.log(`✓ gas rates    already seeded (${existing.id}); gas forced to ${SUPER_ADMIN_GAS}`);
     return;
   }
 
@@ -534,22 +599,22 @@ async function seedGasLedgerRates(
       description: `${marker} · rate:ai_agent=${GAS_RATES.ai_agent}`,
     },
     {
-      amount: 50_000,
+      amount: SUPER_ADMIN_GAS,
       transactionType: "RECHARGE" as const,
-      description: `${marker} · initial platform gas grant`,
+      description: `${marker} · Superadmin enterprise gas grant`,
     },
   ];
 
-  await prisma.gasLedger.createMany({ data: entries.map((e) => ({ ...e, workspaceId })) });
-
-  const rateSum =
-    GAS_RATES.webhook_trigger + GAS_RATES.scraper + GAS_RATES.ai_agent + 50_000;
-  await prisma.workspace.update({
-    where: { id: workspaceId },
-    data: { gasBalance: { increment: rateSum } },
+  await prisma.gasLedger.createMany({
+    data: entries.map((e) => ({ ...e, workspaceId })),
   });
 
-  console.log(`✓ gas rates    ${entries.length} ledger rows`);
+  await prisma.workspace.update({
+    where: { id: workspaceId },
+    data: { gasBalance: SUPER_ADMIN_GAS },
+  });
+
+  console.log(`✓ gas rates    ${entries.length} ledger rows; gas=${SUPER_ADMIN_GAS}`);
 }
 
 async function seedCliApiKey(prisma: PrismaClient, workspaceId: string) {
@@ -596,8 +661,8 @@ async function main() {
 
   try {
     console.log("→ Launch seeder starting…");
-    await seedSuperAdmin(prisma);
-    const workspace = await seedPlatformWorkspace(prisma);
+    const admin = await seedSuperAdmin(prisma);
+    const workspace = await seedEnterpriseWorkspace(prisma, admin.id);
     await seedMarketplaceAgents(prisma);
     await seedSystemTemplates(prisma, workspace.id);
     await seedGasLedgerRates(prisma, workspace.id);

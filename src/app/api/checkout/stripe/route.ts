@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid plan. Use STARTER or PREMIUM.",
+          error: "Invalid plan. Use STARTER, PRO, PREMIUM, or ENTERPRISE.",
         },
         { status: 400 }
       );

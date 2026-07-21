@@ -26,6 +26,8 @@ import {
   Terminal,
   Globe,
   ShieldCheck,
+  Users,
+  Crown,
 } from "lucide-react";
 import AgentVisualizerCard from "@/components/dashboard/AgentVisualizerCard";
 import AgentSpawnPanel from "@/components/dashboard/AgentSpawnPanel";
@@ -278,6 +280,34 @@ const SecurityVault = dynamic(
   }
 );
 
+const TeamManager = dynamic(
+  () => import("@/components/workspace/TeamManager"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-4" aria-busy aria-label="Loading team manager">
+        <div className="h-24 animate-pulse rounded-lg border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="h-40 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+        <div className="h-40 animate-pulse rounded-xl border border-white/5 bg-white/[0.03] backdrop-blur-xl" />
+      </div>
+    ),
+  }
+);
+
+const SubscriptionPlans = dynamic(
+  () => import("@/components/billing/SubscriptionPlans"),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="mx-auto h-96 max-w-2xl animate-pulse rounded-2xl border border-white/5 bg-white/[0.03] backdrop-blur-xl"
+        aria-busy
+        aria-label="Loading subscription plans"
+      />
+    ),
+  }
+);
+
 import ModeWrapper, {
   useWorkspaceMode,
 } from "@/components/dashboard/ModeWrapper";
@@ -293,6 +323,27 @@ import { useAgentStream } from "@/lib/agents/useAgentStream";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import { DEFAULT_PERSONA_ID } from "@/lib/agents/personaPresets";
 import { reportWorkspaceActivity } from "@/lib/org/useWorkspacePresence";
+
+type ConsoleView =
+  | "workforce"
+  | "marketplace"
+  | "chaos"
+  | "teletraffic"
+  | "plugins"
+  | "alerts"
+  | "audit"
+  | "settings"
+  | "universe"
+  | "sre-control"
+  | "catalog"
+  | "inventory"
+  | "sre-health"
+  | "builder"
+  | "cli"
+  | "domains"
+  | "security"
+  | "team"
+  | "billing";
 
 const DEFAULT_OBJECTIVE =
   "Analyze https://example.com and run a TypeScript lead-scoring script in the sandbox.";
@@ -322,25 +373,7 @@ export default function DashboardClient({
   const [troubleshootActive, setTroubleshootActive] = useState(false);
   const [crashAlert, setCrashAlert] = useState<string | null>(null);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
-  const [consoleView, setConsoleView] = useState<
-    | "workforce"
-    | "marketplace"
-    | "chaos"
-    | "teletraffic"
-    | "plugins"
-    | "alerts"
-    | "audit"
-    | "settings"
-    | "universe"
-    | "sre-control"
-    | "catalog"
-    | "inventory"
-    | "sre-health"
-    | "builder"
-    | "cli"
-    | "domains"
-    | "security"
-  >("workforce");
+  const [consoleView, setConsoleView] = useState<ConsoleView>("workforce");
   const [stressedNodeIds, setStressedNodeIds] = useState<FlowNodeId[]>([]);
   const [chaosOverrideHealth, setChaosOverrideHealth] = useState<
     "healthy" | "incident" | "healing" | null
@@ -408,30 +441,13 @@ export default function DashboardClient({
     else if (view === "cli") setConsoleView("cli");
     else if (view === "domains") setConsoleView("domains");
     else if (view === "security") setConsoleView("security");
+    else if (view === "team") setConsoleView("team");
+    else if (view === "billing") setConsoleView("billing");
     else setConsoleView("workforce");
   }, [searchParams, isUser, isSuperAdmin, router]);
 
   const setView = useCallback(
-    (
-      next:
-        | "workforce"
-        | "marketplace"
-        | "chaos"
-        | "teletraffic"
-        | "plugins"
-        | "alerts"
-        | "audit"
-        | "settings"
-        | "universe"
-        | "sre-control"
-        | "catalog"
-        | "inventory"
-        | "sre-health"
-        | "builder"
-        | "cli"
-        | "domains"
-        | "security"
-    ) => {
+    (next: ConsoleView) => {
       setConsoleView(next);
       const params = new URLSearchParams(searchParams.toString());
       if (next === "marketplace") params.set("view", "marketplace");
@@ -450,6 +466,8 @@ export default function DashboardClient({
       else if (next === "cli") params.set("view", "cli");
       else if (next === "domains") params.set("view", "domains");
       else if (next === "security") params.set("view", "security");
+      else if (next === "team") params.set("view", "team");
+      else if (next === "billing") params.set("view", "billing");
       else params.delete("view");
       const qs = params.toString();
       router.replace(qs ? `/dashboard?${qs}` : "/dashboard", { scroll: false });
@@ -926,6 +944,38 @@ export default function DashboardClient({
           <button
             type="button"
             role="tab"
+            aria-selected={consoleView === "team"}
+            onClick={() => setView("team")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "team"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <Users className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            Team Members
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={consoleView === "billing"}
+            onClick={() => setView("billing")}
+            className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+              consoleView === "billing"
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <Hover3DIcon intensity={12}>
+              <Crown className="h-3.5 w-3.5" aria-hidden />
+            </Hover3DIcon>
+            Upgrade
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={consoleView === "catalog"}
             onClick={() => setView("catalog")}
             className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition ${
@@ -1074,6 +1124,14 @@ export default function DashboardClient({
           <span className="text-xs text-slate-dim">
             Custom hostname · DNS verify · SSL badge · tenant branding
           </span>
+        ) : consoleView === "team" ? (
+          <span className="text-xs text-slate-dim">
+            Seats · invitations · Admin / Developer / Member roles
+          </span>
+        ) : consoleView === "billing" ? (
+          <span className="text-xs text-slate-dim">
+            Starter · Pro · Enterprise · Stripe subscription checkout
+          </span>
         ) : consoleView === "security" ? (
           <span className="text-xs text-slate-dim">
             Live threat stream · geo badges · snapshot vault
@@ -1085,7 +1143,15 @@ export default function DashboardClient({
         )}
       </div>
 
-      {consoleView === "domains" ? (
+      {consoleView === "team" ? (
+        <ErrorBoundary label="Team Manager">
+          <TeamManager />
+        </ErrorBoundary>
+      ) : consoleView === "billing" ? (
+        <ErrorBoundary label="Subscription Plans">
+          <SubscriptionPlans embedded />
+        </ErrorBoundary>
+      ) : consoleView === "domains" ? (
         <ErrorBoundary label="Domain Manager">
           <DomainManager />
         </ErrorBoundary>

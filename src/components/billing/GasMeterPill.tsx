@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Fuel, X, Zap, Sparkles } from "lucide-react";
+import { Crown, Fuel, X, Zap, Sparkles } from "lucide-react";
+import SubscriptionPlans from "@/components/billing/SubscriptionPlans";
 
 const STORAGE_KEY = "scalesystems.workspace.gasBalance";
 const DEFAULT_BALANCE = 42_500;
@@ -69,6 +70,7 @@ export default function GasMeterPill({
 }: GasMeterPillProps) {
   const [balance, setBalance] = useState(DEFAULT_BALANCE);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [plansOpen, setPlansOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [canvasBusy, setCanvasBusy] = useState(false);
   const [pulseTick, setPulseTick] = useState(0);
@@ -266,12 +268,31 @@ export default function GasMeterPill({
                       </li>
                     ))}
                   </ul>
+
+                  <div className="border-t border-white/5 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDrawerOpen(false);
+                        setPlansOpen(true);
+                      }}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
+                    >
+                      <Crown className="h-3.5 w-3.5" aria-hidden />
+                      Upgrade Workspace
+                    </button>
+                    <p className="mt-2 text-center text-[10px] text-slate-dim">
+                      Starter · Pro · Enterprise monthly plans
+                    </p>
+                  </div>
                 </div>
               </motion.div>
             </div>,
             document.body
           )
         : null}
+
+      <SubscriptionPlans open={plansOpen} onClose={() => setPlansOpen(false)} />
     </>
   );
 }

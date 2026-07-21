@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { KeyRound, Lock, ShieldCheck, UserRound, X } from "lucide-react";
 import { useAuth, type AuthUser } from "@/components/auth/AuthProvider";
+import LoginForm from "@/components/auth/LoginForm";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 
 type AuthModalProps = {
@@ -23,7 +24,6 @@ export default function AuthModal({
   onSuccess,
 }: AuthModalProps) {
   const {
-    signIn,
     signUp,
     activateSession,
     verifyDualCodes,
@@ -79,19 +79,6 @@ export default function AuthModal({
   const finishSuccess = () => {
     onClose();
     onSuccess?.();
-  };
-
-  const submitSignIn = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setPending(true);
-    setError(null);
-    const result = await signIn({ email, password });
-    setPending(false);
-    if (!result.ok) {
-      setError(result.error ?? "Authentication failed.");
-      return;
-    }
-    finishSuccess();
   };
 
   const submitSignUp = async (event: React.FormEvent) => {
@@ -241,62 +228,14 @@ export default function AuthModal({
         </div>
 
         {mode === "signin" ? (
-          <form onSubmit={submitSignIn} className="space-y-4 p-5">
-            <label className="block text-xs text-slate-dim">
-              Email
-              <input
-                required
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-accent/40"
-                autoComplete="email"
-              />
-            </label>
-            <label className="block text-xs text-slate-dim">
-              Password
-              <input
-                required
-                type="password"
-                minLength={8}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-cyan-accent/40"
-                autoComplete="current-password"
-              />
-            </label>
-            {info ? (
-              <p className="rounded-xl border border-cyan-accent/25 bg-cyan-accent/10 px-3 py-2 text-xs text-cyan-accent">
-                {info}
-              </p>
-            ) : null}
-            {error ? (
-              <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
-                {error}
-              </p>
-            ) : null}
-            <button
-              type="submit"
-              disabled={pending}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-accent/40 bg-cyan-accent/15 px-4 py-2.5 text-sm font-semibold text-cyan-accent transition hover:bg-cyan-accent/25 disabled:opacity-50"
-            >
-              <UserRound className="h-4 w-4" aria-hidden />
-              {pending ? "Working…" : "Sign In"}
-            </button>
-            <p className="text-center text-xs text-slate-dim">
-              Need an account?{" "}
-              <button
-                type="button"
-                className="text-cyan-accent hover:underline"
-                onClick={() => {
-                  setMode("signup");
-                  trackFunnelEvent({ event: "auth_signup_clicked" });
-                }}
-              >
-                Sign up
-              </button>
-            </p>
-          </form>
+          <LoginForm
+            info={info}
+            onSuccess={finishSuccess}
+            onNeedAccount={() => {
+              setMode("signup");
+              trackFunnelEvent({ event: "auth_signup_clicked" });
+            }}
+          />
         ) : null}
 
         {mode === "signup" ? (
