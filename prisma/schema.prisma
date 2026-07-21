@@ -250,6 +250,9 @@ model Agent {
 
   owner       User?       @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
+  /** Equipped @skills installs scoped via AgentSkillInstall rows. */
+  skillInstalls AgentSkillInstall[]
+
   createdAt   DateTime    @default(now())
 
   updatedAt   DateTime    @updatedAt
@@ -258,6 +261,30 @@ model Agent {
 
   @@index([ownerId])
 
+}
+
+/**
+ * Equips an Agent/robot with a registry skill (e.g. @vercel, @playwright).
+ * Tenant-scoped — workspace boundary enforced at the API layer.
+ */
+model AgentSkillInstall {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agentId     String
+  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  /** Canonical skill id from skillRegistry, e.g. "@vercel". */
+  skillId     String
+  /** Optional robot/alias label used by ScaleAgent('alias'). */
+  agentAlias  String?
+  installedAt DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([workspaceId, agentId, skillId])
+  @@index([workspaceId, agentId])
+  @@index([workspaceId, skillId])
+  @@index([agentId, skillId])
+  @@index([workspaceId, agentAlias])
 }
 
 model SystemSnapshot {
@@ -508,6 +535,7 @@ model Workspace {
   invites            WorkspaceInvite[]
   integrations       WorkspaceIntegration[]
   inboundWebhooks    InboundWebhook[]
+  skillInstalls      AgentSkillInstall[]
 
   @@index([createdAt])
   @@index([meterLastAt])

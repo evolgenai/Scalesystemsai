@@ -82,6 +82,8 @@ async function lockWorkspaceGas(
 /**
  * Map workflow node types → metered gas kind.
  * Webhook Trigger = 10, Scraper = 50, AI Agent = 100. Others are free (0).
+ * Python terminal / skill invocations map onto existing ledger categories
+ * (no schema or analytics breaking changes).
  */
 export function resolveGasKind(nodeType: string): MeteredGasKind | null {
   const normalized = normalizeNodeType(nodeType);
@@ -95,9 +97,131 @@ export function resolveGasKind(nodeType: string): MeteredGasKind | null {
   ) {
     return "webhook_trigger";
   }
-  if (normalized === "scraper") return "scraper";
-  if (normalized === "ai" || normalized === "agent") return "ai_agent";
+  if (
+    normalized === "scraper" ||
+    raw === "skill_playwright" ||
+    raw.includes("playwright")
+  ) {
+    return "scraper";
+  }
+  if (
+    normalized === "ai" ||
+    normalized === "agent" ||
+    raw === "python_terminal" ||
+    raw === "skill_install" ||
+    raw.startsWith("skill_")
+  ) {
+    return "ai_agent";
+  }
   return null;
+}
+
+/**
+ * Atomically deduct an explicit gas amount under an existing MeteredGasKind.
+ * Used by the Python virtual terminal + skill metering (additive; does not
+ * alter GAS_COSTS or existing deductGas callers).
+ */
+export async function deductGasUnits(
+  workspaceId: string,
+  amount: number,
+  options?: {
+    gasKind?: MeteredGasKind;
+    description?: string;
+    nodeType?: string;
+  }
+): Promise<DeductGasResult> {
+  const units = Math.max(0, Math.trunc(amount));
+  const gasKind = options?.gasKind ?? "ai_agent";
+  const nodeType = options?.nodeType ?? gasKind;
+  const prisma = getPrisma();
+
+  if (units <= 0) {
+    const ws = await prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { gasBalance: true },
+    });
+    if (!ws) {
+      throw new Error(`Workspace not found: ${workspaceId}`);
+    }
+    if (ws.gasBalance <= 0) {
+      throw new InsufficientGasError();
+    }
+    return {
+      workspaceId,
+      nodeType,
+      gasKind,
+      amount: 0,
+      balanceBefore: ws.gasBalance,
+      balanceAfter: ws.gasBalance,
+      ledgerId: null,
+      skipped: true,
+    };
+  }
+
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_TX_RETRIES; attempt += 1) {
+    try {
+      return await prisma.$transaction(
+        async (tx) => {
+          const locked = await lockWorkspaceGas(tx, workspaceId);
+          if (!locked) {
+            throw new Error(`Workspace not found: ${workspaceId}`);
+          }
+
+          if (locked.gasBalance <= 0 || locked.gasBalance < units) {
+            throw new InsufficientGasError();
+          }
+
+          const balanceBefore = locked.gasBalance;
+          const balanceAfter = balanceBefore - units;
+
+          await tx.workspace.update({
+            where: { id: locked.id },
+            data: { gasBalance: balanceAfter },
+          });
+
+          const ledger = await tx.gasLedger.create({
+            data: {
+              workspaceId: locked.id,
+              amount: units,
+              transactionType: "EXECUTION_FEE" satisfies GasTransactionType,
+              description:
+                options?.description ??
+                `Execution fee: ${gasKind} (${nodeType}) — ${units} GAS`,
+            },
+          });
+
+          await recordDailyUsageInTx(tx, locked.id, gasKind, units);
+
+          return {
+            workspaceId: locked.id,
+            nodeType,
+            gasKind,
+            amount: units,
+            balanceBefore,
+            balanceAfter,
+            ledgerId: ledger.id,
+            skipped: false,
+          };
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+          timeout: TX_TIMEOUT_MS,
+          maxWait: TX_MAX_WAIT_MS,
+        }
+      );
+    } catch (err) {
+      lastError = err;
+      if (err instanceof InsufficientGasError) throw err;
+      if (!isRetryableTxError(err) || attempt >= MAX_TX_RETRIES - 1) {
+        throw err;
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Gas deduction failed after retries.");
 }
 
 export function resolveGasCost(nodeType: string): number {
