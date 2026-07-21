@@ -104,6 +104,16 @@ const TOWERS: TowerDef[] = [
 
 const PROXIMITY = 3.2;
 
+/** OrbitControls-equivalent polar clamps — prevents 360° camera inversion. */
+const MIN_POLAR_ANGLE = Math.PI / 6;
+const MAX_POLAR_ANGLE = Math.PI / 2 + 0.3;
+const MIN_PITCH = Math.PI / 2 - MAX_POLAR_ANGLE;
+const MAX_PITCH = Math.PI / 2 - MIN_POLAR_ANGLE;
+
+function clampPitch(pitch: number): number {
+  return Math.max(MIN_PITCH, Math.min(MAX_PITCH, pitch));
+}
+
 function supportsWebGL(): boolean {
   if (typeof window === "undefined") return false;
   try {
@@ -206,10 +216,7 @@ function FloatingCamera({
       const sens = 0.0022;
       look.current.y -= e.movementX * sens;
       look.current.x -= e.movementY * sens;
-      look.current.x = Math.max(
-        -Math.PI / 2.2,
-        Math.min(Math.PI / 2.2, look.current.x)
-      );
+      look.current.x = clampPitch(look.current.x);
     };
     el.addEventListener("mousemove", onMove);
     return () => el.removeEventListener("mousemove", onMove);
@@ -217,6 +224,7 @@ function FloatingCamera({
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
+    look.current.x = clampPitch(look.current.x);
     euler.current.set(look.current.x, look.current.y, 0);
     camera.quaternion.setFromEuler(euler.current);
 
@@ -396,7 +404,7 @@ function Scene({
   return (
     <>
       <color attach="background" args={["#050507"]} />
-      <fog attach="fog" args={["#050507", 18, 42]} />
+      <fog attach="fog" args={["#050507", 22, 120]} />
       <ambientLight intensity={0.35} />
       <directionalLight
         position={[8, 14, 6]}
@@ -553,7 +561,7 @@ export default function SpatialUniverse() {
               <Canvas
                 shadows
                 dpr={[1, 1.75]}
-                camera={{ fov: 70, near: 0.1, far: 80, position: [0, 1.65, 8] }}
+                camera={{ fov: 70, near: 0.1, far: 200, position: [0, 1.65, 8] }}
                 gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
                 onPointerDown={() => setLocked(true)}
                 className="h-full w-full touch-none"

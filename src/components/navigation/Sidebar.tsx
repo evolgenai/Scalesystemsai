@@ -212,7 +212,7 @@ const NAV_LINKS: NavLink[] = [
 ];
 
 function linkClassName(active: boolean): string {
-  return `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+  return `flex min-h-[44px] touch-manipulation items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
     active
       ? "bg-emerald-500/15 text-emerald-400"
       : "text-slate-muted hover:bg-white/5 hover:text-white"

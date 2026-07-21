@@ -194,7 +194,7 @@ export default function MetaSreCommandDeck() {
             onChange={(e) => setDirective(e.target.value)}
             disabled={running}
             placeholder="e.g. Harden agent stream reconnects and open a PR with sandbox-verified patches…"
-            className="w-full resize-y rounded-lg border border-white/10 bg-obsidian/80 px-3.5 py-3 font-mono text-sm text-slate-100 placeholder:text-slate-dim outline-none transition focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60"
+            className="w-full resize-y rounded-lg border border-white/10 bg-obsidian/80 px-3.5 py-3 font-mono text-base text-slate-100 placeholder:text-slate-dim outline-none transition focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-60 sm:text-sm"
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-[11px] text-slate-dim">
@@ -203,7 +203,7 @@ export default function MetaSreCommandDeck() {
             <button
               type="submit"
               disabled={running || !directive.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3.5 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex min-h-[44px] touch-manipulation items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-4 py-2.5 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/25 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
             >
               {running ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -269,7 +269,7 @@ export default function MetaSreCommandDeck() {
           </ol>
         </section>
 
-        <section className="glass-panel flex min-h-[280px] flex-col overflow-hidden" aria-live="polite">
+        <section className="glass-panel flex min-h-[220px] flex-col overflow-hidden sm:min-h-[280px]" aria-live="polite">
           <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
             <Hover3DIcon intensity={10}>
               <Terminal className="h-3.5 w-3.5 text-cyan-accent" aria-hidden />
