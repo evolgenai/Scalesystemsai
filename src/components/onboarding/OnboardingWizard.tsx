@@ -201,11 +201,11 @@ export default function OnboardingWizard({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 320, damping: 34 }}
-            className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-white/10 bg-[#09090B]/95 shadow-[0_0_64px_rgba(0, 102, 255,0.12)] backdrop-blur-xl"
+            className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-white/10 bg-[#040907]/95 shadow-[0_0_64px_rgba(16, 185, 129,0.12)] backdrop-blur-xl"
           >
             <header className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
                   Workspace onboarding
                 </p>
                 <h2
@@ -221,7 +221,7 @@ export default function OnboardingWizard({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-white/10 p-2 text-slate-muted transition hover:border-blue-500/30 hover:text-blue-400"
+                className="rounded-lg border border-white/10 p-2 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400"
                 aria-label="Dismiss"
               >
                 <X className="h-4 w-4" aria-hidden />
@@ -234,7 +234,7 @@ export default function OnboardingWizard({
                   <div
                     key={n}
                     className={`h-1 flex-1 rounded-full transition ${
-                      n <= step ? "bg-blue-600" : "bg-white/10"
+                      n <= step ? "bg-emerald-600" : "bg-white/10"
                     }`}
                   />
                 ))}
@@ -251,7 +251,7 @@ export default function OnboardingWizard({
                     exit={{ opacity: 0, x: -12 }}
                     className="space-y-5"
                   >
-                    <div className="inline-flex items-center gap-2 rounded-lg border border-blue-500/25 bg-blue-500/10 px-2.5 py-1.5 text-[11px] text-blue-300">
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] text-emerald-300">
                       <Globe className="h-3.5 w-3.5" aria-hidden />
                       Workspace identity
                     </div>
@@ -263,7 +263,7 @@ export default function OnboardingWizard({
                         value={name}
                         onChange={(e) => handleNameChange(e.target.value)}
                         placeholder="Meerendal Wine Estate"
-                        className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-slate-dim focus:border-blue-500/40 focus:ring-1 focus:ring-blue-500/30"
+                        className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-slate-dim focus:border-emerald-500/40 focus:ring-1 focus:ring-emerald-500/30"
                         autoFocus
                       />
                     </label>
@@ -271,7 +271,7 @@ export default function OnboardingWizard({
                       <span className="text-xs font-medium text-slate-muted">
                         Slug
                       </span>
-                      <div className="flex overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] focus-within:border-blue-500/40 focus-within:ring-1 focus-within:ring-blue-500/30">
+                      <div className="flex overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] focus-within:border-emerald-500/40 focus-within:ring-1 focus-within:ring-emerald-500/30">
                         <span className="border-r border-white/10 px-3 py-3 font-mono text-xs text-slate-dim">
                           /
                         </span>
@@ -281,7 +281,7 @@ export default function OnboardingWizard({
                             setSlugTouched(true);
                             setSlug(slugify(e.target.value));
                           }}
-                          className="min-w-0 flex-1 bg-transparent px-3 py-3 font-mono text-sm text-blue-300 outline-none"
+                          className="min-w-0 flex-1 bg-transparent px-3 py-3 font-mono text-sm text-emerald-300 outline-none"
                         />
                       </div>
                       {!slugValid ? (
@@ -301,7 +301,7 @@ export default function OnboardingWizard({
                     exit={{ opacity: 0, x: -12 }}
                     className="space-y-4"
                   >
-                    <div className="inline-flex items-center gap-2 rounded-lg border border-blue-500/25 bg-blue-500/10 px-2.5 py-1.5 text-[11px] text-blue-300">
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] text-emerald-300">
                       <LayoutTemplate className="h-3.5 w-3.5" aria-hidden />
                       Initial template blueprint
                     </div>
@@ -318,14 +318,14 @@ export default function OnboardingWizard({
                             onClick={() => setTemplate(t.id)}
                             className={`flex w-full items-start gap-3 rounded-xl border px-3.5 py-3.5 text-left transition ${
                               selected
-                                ? "border-blue-500/45 bg-blue-500/[0.08] shadow-[0_0_24px_rgba(0, 102, 255,0.12)]"
-                                : "border-white/10 bg-white/[0.03] hover:border-blue-500/25"
+                                ? "border-emerald-500/45 bg-emerald-500/[0.08] shadow-[0_0_24px_rgba(16, 185, 129,0.12)]"
+                                : "border-white/10 bg-white/[0.03] hover:border-emerald-500/25"
                             }`}
                           >
                             <span
                               className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${
                                 selected
-                                  ? "border-blue-500/40 bg-blue-500/15 text-blue-400"
+                                  ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
                                   : "border-white/10 bg-black/40 text-slate-muted"
                               }`}
                             >
@@ -341,7 +341,7 @@ export default function OnboardingWizard({
                             </span>
                             {selected ? (
                               <CheckCircle2
-                                className="h-4 w-4 shrink-0 text-blue-400"
+                                className="h-4 w-4 shrink-0 text-emerald-400"
                                 aria-hidden
                               />
                             ) : null}
@@ -360,21 +360,21 @@ export default function OnboardingWizard({
                     exit={{ opacity: 0, x: -12 }}
                     className="space-y-5"
                   >
-                    <div className="inline-flex items-center gap-2 rounded-lg border border-blue-500/25 bg-blue-500/10 px-2.5 py-1.5 text-[11px] text-blue-300">
+                    <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] text-emerald-300">
                       <Fuel className="h-3.5 w-3.5" aria-hidden />
                       Free gas grant
                     </div>
-                    <div className="rounded-2xl border border-blue-500/30 bg-gradient-to-b from-blue-500/[0.12] to-white/[0.02] p-5 text-center shadow-[0_0_40px_rgba(0, 102, 255,0.1)]">
-                      <Sparkles className="mx-auto h-8 w-8 text-blue-400" aria-hidden />
+                    <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-emerald-500/[0.12] to-white/[0.02] p-5 text-center shadow-[0_0_40px_rgba(16, 185, 129,0.1)]">
+                      <Sparkles className="mx-auto h-8 w-8 text-emerald-400" aria-hidden />
                       <p className="mt-3 font-display text-3xl font-bold text-white">
                         {FREE_GAS_CREDITS.toLocaleString("en-US")}
                       </p>
-                      <p className="mt-1 text-sm text-blue-300">
+                      <p className="mt-1 text-sm text-emerald-300">
                         Free Gas Credits
                       </p>
                       <p className="mt-3 text-xs leading-relaxed text-slate-muted">
                         Claimed into{" "}
-                        <span className="font-mono text-blue-300">{slug}</span>{" "}
+                        <span className="font-mono text-emerald-300">{slug}</span>{" "}
                         ·{" "}
                         {TEMPLATES.find((t) => t.id === template)?.title ??
                           "blueprint"}{" "}
@@ -383,15 +383,15 @@ export default function OnboardingWizard({
                     </div>
                     <ul className="space-y-2 text-xs text-slate-muted">
                       <li className="flex items-center gap-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" aria-hidden />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
                         Workspace: {name.trim()}
                       </li>
                       <li className="flex items-center gap-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" aria-hidden />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
                         Template blueprint installed
                       </li>
                       <li className="flex items-center gap-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" aria-hidden />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
                         Dashboard access unlocked
                       </li>
                     </ul>
@@ -424,7 +424,7 @@ export default function OnboardingWizard({
                   type="button"
                   disabled={!canNext}
                   onClick={() => setStep((s) => Math.min(3, s + 1))}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Continue
                   <ArrowRight className="h-3.5 w-3.5" aria-hidden />
@@ -434,7 +434,7 @@ export default function OnboardingWizard({
                   type="button"
                   disabled={claiming}
                   onClick={finish}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-blue-400 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-60"
                 >
                   {claiming ? "Claiming…" : "Claim & Access Dashboard"}
                   <Fuel className="h-3.5 w-3.5" aria-hidden />

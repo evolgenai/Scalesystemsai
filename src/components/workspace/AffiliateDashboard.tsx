@@ -183,7 +183,7 @@ export default function AffiliateDashboard() {
 
   return (
     <div className="space-y-6">
-      <header className="rounded-2xl border border-[#059669]/25 bg-gradient-to-br from-[#05110d] via-[#0a1f18] to-[#05110d] p-5 sm:p-6">
+      <header className="rounded-2xl border border-[#059669]/25 bg-gradient-to-br from-[#040907] via-[#0a1f18] to-[#040907] p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-[#10B981]">

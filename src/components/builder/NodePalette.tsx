@@ -17,7 +17,7 @@ const KIND_META: Record<
   { label: string; color: string }
 > = {
   trigger: { label: "Triggers", color: "text-cyan-accent" },
-  agent: { label: "Agents", color: "text-blue-400" },
+  agent: { label: "Agents", color: "text-emerald-400" },
   action: { label: "Actions", color: "text-amber-300" },
 };
 
@@ -45,10 +45,10 @@ function PaletteCard({
         );
         e.dataTransfer.effectAllowed = "move";
       }}
-      className="group cursor-grab rounded-xl border border-white/5 bg-white/[0.03] p-3 backdrop-blur-xl transition hover:border-blue-500/35 active:cursor-grabbing"
+      className="group cursor-grab rounded-xl border border-white/5 bg-white/[0.03] p-3 backdrop-blur-xl transition hover:border-emerald-500/35 active:cursor-grabbing"
     >
       <div className="flex items-start gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/40 text-blue-400">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/40 text-emerald-400">
           <Icon className="h-3.5 w-3.5" aria-hidden />
         </div>
         <div className="min-w-0">
@@ -77,14 +77,14 @@ export default function NodePalette({
 
   return (
     <aside
-      className={`absolute inset-y-0 left-0 z-10 flex w-[min(18.5rem,88vw)] flex-col border-r border-white/5 bg-[#09090B]/95 backdrop-blur-xl transition-transform duration-300 ${
+      className={`absolute inset-y-0 left-0 z-10 flex w-[min(18.5rem,88vw)] flex-col border-r border-white/5 bg-[#040907]/95 backdrop-blur-xl transition-transform duration-300 ${
         open ? "translate-x-0" : "-translate-x-full"
       }`}
       aria-label="Node palette"
       aria-hidden={!open}
     >
       <div className="border-b border-white/5 px-4 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
           Blueprint drawer
         </p>
         <p className="mt-1 text-sm font-semibold text-white">
@@ -96,7 +96,7 @@ export default function NodePalette({
             onClick={() => setTab("nodes")}
             className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition ${
               tab === "nodes"
-                ? "bg-blue-500/15 text-blue-400"
+                ? "bg-emerald-500/15 text-emerald-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -107,7 +107,7 @@ export default function NodePalette({
             onClick={() => setTab("templates")}
             className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition ${
               tab === "templates"
-                ? "bg-blue-500/15 text-blue-400"
+                ? "bg-emerald-500/15 text-emerald-400"
                 : "text-slate-muted hover:text-white"
             }`}
           >
@@ -134,7 +134,7 @@ export default function NodePalette({
           ))
         ) : (
           <section className="space-y-2">
-            <h3 className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-blue-400">
+            <h3 className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
               <Sparkles className="h-3 w-3" aria-hidden />
               Preset pipelines
             </h3>
@@ -143,7 +143,7 @@ export default function NodePalette({
                 key={tpl.id}
                 type="button"
                 onClick={() => onApplyTemplate(tpl)}
-                className="w-full rounded-xl border border-white/5 bg-white/[0.03] p-3 text-left transition hover:border-blue-500/35"
+                className="w-full rounded-xl border border-white/5 bg-white/[0.03] p-3 text-left transition hover:border-emerald-500/35"
               >
                 <p className="text-xs font-semibold text-white">{tpl.name}</p>
                 <p className="mt-1 text-[10px] leading-relaxed text-slate-dim">
@@ -155,8 +155,8 @@ export default function NodePalette({
         )}
 
         {selectedParams && Object.keys(selectedParams).length > 0 ? (
-          <section className="space-y-2 rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-3">
-            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-blue-400">
+          <section className="space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3">
+            <h3 className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
               Quick parameters
             </h3>
             {Object.entries(selectedParams).map(([key, value]) => (
@@ -167,7 +167,7 @@ export default function NodePalette({
                 <input
                   value={value}
                   onChange={(e) => onParamChange(key, e.target.value)}
-                  className="w-full rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500/40"
+                  className="w-full rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-xs text-white outline-none focus:border-emerald-500/40"
                 />
               </label>
             ))}

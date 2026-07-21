@@ -101,7 +101,7 @@ export default function TopAuthHeader() {
           <button
             type="button"
             onClick={toggleNav}
-            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/[0.03] p-2 text-slate-muted transition hover:border-blue-500/30 hover:text-blue-400 xl:hidden"
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/[0.03] p-2 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400 xl:hidden"
             aria-label={navOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={navOpen}
           >
@@ -118,26 +118,26 @@ export default function TopAuthHeader() {
           className="inline-flex shrink-0 items-center gap-2 font-display text-sm font-bold text-white xl:hidden"
         >
           <SwarmBridgeCube size="sm" />
-          Scale<span className="text-blue-400">Systems</span>
+          Scale<span className="text-emerald-400">Systems</span>
         </Link>
 
         <div className="hidden items-center gap-5 text-xs text-slate-dim xl:flex">
           <span className="mr-1 opacity-80" aria-hidden>
             <SkillChip size="sm" />
           </span>
-          <Link href="/" className="hover:text-blue-400">
+          <Link href="/" className="hover:text-emerald-400">
             Home
           </Link>
-          <Link href="/features" className="hover:text-blue-400">
+          <Link href="/features" className="hover:text-emerald-400">
             Features
           </Link>
-          <Link href="/pricing" className="hover:text-blue-400">
+          <Link href="/pricing" className="hover:text-emerald-400">
             Pricing
           </Link>
-          <Link href="/docs" className="hover:text-blue-400">
+          <Link href="/docs" className="hover:text-emerald-400">
             Docs
           </Link>
-          <Link href="/dashboard?view=checkout" className="hover:text-blue-400">
+          <Link href="/dashboard?view=checkout" className="hover:text-emerald-400">
             Checkout
           </Link>
         </div>
@@ -166,7 +166,7 @@ export default function TopAuthHeader() {
               <button
                 type="button"
                 onClick={() => router.push("/settings")}
-                className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-slate-muted transition hover:border-blue-500/30 hover:text-blue-400"
+                className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400"
                 aria-label="Open account settings"
               >
                 <Hover3DIcon intensity={16}>

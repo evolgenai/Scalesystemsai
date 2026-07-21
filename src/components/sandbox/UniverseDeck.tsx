@@ -37,7 +37,7 @@ export default function UniverseDeck() {
   return (
     <div className="space-y-4 lg:space-y-5">
       <div className="flex flex-col gap-1 px-0.5">
-        <p className="font-mono text-[10px] uppercase tracking-wider text-blue-400/80">
+        <p className="font-mono text-[10px] uppercase tracking-wider text-emerald-400/80">
           sandbox · ?view=universe
         </p>
         <h1 className="text-lg font-semibold text-white sm:text-xl">
@@ -55,7 +55,7 @@ export default function UniverseDeck() {
           id="sandbox-virtual-terminal"
           className={
             terminalPulse > 0
-              ? "rounded-2xl shadow-[0_0_32px_rgba(59, 130, 246,0.25)] ring-1 ring-blue-400/40 transition-[box-shadow,ring-color] duration-500"
+              ? "rounded-2xl shadow-[0_0_32px_rgba(16, 185, 129,0.25)] ring-1 ring-emerald-400/40 transition-[box-shadow,ring-color] duration-500"
               : "transition-[box-shadow] duration-500"
           }
         >

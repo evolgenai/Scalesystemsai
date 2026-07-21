@@ -49,7 +49,7 @@ function LogRow({ entry }: { entry: ExecutionLogEntry }) {
         <span
           className={`text-[9px] font-semibold uppercase tracking-wider ${
             entry.status === "running"
-              ? "text-blue-400"
+              ? "text-emerald-400"
               : entry.status === "paused"
                 ? "text-amber-300"
                 : entry.status === "error"
@@ -80,15 +80,15 @@ export default function CanvasRunner({
 }: CanvasRunnerProps) {
   return (
     <>
-      <header className="relative z-30 flex flex-wrap items-center gap-2 border-b border-white/5 bg-[#09090B]/95 px-3 py-2.5 backdrop-blur-xl sm:px-4">
+      <header className="relative z-30 flex flex-wrap items-center gap-2 border-b border-white/5 bg-[#040907]/95 px-3 py-2.5 backdrop-blur-xl sm:px-4">
         <button
           type="button"
           onClick={onTogglePalette}
           aria-expanded={paletteOpen}
           className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition ${
             paletteOpen
-              ? "border-blue-500/40 bg-blue-500/15 text-blue-400"
-              : "border-white/10 bg-white/[0.03] text-blue-400 hover:border-blue-500/40"
+              ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
+              : "border-white/10 bg-white/[0.03] text-emerald-400 hover:border-emerald-500/40"
           }`}
         >
           <Layers className="h-3.5 w-3.5" aria-hidden />
@@ -96,7 +96,7 @@ export default function CanvasRunner({
         </button>
 
         <div className="mr-auto min-w-0 pl-1">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
             Execution control
           </p>
           <p className="truncate text-sm font-semibold text-white">
@@ -108,7 +108,7 @@ export default function CanvasRunner({
           type="button"
           onClick={onRunSimulation}
           disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-[11px] font-semibold text-blue-400 transition hover:bg-blue-500/20 disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-40"
         >
           {runner.status === "simulating" ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -134,10 +134,10 @@ export default function CanvasRunner({
           type="button"
           onClick={onSave}
           disabled={busy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:border-blue-500/30 disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] font-semibold text-white transition hover:border-emerald-500/30 disabled:opacity-40"
         >
           {runner.status === "saved" ? (
-            <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" aria-hidden />
+            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
           ) : (
             <Save className="h-3.5 w-3.5" aria-hidden />
           )}
@@ -159,7 +159,7 @@ export default function CanvasRunner({
       </header>
 
       <aside
-        className={`absolute inset-y-0 right-0 z-20 flex w-[min(20rem,90vw)] flex-col border-l border-white/5 bg-[#09090B]/95 pt-[52px] backdrop-blur-xl transition-transform duration-300 ${
+        className={`absolute inset-y-0 right-0 z-20 flex w-[min(20rem,90vw)] flex-col border-l border-white/5 bg-[#040907]/95 pt-[52px] backdrop-blur-xl transition-transform duration-300 ${
           debuggerOpen ? "translate-x-0" : "translate-x-full"
         }`}
         aria-label="Execution debugger"
@@ -190,12 +190,12 @@ export default function CanvasRunner({
                 runner.activeNodeId
                   ? runner.status === "paused"
                     ? "animate-pulse bg-amber-400"
-                    : "animate-pulse bg-blue-400"
+                    : "animate-pulse bg-emerald-400"
                   : "bg-slate-600"
               }`}
             />
             Active node{" "}
-            <span className="font-mono text-blue-400">
+            <span className="font-mono text-emerald-400">
               {runner.activeNodeId ?? "—"}
             </span>
           </div>

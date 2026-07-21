@@ -70,7 +70,7 @@ export default function NotificationDispatchFeed({
   return (
     <div className="relative overflow-hidden rounded-lg border border-white/5 bg-[#0a0a0a]">
       <div className="flex items-center gap-2 border-b border-white/5 px-2.5 py-1.5">
-        <Bell className="h-3 w-3 text-blue-400" aria-hidden />
+        <Bell className="h-3 w-3 text-emerald-400" aria-hidden />
         <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
           Notification dispatch logs
         </p>
@@ -86,7 +86,7 @@ export default function NotificationDispatchFeed({
             className="pointer-events-none absolute inset-x-0 top-9 z-10 flex justify-center"
             aria-hidden
           >
-            <span className="rounded-md border border-blue-500/40 bg-blue-500/15 px-2.5 py-1 font-mono text-[9px] text-blue-300 shadow-lg shadow-blue-500/10">
+            <span className="rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 font-mono text-[9px] text-emerald-300 shadow-lg shadow-emerald-500/10">
               ✦ payload → channels
             </span>
           </motion.div>
@@ -100,13 +100,13 @@ export default function NotificationDispatchFeed({
             <li
               key={id}
               className={`flex items-center gap-2 rounded-md border border-white/5 bg-[#121212] px-2.5 py-2 transition ${
-                state === "delivered" ? "border-l-2 border-l-blue-400" : ""
+                state === "delivered" ? "border-l-2 border-l-emerald-400" : ""
               } ${state === "pushing" ? "animate-pulse" : ""}`}
             >
               <Icon
                 className={`h-3.5 w-3.5 shrink-0 ${
                   state === "delivered"
-                    ? "text-blue-400"
+                    ? "text-emerald-400"
                     : state === "pushing"
                       ? "text-amber-300"
                       : "text-zinc-500"
@@ -128,7 +128,7 @@ export default function NotificationDispatchFeed({
               <span
                 className={`inline-flex items-center gap-1 text-[9px] font-medium uppercase tracking-wide ${
                   state === "delivered"
-                    ? "text-blue-400"
+                    ? "text-emerald-400"
                     : state === "pushing"
                       ? "text-amber-300"
                       : "text-zinc-500"

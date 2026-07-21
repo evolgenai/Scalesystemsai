@@ -27,7 +27,7 @@ function stamp(iso: string): string {
 function lineTone(event: AgentStreamEvent): string {
   if (event.type === 'error' || event.status === 'ERROR') return 'text-rose-400';
   if (event.status === 'SUCCESS' || event.type === 'workflow_complete') {
-    return 'text-blue-400';
+    return 'text-emerald-400';
   }
   if (event.status === 'EXECUTING') return 'text-cyan-400';
   if (event.status === 'THINKING') return 'text-amber-400';
@@ -58,7 +58,7 @@ export default function AgentTerminal({
 
   return (
     <div
-      className={`mx-auto my-12 flex w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-cyan-500/20 bg-[#09090b] shadow-[0_0_30px_rgba(0,242,254,0.05)] ${className}`}
+      className={`mx-auto my-12 flex w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-cyan-500/20 bg-[#040907] shadow-[0_0_30px_rgba(0,242,254,0.05)] ${className}`}
     >
       <div className="flex shrink-0 items-center justify-between border-b border-cyan-500/10 bg-[#121214] px-4 py-3">
         <div className="flex items-center gap-2">
@@ -72,7 +72,7 @@ export default function AgentTerminal({
             <Radio
               className={`h-3 w-3 ${
                 connection === 'live'
-                  ? 'animate-pulse text-blue-400'
+                  ? 'animate-pulse text-emerald-400'
                   : 'text-slate-500'
               }`}
               aria-hidden
@@ -84,7 +84,7 @@ export default function AgentTerminal({
           <div className="flex gap-1.5">
             <div className="h-2.5 w-2.5 rounded-full bg-rose-500/60" />
             <div className="h-2.5 w-2.5 rounded-full bg-amber-500/60" />
-            <div className="h-2.5 w-2.5 rounded-full bg-blue-500/60" />
+            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
           </div>
         </div>
       </div>
@@ -137,7 +137,7 @@ export default function AgentTerminal({
           <p className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
             Active Nodes
           </p>
-          <p className="mt-0.5 font-mono text-lg font-bold text-blue-400">
+          <p className="mt-0.5 font-mono text-lg font-bold text-emerald-400">
             {String(activeNodes).padStart(2, '0')} / Online
           </p>
         </div>

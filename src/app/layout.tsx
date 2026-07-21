@@ -27,7 +27,7 @@ const siteDescription =
   "ScaleSystems delivers cloud-hosted agentic workflows and multi-agent orchestration. Deploy AI swarm employees for lead generation, autonomous system operations, and 24/7 technical support.";
 
 export const viewport: Viewport = {
-  themeColor: "#09090b",
+  themeColor: "#040907",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,

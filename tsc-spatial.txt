@@ -1,0 +1,37 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will error in a future major version of npm. See `npm help 
+npmrc` for supported config options.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Users\Yuck\AppData\Roaming\n ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+npm notice run scalesystems@1.0.0 npx
+npm notice run tsc -p tsconfig.json --noEmit --pretty false --skipLibCheck
+src/app/api/agents/heal/route.ts(128,15): error TS2322: Type 'NextResponse<unknown>' is not assignable to type 'NextResponse<ErrorBody | HealHealthy | HealRemediated>'.
+  Type 'unknown' is not assignable to type 'ErrorBody | HealHealthy | HealRemediated'.
+src/components/admin/ItemsManager.tsx(458,23): error TS2322: Type 'string' is not assignable to type 'never'.
+src/components/dashboard/IsometricFlowMap.tsx(295,10): error TS2741: Property 'args' is missing in type '{ attach: string; count: number; array: Float32Array<ArrayBuffer>; itemSize: number; }' but required in type 'Mutable<Overwrite<Partial<Overwrite<BufferAttribute<BufferAttributeEventMap>, MathProps<BufferAttribute<BufferAttributeEventMap>> & ReactProps<...>>>, Omit<...>>>'.
+src/components/dashboard/OrchestratorFeed.tsx(105,15): error TS2367: This comparison appears to be unintentional because the types '"error" | "done" | "pending"' and '"active"' have no overlap.
+src/components/dashboard/SandboxConsole.tsx(199,23): error TS2367: This comparison appears to be unintentional because the types '"idle"' and '"running"' have no overlap.
+src/components/public/AgentNetworkCanvas.tsx(82,30): error TS2345: Argument of type 'boolean' is not assignable to parameter of type 'number'.
+src/components/ROISavingsCalculator.tsx(57,17): error TS2322: Type 'string' is not assignable to type 'never'.
+src/components/shop/ItemsCatalog.tsx(702,23): error TS2322: Type 'string' is not assignable to type 'never'.
+src/components/ui/RobotMeshIcon.tsx(305,12): error TS2741: Property 'args' is missing in type '{ attach: string; count: number; array: Float32Array<ArrayBuffer>; itemSize: number; }' but required in type 'Mutable<Overwrite<Partial<Overwrite<BufferAttribute<BufferAttributeEventMap>, MathProps<BufferAttribute<BufferAttributeEventMap>> & ReactProps<...>>>, Omit<...>>>'.
+src/lib/agents/codeSandbox.ts(155,11): error TS2769: No overload matches this call.
+  Overload 1 of 8, '(file: string, args: readonly string[] | null | undefined, options: ExecFileOptionsWithBufferEncoding, callback?: ((error: ExecFileException | null, stdout: NonSharedBuffer, stderr: NonSharedBuffer) => void) | undefined): ChildProcess', gave the following error.
+    Property 'NODE_ENV' is missing in type '{ PATH: string | undefined; SYSTEMROOT: string | undefined; PYTHONIOENCODING: string; PYTHONDONTWRITEBYTECODE: string; PYTHONWARNINGS: string; PYTHONNOUSERSITE: string; }' but required in type 'ProcessEnv'.
+  Overload 2 of 8, '(file: string, args: readonly string[] | null | undefined, options: ExecFileOptionsWithStringEncoding, callback?: ((error: ExecFileException | null, stdout: string, stderr: string) => void) | undefined): ChildProcess', gave the following error.
+    Property 'NODE_ENV' is missing in type '{ PATH: string | undefined; SYSTEMROOT: string | undefined; PYTHONIOENCODING: string; PYTHONDONTWRITEBYTECODE: string; PYTHONWARNINGS: string; PYTHONNOUSERSITE: string; }' but required in type 'ProcessEnv'.
+  Overload 3 of 8, '(file: string, args: readonly string[] | null | undefined, options: ExecFileOptions | null | undefined, callback: ((error: ExecFileException | null, stdout: string | NonSharedBuffer, stderr: string | NonSharedBuffer) => void) | null | undefined): ChildProcess', gave the following error.
+    Property 'NODE_ENV' is missing in type '{ PATH: string | undefined; SYSTEMROOT: string | undefined; PYTHONIOENCODING: string; PYTHONDONTWRITEBYTECODE: string; PYTHONWARNINGS: string; PYTHONNOUSERSITE: string; }' but required in type 'ProcessEnv'.
+src/lib/agents/codeSandbox.ts(164,10): error TS7006: Parameter 'error' implicitly has an 'any' type.
+src/lib/agents/codeSandbox.ts(164,17): error TS7006: Parameter 'stdout' implicitly has an 'any' type.
+src/lib/agents/codeSandbox.ts(164,25): error TS7006: Parameter 'stderr' implicitly has an 'any' type.
+src/lib/agents/directCodeInterceptor.ts(96,67): error TS1501: This regular expression flag is only available when targeting 'es2018' or later.
+src/lib/agents/useAgentStream.ts(8,8): error TS2305: Module '"@/lib/agents/streamProtocol"' has no exported member 'DebateRole'.
+src/lib/mcp/estateIotTools.ts(125,5): error TS2322: Type '{ mode: "live"; ok: boolean; status: number; body: unknown; url: string; protocol: string; }' is not assignable to type 'DriverResult'.
+  Type '{ mode: "live"; ok: boolean; status: number; body: unknown; url: string; protocol: string; }' is not assignable to type '{ mode: "live"; ok: true; status: number; body: unknown; url: string; protocol: string; } | { mode: "live"; ok: false; error: string; url?: string | undefined; protocol?: string | undefined; }'.
+    Type '{ mode: "live"; ok: boolean; status: number; body: unknown; url: string; protocol: string; }' is not assignable to type '{ mode: "live"; ok: true; status: number; body: unknown; url: string; protocol: string; }'.
+      Types of property 'ok' are incompatible.
+        Type 'boolean' is not assignable to type 'true'.

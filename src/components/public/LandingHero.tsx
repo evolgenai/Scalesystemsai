@@ -19,8 +19,8 @@ import DemoSandboxBanner from "@/components/public/DemoSandboxBanner";
 const AgentNetworkCanvas = dynamic(() => import("./AgentNetworkCanvas"), {
   ssr: false,
   loading: () => (
-    <div className="flex min-h-[220px] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#060810] sm:min-h-[280px]">
-      <div className="h-20 w-20 animate-pulse rounded-full border border-blue-500/30 bg-blue-600/10" />
+    <div className="flex min-h-[220px] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[#040907] sm:min-h-[280px]">
+      <div className="h-20 w-20 animate-pulse rounded-full border border-emerald-500/30 bg-emerald-600/10" />
     </div>
   ),
 });
@@ -83,11 +83,11 @@ export default function LandingHero() {
   const mode = MODE_COPY[previewMode];
 
   return (
-    <div className="relative z-10 min-h-screen overflow-hidden bg-[#060810]">
+    <div className="relative z-10 min-h-screen overflow-hidden bg-[#040907]">
       <section className="relative overflow-hidden px-4 pb-16 pt-14 sm:px-6 lg:px-8 lg:pb-20 lg:pt-20">
         <div className="pointer-events-none absolute inset-0" aria-hidden>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(0,102,255,0.14),_transparent_55%)]" />
-          <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-blue-600/10 blur-[130px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(16, 185, 129,0.14),_transparent_55%)]" />
+          <div className="absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-emerald-600/10 blur-[130px]" />
           <div className="absolute bottom-0 right-0 h-[280px] w-[420px] rounded-full bg-cyan-accent/10 blur-[100px]" />
         </div>
 
@@ -97,7 +97,7 @@ export default function LandingHero() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.55 }}
           >
-            <p className="font-display text-sm font-semibold uppercase tracking-[0.22em] text-blue-400">
+            <p className="font-display text-sm font-semibold uppercase tracking-[0.22em] text-emerald-400">
               ScaleSystems
             </p>
 
@@ -124,7 +124,7 @@ export default function LandingHero() {
                 aria-pressed={previewMode === "USER"}
                 className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                   previewMode === "USER"
-                    ? "bg-blue-600 text-white shadow-[0_0_24px_rgba(0,102,255,0.35)]"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-lg shadow-emerald-950/50"
                     : "text-slate-muted hover:bg-white/5 hover:text-white"
                 }`}
               >
@@ -137,7 +137,7 @@ export default function LandingHero() {
                 aria-pressed={previewMode === "DEVELOPER"}
                 className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                   previewMode === "DEVELOPER"
-                    ? "bg-blue-600 text-white shadow-[0_0_24px_rgba(0,102,255,0.35)]"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-lg shadow-emerald-950/50"
                     : "text-slate-muted hover:bg-white/5 hover:text-white"
                 }`}
               >
@@ -163,9 +163,9 @@ export default function LandingHero() {
                   {mode.bullets.map((b) => (
                     <li
                       key={b}
-                      className="flex items-center gap-2 text-xs text-blue-300/90"
+                      className="flex items-center gap-2 text-xs text-emerald-300/90"
                     >
-                      <span className="h-1 w-1 rounded-full bg-blue-400" />
+                      <span className="h-1 w-1 rounded-full bg-emerald-400" />
                       {b}
                     </li>
                   ))}
@@ -178,7 +178,7 @@ export default function LandingHero() {
                 <motion.span
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_0_28px_rgba(0,102,255,0.35)] hover:bg-blue-500 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-6 py-3.5 text-sm font-semibold text-white shadow-[0_0_28px_rgba(16, 185, 129,0.35)] hover:bg-emerald-500 sm:w-auto"
                 >
                   Launch Workspace Console
                   <ArrowRight className="h-4 w-4" aria-hidden />
@@ -187,7 +187,7 @@ export default function LandingHero() {
               <Link href="/dashboard?view=marketplace">
                 <motion.span
                   whileHover={{ scale: 1.02 }}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:border-blue-500/50 hover:text-blue-400 sm:w-auto"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/20 px-6 py-3.5 text-sm font-semibold text-white transition-colors hover:border-emerald-500/50 hover:text-emerald-400 sm:w-auto"
                 >
                   <Store className="h-4 w-4" aria-hidden />
                   Explore Agent Marketplace
@@ -200,7 +200,7 @@ export default function LandingHero() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.55, delay: 0.12 }}
-            className="relative z-10 mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-[#060810] isolation-isolate lg:ml-auto"
+            className="relative z-10 mx-auto w-full min-w-0 max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-[#040907] isolation-isolate lg:ml-auto"
           >
             <div className="h-[350px] max-h-[350px] w-full sm:h-[350px]">
               <AgentNetworkCanvas className="!h-full !min-h-0 w-full !rounded-none !border-0 !aspect-auto" />
@@ -215,7 +215,7 @@ export default function LandingHero() {
       >
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-400/80">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400/80">
               Product feature showcase
             </p>
             <h2
@@ -238,10 +238,10 @@ export default function LandingHero() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-40px" }}
                 transition={{ delay: i * 0.06, duration: 0.4 }}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition hover:border-blue-500/30 hover:shadow-[0_0_30px_rgba(0,102,255,0.08)]"
+                className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl transition hover:border-emerald-500/30 hover:shadow-[0_0_30px_rgba(16, 185, 129,0.08)]"
               >
-                <div className="mb-4 inline-flex rounded-xl border border-blue-500/25 bg-blue-600/10 p-2.5">
-                  <f.icon className="h-5 w-5 text-blue-400" aria-hidden />
+                <div className="mb-4 inline-flex rounded-xl border border-emerald-500/25 bg-emerald-600/10 p-2.5">
+                  <f.icon className="h-5 w-5 text-emerald-400" aria-hidden />
                 </div>
                 <h3 className="font-display text-lg font-semibold text-white">
                   {f.title}

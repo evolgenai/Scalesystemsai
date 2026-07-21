@@ -40,19 +40,19 @@ export default function GlowingEdge({
         markerEnd={markerEnd}
         style={{
           ...style,
-          stroke: active ? "#3B82F6" : "rgba(0, 102, 255,0.45)",
+          stroke: active ? "#10B981" : "rgba(16, 185, 129,0.45)",
           strokeWidth: active ? 2.5 : 1.75,
           filter: active
-            ? "drop-shadow(0 0 6px rgba(59, 130, 246,0.85))"
-            : "drop-shadow(0 0 3px rgba(0, 102, 255,0.35))",
+            ? "drop-shadow(0 0 6px rgba(16, 185, 129,0.85))"
+            : "drop-shadow(0 0 3px rgba(16, 185, 129,0.35))",
         }}
       />
       {active ? (
         <>
-          <circle r="3.5" fill="#60A5FA" className="blueprint-particle">
+          <circle r="3.5" fill="#34D399" className="blueprint-particle">
             <animateMotion dur="1.4s" repeatCount="indefinite" path={edgePath} />
           </circle>
-          <circle r="2" fill="#93C5FD" className="blueprint-particle-trail">
+          <circle r="2" fill="#6EE7B7" className="blueprint-particle-trail">
             <animateMotion
               dur="1.4s"
               begin="0.35s"

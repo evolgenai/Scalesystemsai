@@ -433,7 +433,7 @@ function CyberGrid() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[GRID_SIZE, GRID_SIZE]} />
         <meshStandardMaterial
-          color="#09090B"
+          color="#040907"
           metalness={0.82}
           roughness={0.42}
           envMapIntensity={1.1}
@@ -459,7 +459,7 @@ function HudTooltip({
   if (!visible) return null;
   return (
     <div
-      className="pointer-events-none whitespace-nowrap rounded-lg border border-white/15 bg-[#09090B]/90 px-2.5 py-1.5 shadow-[0_0_24px_rgba(16,185,129,0.2)] backdrop-blur-md"
+      className="pointer-events-none whitespace-nowrap rounded-lg border border-white/15 bg-[#040907]/90 px-2.5 py-1.5 shadow-[0_0_24px_rgba(16,185,129,0.2)] backdrop-blur-md"
       style={{ borderColor: `${accent}55` }}
     >
       <p className="font-mono text-[10px] font-semibold text-white">{name}</p>
@@ -522,7 +522,7 @@ function GenericNodeMesh({
       <mesh position={[0, 0.2, 0]}>
         <cylinderGeometry args={[0.4, 0.55, 0.4, isHw ? 6 : 12]} />
         <meshStandardMaterial
-          color="#05110d"
+          color="#040907"
           metalness={0.88}
           roughness={0.22}
           emissive={tower.accent}
@@ -611,7 +611,7 @@ function GasObelisk({
       <mesh position={[0, tower.height / 2, 0]} castShadow>
         <boxGeometry args={[0.85, tower.height, 0.85]} />
         <meshStandardMaterial
-          color="#05110d"
+          color="#040907"
           metalness={0.9}
           roughness={0.2}
           emissive={AMBER}
@@ -706,7 +706,7 @@ function SwarmMonoliths({
           <mesh key={i} position={p} castShadow>
             <boxGeometry args={[0.9, 0.9, 0.9]} />
             <meshStandardMaterial
-              color="#09090B"
+              color="#040907"
               metalness={0.95}
               roughness={0.15}
               emissive={CYAN}
@@ -824,7 +824,7 @@ function VaultSphere({
     >
       <mesh position={[0, 0.35, 0]}>
         <cylinderGeometry args={[0.5, 0.7, 0.7, 16]} />
-        <meshStandardMaterial color="#05110d" metalness={0.8} roughness={0.3} />
+        <meshStandardMaterial color="#040907" metalness={0.8} roughness={0.3} />
       </mesh>
       <mesh ref={orb} position={[0, 2.4, 0]}>
         <sphereGeometry args={[1.05, 32, 32]} />
@@ -901,7 +901,7 @@ function SreBeacon({
       <mesh position={[0, tower.height / 2, 0]} castShadow>
         <cylinderGeometry args={[0.28, 0.45, tower.height, 12]} />
         <meshStandardMaterial
-          color="#05110d"
+          color="#040907"
           metalness={0.85}
           roughness={0.25}
           emissive={EMERALD}
@@ -988,7 +988,7 @@ function WebhookRelay({
       <mesh position={[0, tower.height / 2, 0]} castShadow>
         <boxGeometry args={[1.4, tower.height, 0.55]} />
         <meshStandardMaterial
-          color="#05110d"
+          color="#040907"
           metalness={0.88}
           roughness={0.22}
           emissive={CYAN}
@@ -1070,6 +1070,251 @@ function AmbientDrift() {
   return <points ref={ref} geometry={points} material={mat} />;
 }
 
+/** Bioluminescent Neural Pod — pulsing dark-green wireframe + particle aura */
+function BioluminescentNeuralPod({
+  position,
+}: {
+  position: [number, number, number];
+}) {
+  const shell = useRef<Mesh>(null);
+  const aura = useRef<THREE.Points>(null);
+  const particles = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    const n = 56;
+    const pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const r = 0.9 + Math.random() * 1.1;
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(2 * Math.random() - 1);
+      pos[i * 3] = r * Math.sin(ph) * Math.cos(th);
+      pos[i * 3 + 1] = r * Math.cos(ph);
+      pos[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+    }
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    return g;
+  }, []);
+  const pMat = useMemo(
+    () =>
+      new THREE.PointsMaterial({
+        color: EMERALD,
+        size: 0.055,
+        transparent: true,
+        opacity: 0.75,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    []
+  );
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (shell.current) {
+      shell.current.rotation.y = t * 0.35;
+      shell.current.rotation.x = Math.sin(t * 0.4) * 0.2;
+      const mat = shell.current.material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = 0.45 + Math.sin(t * 2.8) * 0.35;
+      const s = 1 + Math.sin(t * 2.2) * 0.06;
+      shell.current.scale.setScalar(s);
+    }
+    if (aura.current) {
+      aura.current.rotation.y = -t * 0.25;
+      aura.current.rotation.z = t * 0.12;
+    }
+  });
+
+  return (
+    <group position={position}>
+      <mesh ref={shell}>
+        <icosahedronGeometry args={[1.15, 1]} />
+        <meshStandardMaterial
+          color="#022c22"
+          emissive={EMERALD}
+          emissiveIntensity={0.6}
+          wireframe
+          transparent
+          opacity={0.85}
+          metalness={0.4}
+          roughness={0.25}
+        />
+      </mesh>
+      <mesh>
+        <dodecahedronGeometry args={[0.55, 0]} />
+        <meshStandardMaterial
+          color="#064e3b"
+          emissive={EMERALD_DEEP}
+          emissiveIntensity={1.1}
+          metalness={0.7}
+          roughness={0.2}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+      <points ref={aura} geometry={particles} material={pMat} />
+    </group>
+  );
+}
+
+/** Monolithic Quantum Spire — obsidian glass obelisk with emerald core */
+function MonolithicQuantumSpire({
+  position,
+}: {
+  position: [number, number, number];
+}) {
+  const core = useRef<Mesh>(null);
+  const glass = useRef<Mesh>(null);
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (core.current) {
+      const mat = core.current.material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = 0.9 + Math.sin(t * 3.5) * 0.45;
+      core.current.scale.y = 1 + Math.sin(t * 2.1) * 0.04;
+    }
+    if (glass.current) {
+      glass.current.rotation.y = t * 0.15;
+    }
+  });
+
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.2, 0]}>
+        <boxGeometry args={[1.4, 0.35, 1.4]} />
+        <meshStandardMaterial
+          color="#040907"
+          metalness={0.95}
+          roughness={0.15}
+          emissive="#022c22"
+          emissiveIntensity={0.35}
+        />
+      </mesh>
+      <mesh ref={glass} position={[0, 3.2, 0]} castShadow>
+        <boxGeometry args={[0.95, 5.8, 0.95]} />
+        <meshPhysicalMaterial
+          color="#064e3b"
+          emissive="#022c22"
+          emissiveIntensity={0.25}
+          metalness={0.15}
+          roughness={0.05}
+          transmission={0.55}
+          thickness={0.8}
+          transparent
+          opacity={0.72}
+        />
+      </mesh>
+      <mesh ref={core} position={[0, 3.2, 0]}>
+        <boxGeometry args={[0.28, 5.2, 0.28]} />
+        <meshStandardMaterial
+          color={EMERALD}
+          emissive={EMERALD}
+          emissiveIntensity={1.2}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+      <mesh position={[0, 6.35, 0]}>
+        <octahedronGeometry args={[0.35, 0]} />
+        <meshStandardMaterial
+          color={EMERALD}
+          emissive={EMERALD}
+          emissiveIntensity={1.5}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/** Hyper-Dimensional Ring — interlocking rotating rings */
+function HyperDimensionalRing({
+  position,
+}: {
+  position: [number, number, number];
+}) {
+  const r1 = useRef<Mesh>(null);
+  const r2 = useRef<Mesh>(null);
+  const r3 = useRef<Mesh>(null);
+  const nucleus = useRef<Mesh>(null);
+
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    if (r1.current) {
+      r1.current.rotation.x = t * 0.7;
+      r1.current.rotation.z = t * 0.35;
+    }
+    if (r2.current) {
+      r2.current.rotation.y = t * 0.9;
+      r2.current.rotation.x = Math.PI / 2 + t * 0.2;
+    }
+    if (r3.current) {
+      r3.current.rotation.z = -t * 1.1;
+      r3.current.rotation.y = t * 0.45;
+    }
+    if (nucleus.current) {
+      const mat = nucleus.current.material as THREE.MeshStandardMaterial;
+      mat.emissiveIntensity = 0.8 + Math.sin(t * 4) * 0.4;
+      nucleus.current.scale.setScalar(1 + Math.sin(t * 3) * 0.08);
+    }
+  });
+
+  return (
+    <group position={position}>
+      <mesh ref={nucleus}>
+        <sphereGeometry args={[0.42, 24, 24]} />
+        <meshStandardMaterial
+          color="#022c22"
+          emissive={EMERALD}
+          emissiveIntensity={1}
+          metalness={0.6}
+          roughness={0.2}
+        />
+      </mesh>
+      <mesh ref={r1}>
+        <torusGeometry args={[1.35, 0.045, 10, 64]} />
+        <meshStandardMaterial
+          color={EMERALD}
+          emissive={EMERALD}
+          emissiveIntensity={0.9}
+          metalness={0.8}
+          roughness={0.2}
+        />
+      </mesh>
+      <mesh ref={r2}>
+        <torusGeometry args={[1.7, 0.035, 10, 64]} />
+        <meshStandardMaterial
+          color="#064e3b"
+          emissive={EMERALD_DEEP}
+          emissiveIntensity={0.7}
+          metalness={0.85}
+          roughness={0.18}
+        />
+      </mesh>
+      <mesh ref={r3}>
+        <torusGeometry args={[2.05, 0.028, 8, 72]} />
+        <meshStandardMaterial
+          color="#6EE7B7"
+          emissive={CYAN}
+          emissiveIntensity={0.55}
+          transparent
+          opacity={0.75}
+          metalness={0.5}
+          roughness={0.25}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function AlienArtifactField() {
+  return (
+    <>
+      <BioluminescentNeuralPod position={[-16, 2.4, 10]} />
+      <BioluminescentNeuralPod position={[16, 3.1, -12]} />
+      <MonolithicQuantumSpire position={[-2, 0, 16]} />
+      <HyperDimensionalRing position={[4, 3.2, -18]} />
+      <HyperDimensionalRing position={[-18, 2.8, -8]} />
+    </>
+  );
+}
+
 function Constellation({
   activeId,
   hoveredId,
@@ -1139,7 +1384,7 @@ function ProximityBillboard({ tower }: { tower: TowerDef }) {
         />
       </mesh>
       <Html center distanceFactor={10} zIndexRange={[40, 0]}>
-        <div className="pointer-events-none whitespace-nowrap rounded-md border border-emerald-400/50 bg-[#09090B]/92 px-3 py-1.5 font-mono text-[11px] font-semibold text-emerald-300 shadow-[0_0_28px_rgba(16,185,129,0.45)] backdrop-blur-md">
+        <div className="pointer-events-none whitespace-nowrap rounded-md border border-emerald-400/50 bg-[#040907]/92 px-3 py-1.5 font-mono text-[11px] font-semibold text-emerald-300 shadow-[0_0_28px_rgba(16,185,129,0.45)] backdrop-blur-md">
           [Press E to Connect / Open Script]
         </div>
       </Html>
@@ -1190,7 +1435,7 @@ function Scene({
     () =>
       nearbyIds
         .map((id) => TOWERS.find((t) => t.id === id))
-        .filter((t): t is TowerDef => Boolean(t) && !consumedIds.has(t!.id))
+        .filter((t): t is TowerDef => !!t && !consumedIds.has(t.id))
         .map((t) => ({
           id: t.id,
           name: t.name,
@@ -1222,8 +1467,8 @@ function Scene({
 
   return (
     <>
-      <color attach="background" args={["#09090B"]} />
-      <fog attach="fog" args={["#05110d", 35, 120]} />
+      <color attach="background" args={["#040907"]} />
+      <fog attach="fog" args={["#040907", 35, 120]} />
       <ambientLight intensity={0.28} />
       <directionalLight
         position={[10, 18, 8]}
@@ -1244,6 +1489,7 @@ function Scene({
       <pointLight position={[0, 10, 0]} intensity={0.45} color={YELLOW} />
       <CyberGrid />
       <AmbientDrift />
+      <AlienArtifactField />
       <Constellation
         activeId={activeId}
         hoveredId={hoveredId}
@@ -1297,7 +1543,7 @@ function InspectModal({
         role="dialog"
         aria-modal
         aria-labelledby="inspect-tower-title"
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-500/25 bg-[#09090B]/95 shadow-[0_0_48px_rgba(16,185,129,0.18)] backdrop-blur-xl"
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-emerald-500/25 bg-[#040907]/95 shadow-[0_0_48px_rgba(16,185,129,0.18)] backdrop-blur-xl"
       >
         <div className="flex items-start justify-between gap-3 border-b border-white/5 px-4 py-3">
           <div className="min-w-0">
@@ -1376,7 +1622,7 @@ function ProximityChip({
 }) {
   return (
     <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-20 sm:left-auto sm:right-4 sm:w-[min(20rem,calc(100%-2rem))]">
-      <div className="overflow-hidden rounded-xl border border-emerald-500/30 bg-[#09090B]/90 shadow-[0_0_40px_rgba(16,185,129,0.2)] backdrop-blur-xl">
+      <div className="overflow-hidden rounded-xl border border-emerald-500/30 bg-[#040907]/90 shadow-[0_0_40px_rgba(16,185,129,0.2)] backdrop-blur-xl">
         <div className="flex items-start justify-between gap-3 px-3.5 py-2.5">
           <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-wider text-emerald-400/80">
@@ -1429,7 +1675,6 @@ export default function SpatialUniverse({
   const [nearbyIds, setNearbyIds] = useState<string[]>([]);
   const [consumedIds, setConsumedIds] = useState<Set<string>>(() => new Set());
   const nearestRef = useRef<string | null>(null);
-  const shellRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setWebgl(supportsWebGL());
@@ -1517,15 +1762,14 @@ export default function SpatialUniverse({
 
   return (
     <section
-      ref={shellRef}
       className={
         fullscreen
-          ? "fixed inset-0 z-[80] flex h-[100vh] w-[100vw] flex-col overflow-hidden bg-[#09090B]"
+          ? "fixed inset-0 z-[80] flex h-[100vh] w-[100vw] flex-col overflow-hidden bg-[#040907]"
           : "glass-panel relative flex min-h-[420px] flex-col overflow-hidden"
       }
       aria-label="Spatial sandbox universe"
     >
-      <header className="relative z-40 flex flex-wrap items-center justify-between gap-2 border-b border-white/5 bg-[#05110d]/80 px-3.5 py-2.5 backdrop-blur-xl sm:px-4">
+      <header className="relative z-40 flex flex-wrap items-center justify-between gap-2 border-b border-white/5 bg-[#040907]/80 px-3.5 py-2.5 backdrop-blur-xl sm:px-4">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-md border border-emerald-500/25 bg-emerald-500/10">
             <Zap className="h-4 w-4 text-emerald-400" aria-hidden />
@@ -1567,8 +1811,8 @@ export default function SpatialUniverse({
       <div
         className={
           fullscreen
-            ? "relative min-h-0 flex-1 bg-[#09090B]"
-            : "relative min-h-[360px] flex-1 bg-[#09090B] sm:min-h-[480px] lg:min-h-[560px]"
+            ? "relative min-h-0 flex-1 bg-[#040907]"
+            : "relative min-h-[360px] flex-1 bg-[#040907] sm:min-h-[480px] lg:min-h-[560px]"
         }
       >
         {!webgl ? (
@@ -1624,7 +1868,7 @@ export default function SpatialUniverse({
 
         {!locked && webgl && !inspect ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-            <div className="rounded-lg border border-white/10 bg-[#09090B]/80 px-4 py-3 text-center backdrop-blur-xl">
+            <div className="rounded-lg border border-white/10 bg-[#040907]/80 px-4 py-3 text-center backdrop-blur-xl">
               <Terminal className="mx-auto mb-2 h-5 w-5 text-emerald-400" />
               <p className="text-sm font-medium text-white">
                 Click to pilot robot avatar

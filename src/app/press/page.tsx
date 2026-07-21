@@ -35,19 +35,19 @@ const BRAND_ASSETS = [
     name: "Primary wordmark (SVG)",
     filename: "scalesystems-wordmark.svg",
     mime: "image/svg+xml",
-    body: `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="96" viewBox="0 0 480 96" fill="none"><rect width="480" height="96" fill="#05110d"/><text x="32" y="62" font-family="Space Grotesk,system-ui,sans-serif" font-size="42" font-weight="700" fill="#FFFFFF">Scale<tspan fill="#10B981">Systems</tspan></text></svg>`,
+    body: `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="96" viewBox="0 0 480 96" fill="none"><rect width="480" height="96" fill="#040907"/><text x="32" y="62" font-family="Space Grotesk,system-ui,sans-serif" font-size="42" font-weight="700" fill="#FFFFFF">Scale<tspan fill="#10B981">Systems</tspan></text></svg>`,
   },
   {
     name: "Cyber Blue mark (SVG)",
     filename: "scalesystems-mark.svg",
     mime: "image/svg+xml",
-    body: `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none"><rect width="256" height="256" rx="48" fill="#05110d"/><circle cx="128" cy="128" r="54" stroke="#059669" stroke-width="10" fill="none"/><circle cx="128" cy="128" r="18" fill="#10B981"/><path d="M128 40v28M128 188v28M40 128h28M188 128h28" stroke="#10B981" stroke-width="8" stroke-linecap="round"/></svg>`,
+    body: `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none"><rect width="256" height="256" rx="48" fill="#040907"/><circle cx="128" cy="128" r="54" stroke="#059669" stroke-width="10" fill="none"/><circle cx="128" cy="128" r="18" fill="#10B981"/><path d="M128 40v28M128 188v28M40 128h28M188 128h28" stroke="#10B981" stroke-width="8" stroke-linecap="round"/></svg>`,
   },
   {
     name: "Color tokens (CSS)",
     filename: "scalesystems-colors.css",
     mime: "text/css",
-    body: `:root {\n  --ss-cyber-blue: #059669;\n  --ss-cyber-blue-soft: #10B981;\n  --ss-midnight-glass: #05110d;\n  --ss-glass-edge: rgba(255,255,255,0.1);\n}\n`,
+    body: `:root {\n  --ss-cyber-blue: #059669;\n  --ss-cyber-blue-soft: #10B981;\n  --ss-midnight-glass: #040907;\n  --ss-glass-edge: rgba(255,255,255,0.1);\n}\n`,
   },
 ];
 
@@ -122,7 +122,7 @@ export default function PressPage() {
             3D WebGL screen preview
           </h2>
           <p className="mt-1 text-sm text-slate-muted">
-            Live agent network mesh — Midnight Glass (#05110d) × Cyber Blue
+            Live agent network mesh — Midnight Glass (#040907) × Cyber Blue
             (#059669).
           </p>
         </div>

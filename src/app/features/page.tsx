@@ -69,7 +69,7 @@ export default function FeaturesPage() {
         aria-hidden
       >
         <div className="absolute right-1/4 top-0 h-[500px] w-[700px] rounded-full bg-cyan-accent/5 blur-[150px]" />
-        <div className="absolute left-1/4 bottom-1/4 h-[400px] w-[500px] rounded-full bg-blue-500/5 blur-[130px]" />
+        <div className="absolute left-1/4 bottom-1/4 h-[400px] w-[500px] rounded-full bg-emerald-500/5 blur-[130px]" />
       </div>
 
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">

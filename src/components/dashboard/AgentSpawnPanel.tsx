@@ -213,7 +213,7 @@ export default function AgentSpawnPanel({
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-white/5">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-accent to-blue-400 transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-gradient-to-r from-cyan-accent to-emerald-400 transition-all duration-500 ease-out"
               style={{ width: `${overallProgress}%` }}
             />
           </div>
@@ -227,7 +227,7 @@ export default function AgentSpawnPanel({
             <span
               className={`h-2 w-2 rounded-full ${
                 connection === "live"
-                  ? "animate-pulse bg-blue-400"
+                  ? "animate-pulse bg-emerald-400"
                   : connection === "paused"
                     ? "animate-pulse bg-amber-400"
                     : connection === "error"

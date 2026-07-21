@@ -15,10 +15,10 @@ const KIND_ACCENT: Record<
     iconBg: "bg-cyan-accent/15 text-cyan-accent",
   },
   agent: {
-    ring: "border-blue-500/40",
-    glow: "shadow-[0_0_28px_rgba(0, 102, 255,0.22)]",
-    badge: "text-blue-400 bg-blue-500/10 border-blue-500/25",
-    iconBg: "bg-blue-500/15 text-blue-400",
+    ring: "border-emerald-500/40",
+    glow: "shadow-[0_0_28px_rgba(16, 185, 129,0.22)]",
+    badge: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
+    iconBg: "bg-emerald-500/15 text-emerald-400",
   },
   action: {
     ring: "border-amber-400/40",
@@ -34,10 +34,10 @@ const STATUS_SHELL: Record<
 > = {
   idle: "",
   running:
-    "blueprint-node-running border-blue-400/70 shadow-[0_0_32px_rgba(59, 130, 246,0.45),0_0_16px_rgba(34,211,238,0.25)] ring-2 ring-cyan-accent/40",
+    "blueprint-node-running border-emerald-400/70 shadow-[0_0_32px_rgba(16, 185, 129,0.45),0_0_16px_rgba(34,211,238,0.25)] ring-2 ring-cyan-accent/40",
   paused:
     "border-amber-400/80 shadow-[0_0_28px_rgba(245,158,11,0.4)] ring-2 ring-amber-400/50",
-  done: "border-blue-500/60 shadow-[0_0_22px_rgba(0, 102, 255,0.35)]",
+  done: "border-emerald-500/60 shadow-[0_0_22px_rgba(16, 185, 129,0.35)]",
   error:
     "border-rose-500/80 shadow-[0_0_28px_rgba(244,63,94,0.45)] ring-2 ring-rose-500/40",
 };
@@ -45,9 +45,9 @@ const STATUS_SHELL: Record<
 const STATUS_DOT: Record<NonNullable<BlueprintNodeData["status"]>, string> = {
   idle: "bg-slate-500",
   running:
-    "animate-pulse bg-blue-400 shadow-[0_0_10px_rgba(59, 130, 246,0.8)]",
+    "animate-pulse bg-emerald-400 shadow-[0_0_10px_rgba(16, 185, 129,0.8)]",
   paused: "animate-pulse bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.8)]",
-  done: "bg-blue-600 shadow-[0_0_8px_rgba(0, 102, 255,0.7)]",
+  done: "bg-emerald-600 shadow-[0_0_8px_rgba(16, 185, 129,0.7)]",
   error: "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.7)]",
 };
 
@@ -83,7 +83,7 @@ export default function BlueprintNodeShell({
 
       {status === "done" ? (
         <span
-          className="absolute -right-2 -top-2 z-[1] flex h-6 w-6 items-center justify-center rounded-full border border-blue-400/50 bg-blue-600 text-white shadow-[0_0_14px_rgba(0, 102, 255,0.85)]"
+          className="absolute -right-2 -top-2 z-[1] flex h-6 w-6 items-center justify-center rounded-full border border-emerald-400/50 bg-emerald-600 text-white shadow-[0_0_14px_rgba(16, 185, 129,0.85)]"
           aria-label="Completed"
         >
           <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden />
@@ -94,14 +94,14 @@ export default function BlueprintNodeShell({
         <Handle
           type="target"
           position={Position.Left}
-          className="!h-2.5 !w-2.5 !border-0 !bg-blue-400 !shadow-[0_0_8px_rgba(59, 130, 246,0.9)]"
+          className="!h-2.5 !w-2.5 !border-0 !bg-emerald-400 !shadow-[0_0_8px_rgba(16, 185, 129,0.9)]"
         />
       ) : null}
       {showSource ? (
         <Handle
           type="source"
           position={Position.Right}
-          className="!h-2.5 !w-2.5 !border-0 !bg-blue-400 !shadow-[0_0_8px_rgba(59, 130, 246,0.9)]"
+          className="!h-2.5 !w-2.5 !border-0 !bg-emerald-400 !shadow-[0_0_8px_rgba(16, 185, 129,0.9)]"
         />
       ) : null}
 

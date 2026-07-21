@@ -51,7 +51,7 @@ const GAS_BREAKDOWN: GasCategory[] = [
     label: "Scrapers",
     gas: 128_400,
     icon: Globe2,
-    accent: "text-blue-400",
+    accent: "text-emerald-400",
   },
   {
     id: "aiNodes",
@@ -172,10 +172,10 @@ function readBalance(): number {
 
 function heatColor(intensity: number): string {
   const t = Math.min(1, Math.max(0, intensity));
-  if (t < 0.2) return `rgba(0, 102, 255, ${0.08 + t * 0.2})`;
-  if (t < 0.45) return `rgba(0, 102, 255, ${0.22 + t * 0.35})`;
-  if (t < 0.7) return `rgba(59, 130, 246, ${0.45 + t * 0.25})`;
-  return `rgba(96, 165, 250, ${0.65 + t * 0.3})`;
+  if (t < 0.2) return `rgba(16, 185, 129, ${0.08 + t * 0.2})`;
+  if (t < 0.45) return `rgba(16, 185, 129, ${0.22 + t * 0.35})`;
+  if (t < 0.7) return `rgba(16, 185, 129, ${0.45 + t * 0.25})`;
+  return `rgba(52, 211, 153, ${0.65 + t * 0.3})`;
 }
 
 function intensityFor(gas: number, max: number): number {
@@ -244,7 +244,7 @@ export default function UsageAnalytics() {
     <div className="space-y-6" aria-label="Enterprise usage analytics">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-medium text-blue-400">
+          <p className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-400">
             <Activity className="h-3.5 w-3.5" aria-hidden />
             Enterprise Usage Analytics
           </p>
@@ -261,7 +261,7 @@ export default function UsageAnalytics() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-dim">
             Workspace balance
           </p>
-          <p className="mt-0.5 font-mono text-lg font-semibold text-blue-400">
+          <p className="mt-0.5 font-mono text-lg font-semibold text-emerald-400">
             {formatGasFull(balance)}{" "}
             <span className="text-xs text-slate-dim">GAS</span>
           </p>
@@ -277,7 +277,7 @@ export default function UsageAnalytics() {
           >
             Total Gas Consumption Breakdown
           </h2>
-          <span className="font-mono text-[11px] text-blue-400/80">
+          <span className="font-mono text-[11px] text-emerald-400/80">
             {formatGas(totalBurn)} GAS · cycle
           </span>
         </div>
@@ -300,13 +300,13 @@ export default function UsageAnalytics() {
                     </p>
                     <p className="mt-1 font-display text-xl font-bold text-white">
                       {formatGas(cat.gas)}
-                      <span className="ml-1.5 font-mono text-xs font-medium text-blue-400">
+                      <span className="ml-1.5 font-mono text-xs font-medium text-emerald-400">
                         GAS
                       </span>
                     </p>
                   </div>
                   <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 ${cat.accent}`}
+                    className={`flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 ${cat.accent}`}
                   >
                     <Hover3DIcon intensity={12}>
                       <Icon className="h-4 w-4" aria-hidden />
@@ -315,7 +315,7 @@ export default function UsageAnalytics() {
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-blue-600 to-blue-400"
+                    className="h-full rounded-full bg-gradient-to-r from-emerald-600 to-emerald-400"
                     initial={{ width: 0 }}
                     animate={{ width: `${pct}%` }}
                     transition={{ delay: 0.15 + i * 0.05, duration: 0.55 }}
@@ -362,7 +362,7 @@ export default function UsageAnalytics() {
                   onClick={() => setMode(m)}
                   className={`rounded-md px-3 py-1.5 text-[11px] font-semibold capitalize transition ${
                     mode === m
-                      ? "bg-blue-500/15 text-blue-400"
+                      ? "bg-emerald-500/15 text-emerald-400"
                       : "text-slate-muted hover:text-white"
                   }`}
                 >
@@ -415,7 +415,7 @@ export default function UsageAnalytics() {
                           onBlur={() => setHover(null)}
                           className={`aspect-square rounded-sm border transition ${
                             active
-                              ? "scale-110 border-blue-400/60 shadow-[0_0_12px_rgba(0, 102, 255,0.35)]"
+                              ? "scale-110 border-emerald-400/60 shadow-[0_0_12px_rgba(16, 185, 129,0.35)]"
                               : "border-transparent hover:border-white/20"
                           }`}
                           style={{ backgroundColor: heatColor(t) }}
@@ -437,7 +437,7 @@ export default function UsageAnalytics() {
                     </span>
                     <div className="h-7 flex-1 overflow-hidden rounded-md bg-white/[0.04]">
                       <motion.div
-                        className="flex h-full items-center rounded-md bg-gradient-to-r from-blue-700/80 to-blue-400/90 px-2"
+                        className="flex h-full items-center rounded-md bg-gradient-to-r from-emerald-700/80 to-emerald-400/90 px-2"
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
                         transition={{ duration: 0.5, delay: row.day * 0.04 }}
@@ -460,7 +460,7 @@ export default function UsageAnalytics() {
                 className="h-2 w-28 rounded-full"
                 style={{
                   background:
-                    "linear-gradient(90deg, rgba(0, 102, 255,0.1), rgba(96, 165, 250,0.95))",
+                    "linear-gradient(90deg, rgba(16, 185, 129,0.1), rgba(52, 211, 153,0.95))",
                 }}
                 aria-hidden
               />
@@ -469,7 +469,7 @@ export default function UsageAnalytics() {
               </span>
             </div>
             {hover ? (
-              <p className="font-mono text-[11px] text-blue-400">
+              <p className="font-mono text-[11px] text-emerald-400">
                 {DAYS[hover.day]} {String(hover.hour).padStart(2, "0")}:00 ·{" "}
                 {formatGasFull(hover.gas)} GAS
               </p>
@@ -498,7 +498,7 @@ export default function UsageAnalytics() {
                 Remaining Gas lifespan · 7-day velocity
               </p>
             </div>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
               <Hover3DIcon intensity={12}>
                 <TrendingDown className="h-4 w-4" aria-hidden />
               </Hover3DIcon>
@@ -533,8 +533,8 @@ export default function UsageAnalytics() {
               />
               <defs>
                 <linearGradient id="forecastGrad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="#0052CC" />
-                  <stop offset="100%" stopColor="#3B82F6" />
+                  <stop offset="0%" stopColor="#047857" />
+                  <stop offset="100%" stopColor="#10B981" />
                 </linearGradient>
               </defs>
             </svg>
@@ -551,7 +551,7 @@ export default function UsageAnalytics() {
           <dl className="mt-auto space-y-2.5 border-t border-white/5 pt-4">
             <div className="flex items-center justify-between gap-2 text-xs">
               <dt className="text-slate-muted">7-day avg burn</dt>
-              <dd className="font-mono text-blue-400">
+              <dd className="font-mono text-emerald-400">
                 {formatGasFull(avgDailyBurn)} / day
               </dd>
             </div>
@@ -563,7 +563,7 @@ export default function UsageAnalytics() {
             </div>
             <div className="flex items-center justify-between gap-2 text-xs">
               <dt className="inline-flex items-center gap-1.5 text-slate-muted">
-                <Fuel className="h-3 w-3 text-blue-400" aria-hidden />
+                <Fuel className="h-3 w-3 text-emerald-400" aria-hidden />
                 Runway vs balance
               </dt>
               <dd
@@ -572,7 +572,7 @@ export default function UsageAnalytics() {
                     ? "text-rose-300"
                     : daysRemaining < 14
                       ? "text-amber-300"
-                      : "text-blue-400"
+                      : "text-emerald-400"
                 }`}
               >
                 {daysRemaining < 7
@@ -603,7 +603,7 @@ export default function UsageAnalytics() {
               Ranked by Gas consumption and execution frequency
             </p>
           </div>
-          <span className="font-mono text-[10px] text-blue-400/80">
+          <span className="font-mono text-[10px] text-emerald-400/80">
             {TOP_AGENTS.length} agents
           </span>
         </div>
@@ -637,7 +637,7 @@ export default function UsageAnalytics() {
                   <td className="px-4 py-3 text-slate-muted sm:px-5">
                     {agent.role}
                   </td>
-                  <td className="px-4 py-3 font-mono text-blue-400 sm:px-5">
+                  <td className="px-4 py-3 font-mono text-emerald-400 sm:px-5">
                     {formatGasFull(agent.gas)}
                   </td>
                   <td className="px-4 py-3 font-mono text-slate-muted sm:px-5">
@@ -647,7 +647,7 @@ export default function UsageAnalytics() {
                     <span
                       className={`font-mono text-xs ${
                         agent.successRate >= 97
-                          ? "text-blue-400"
+                          ? "text-emerald-400"
                           : agent.successRate >= 94
                             ? "text-amber-300"
                             : "text-rose-300"

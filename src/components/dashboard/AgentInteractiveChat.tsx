@@ -284,7 +284,7 @@ function ActivityBadge({
 
   if (activity.kind === "executing") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] text-blue-400">
+      <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400">
         <Wrench className="h-3 w-3 animate-pulse" aria-hidden />
         Executing Tool [{activity.toolName}]
       </span>

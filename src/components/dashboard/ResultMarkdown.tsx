@@ -209,7 +209,7 @@ export default function ResultMarkdown({ markdown }: ResultMarkdownProps) {
                   </button>
                 ) : null}
               </div>
-              <pre className="overflow-x-auto p-3 font-mono text-[11px] leading-relaxed text-blue-200/90">
+              <pre className="overflow-x-auto p-3 font-mono text-[11px] leading-relaxed text-emerald-200/90">
                 {segment.code}
               </pre>
             </div>

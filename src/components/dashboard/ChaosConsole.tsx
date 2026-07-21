@@ -156,7 +156,7 @@ export default function ChaosConsole({
           className={`inline-flex w-fit items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider ${
             active
               ? "border-rose-400/40 bg-rose-500/10 text-rose-300"
-              : "border-blue-500/30 bg-blue-500/10 text-blue-400"
+              : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
           }`}
         >
           <Radio
@@ -212,7 +212,7 @@ export default function ChaosConsole({
 
         <div className="flex flex-col p-4">
           <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-dim">
-            <Shield className="h-3 w-3 text-blue-400" aria-hidden />
+            <Shield className="h-3 w-3 text-emerald-400" aria-hidden />
             Self-refine loop ticker
           </p>
           <div className="min-h-[11rem] flex-1 overflow-hidden rounded-lg border border-white/5 bg-black/50 font-mono">
@@ -232,7 +232,7 @@ export default function ChaosConsole({
                         line.tone === "warn"
                           ? "text-rose-300"
                           : line.tone === "heal"
-                            ? "text-blue-400"
+                            ? "text-emerald-400"
                             : "text-slate-muted"
                       }`}
                     >

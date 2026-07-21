@@ -14,7 +14,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh, PointLight } from "three";
 
-const SAPPHIRE = "#3B82F6";
+const SAPPHIRE = "#10B981";
 const AMBER = "#f59e0b";
 const ROSE = "#f43f5e";
 const METAL = "#c8d0d8";
@@ -33,10 +33,10 @@ export type RobotMeshProps = {
 };
 
 const VARIANT_TINT: Record<RobotMeshVariant, string> = {
-  supervisor: "#3B82F6",
-  writer: "#60A5FA",
-  validator: "#0066FF",
-  agent: "#3B82F6",
+  supervisor: "#10B981",
+  writer: "#34D399",
+  validator: "#059669",
+  agent: "#10B981",
 };
 
 function resolveAccent(
@@ -104,7 +104,7 @@ export function RobotMesh({
     [variant, status]
   );
   const secondary =
-    status === "error" ? AMBER : status === "working" ? "#93C5FD" : "#93C5FD";
+    status === "error" ? AMBER : status === "working" ? "#6EE7B7" : "#6EE7B7";
   const trailPos = useRef(new Float32Array(24 * 3));
 
   useEffect(() => {
@@ -358,7 +358,7 @@ function FlatRobotFallback({
 }) {
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full border border-blue-500/30 bg-blue-500/10 ${className ?? "h-10 w-10"}`}
+      className={`inline-flex items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 ${className ?? "h-10 w-10"}`}
       aria-hidden
       style={{ boxShadow: `0 0 12px ${accent}44` }}
     >

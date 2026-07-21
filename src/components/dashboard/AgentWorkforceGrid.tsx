@@ -24,8 +24,8 @@ function healthStyles(health: AgentConfig["health"], active: boolean) {
   switch (health) {
     case "healthy":
       return {
-        dot: "bg-blue-400",
-        text: "text-blue-400",
+        dot: "bg-emerald-400",
+        text: "text-emerald-400",
         label: "Healthy",
         pulse: true,
       };
@@ -64,7 +64,7 @@ function AgentToggle({
       onClick={() => onChange(!active)}
       className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors duration-300 ${
         active
-          ? "border-blue-500/50 bg-blue-500/20"
+          ? "border-emerald-500/50 bg-emerald-500/20"
           : "border-white/10 bg-white/5"
       }`}
     >
@@ -72,7 +72,7 @@ function AgentToggle({
         layout
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
         className={`absolute top-0.5 h-5 w-5 rounded-full shadow-sm ${
-          active ? "bg-blue-400" : "bg-slate-500"
+          active ? "bg-emerald-400" : "bg-slate-500"
         }`}
         style={{ left: active ? "22px" : "2px" }}
       />
@@ -99,7 +99,7 @@ function AgentCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className={`relative overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4 transition-all duration-300 ${
-        active ? "border-l-2 border-l-blue-400" : ""
+        active ? "border-l-2 border-l-emerald-400" : ""
       }`}
     >
       <div className="relative space-y-3">
@@ -143,7 +143,7 @@ function AgentCard({
           </span>
           <span className="text-[11px] text-slate-dim">
             Tasks today:{" "}
-            <span className="font-mono text-blue-400">
+            <span className="font-mono text-emerald-400">
               {active ? agent.tasksToday.toLocaleString() : "0"}
             </span>
           </span>
@@ -152,7 +152,7 @@ function AgentCard({
         <div className="flex items-center justify-between border-t border-white/5 pt-3">
           <span
             className={`text-xs font-semibold uppercase tracking-wider ${
-              active ? "text-blue-400" : "text-slate-dim"
+              active ? "text-emerald-400" : "text-slate-dim"
             }`}
           >
             {active ? "Deployed" : "Paused"}
@@ -160,7 +160,7 @@ function AgentCard({
           <button
             type="button"
             onClick={() => setConfigOpen((o) => !o)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-xs font-medium text-slate-muted transition-colors hover:border-blue-500/30 hover:text-blue-400"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-xs font-medium text-slate-muted transition-colors hover:border-emerald-500/30 hover:text-emerald-400"
           >
             <Settings2 className="h-3.5 w-3.5" aria-hidden />
             Configure
@@ -222,7 +222,7 @@ export default function AgentWorkforceGrid({
           </p>
         </div>
         <div className="hidden items-center gap-2 rounded-lg border border-white/5 bg-[#121212] px-3 py-1.5 text-xs text-slate-muted sm:flex">
-          <Bot className="h-3.5 w-3.5 text-blue-400" aria-hidden />
+          <Bot className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
           {activeCount} of {AGENTS.length} agents active
         </div>
       </div>

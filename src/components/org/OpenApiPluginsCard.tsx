@@ -42,7 +42,7 @@ type ToastState = {
 } | null;
 
 const TOAST_STYLES: Record<ToastTone, string> = {
-  success: "border-blue-500/30 bg-blue-500/10 text-blue-300",
+  success: "border-emerald-500/30 bg-emerald-500/10 text-emerald-300",
   error: "border-rose-500/30 bg-rose-500/10 text-rose-300",
   info: "border-amber-500/30 bg-amber-500/10 text-amber-200",
 };
@@ -384,7 +384,7 @@ export default function OpenApiPluginsCard() {
           />
         </label>
         {draft.fileName ? (
-          <p className="mt-3 font-mono text-[11px] text-blue-300/90">
+          <p className="mt-3 font-mono text-[11px] text-emerald-300/90">
             Loaded: {draft.fileName}
             {draft.defaultBaseUrl ? ` · default ${draft.defaultBaseUrl}` : ""}
           </p>
@@ -586,7 +586,7 @@ export default function OpenApiPluginsCard() {
                 <div className="flex items-center justify-between gap-3 border-t border-white/5 pt-3">
                   <span
                     className={`text-[11px] font-medium ${
-                      plugin.active ? "text-blue-300" : "text-slate-dim"
+                      plugin.active ? "text-emerald-300" : "text-slate-dim"
                     }`}
                   >
                     {plugin.active ? "Active" : "Inactive"}
@@ -598,7 +598,7 @@ export default function OpenApiPluginsCard() {
                     onClick={() => toggleActive(plugin.id, !plugin.active)}
                     className={`relative h-6 w-11 rounded-full transition-colors ${
                       plugin.active
-                        ? "bg-blue-500/80"
+                        ? "bg-emerald-500/80"
                         : "bg-white/10"
                     }`}
                   >

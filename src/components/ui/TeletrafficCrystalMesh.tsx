@@ -14,9 +14,9 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh, PointLight } from "three";
 
-const SAPPHIRE = "#0066FF";
-const CYAN = "#3B82F6";
-const GLASS = "#93C5FD";
+const SAPPHIRE = "#059669";
+const CYAN = "#10B981";
+const GLASS = "#6EE7B7";
 
 export type TeletrafficCrystalMeshProps = {
   className?: string;
@@ -179,12 +179,12 @@ class WebGLBoundary extends Component<
 function FlatFallback({ className }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-lg border border-blue-500/25 bg-white/[0.03] ${className ?? "h-10 w-10"}`}
+      className={`inline-flex items-center justify-center rounded-lg border border-emerald-500/25 bg-white/[0.03] ${className ?? "h-10 w-10"}`}
       aria-hidden
       style={{ boxShadow: `0 0 14px ${SAPPHIRE}44` }}
     >
       <span
-        className="h-3.5 w-3.5 rotate-45 border border-blue-400/60 bg-blue-400/30"
+        className="h-3.5 w-3.5 rotate-45 border border-emerald-400/60 bg-emerald-400/30"
         style={{ boxShadow: `0 0 10px ${SAPPHIRE}` }}
       />
     </span>

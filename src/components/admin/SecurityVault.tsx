@@ -114,7 +114,7 @@ function threatBadge(score: number): string {
   if (score >= 40) {
     return "border-amber-500/40 bg-amber-500/10 text-amber-300";
   }
-  return "border-blue-500/40 bg-blue-500/15 text-blue-400";
+  return "border-emerald-500/40 bg-emerald-500/15 text-emerald-400";
 }
 
 function activityTone(activity: ActivityType): string {
@@ -128,7 +128,7 @@ function activityTone(activity: ActivityType): string {
   if (activity === "API_KEY_CREATED" || activity === "SNAPSHOT_TRIGGERED") {
     return "text-cyan-300";
   }
-  return "text-blue-300";
+  return "text-emerald-300";
 }
 
 const SEED: SecurityEvent[] = [
@@ -225,9 +225,9 @@ export default function SecurityVault() {
   }, [backingUp]);
 
   return (
-    <div className="space-y-6" style={{ backgroundColor: "#09090B" }}>
+    <div className="space-y-6" style={{ backgroundColor: "#040907" }}>
       <header className="space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
           security vault · super-admin · ?view=security
         </p>
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -245,7 +245,7 @@ export default function SecurityVault() {
             onClick={() => setLive((v) => !v)}
             className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider transition ${
               live
-                ? "border-blue-500/40 bg-blue-500/15 text-blue-400"
+                ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-400"
                 : "border-white/10 bg-white/[0.03] text-slate-dim"
             }`}
           >
@@ -265,7 +265,7 @@ export default function SecurityVault() {
           <div className="flex items-center justify-between gap-2 border-b border-white/5 px-4 py-3">
             <div className="flex items-center gap-2">
               <Hover3DIcon intensity={12}>
-                <ShieldCheck className="h-4 w-4 text-blue-400" aria-hidden />
+                <ShieldCheck className="h-4 w-4 text-emerald-400" aria-hidden />
               </Hover3DIcon>
               <h3 className="text-sm font-semibold text-white">
                 Security event stream
@@ -306,7 +306,7 @@ export default function SecurityVault() {
                       </td>
                       <td className="px-4 py-2.5">
                         <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/40 px-1.5 py-0.5 text-[10px] text-slate-muted">
-                          <MapPin className="h-2.5 w-2.5 text-blue-400/80" aria-hidden />
+                          <MapPin className="h-2.5 w-2.5 text-emerald-400/80" aria-hidden />
                           {evt.location}
                         </span>
                       </td>
@@ -338,7 +338,7 @@ export default function SecurityVault() {
         >
           <div className="flex items-center gap-2">
             <Hover3DIcon intensity={12}>
-              <Database className="h-4 w-4 text-blue-400" aria-hidden />
+              <Database className="h-4 w-4 text-emerald-400" aria-hidden />
             </Hover3DIcon>
             <h3 className="text-sm font-semibold text-white">
               Database Snapshot Vault
@@ -353,7 +353,7 @@ export default function SecurityVault() {
             type="button"
             onClick={triggerSnapshot}
             disabled={backingUp}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3.5 py-2.5 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20 disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2.5 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-60"
           >
             {backingUp ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -389,7 +389,7 @@ export default function SecurityVault() {
                   <button
                     type="button"
                     disabled={snap.status !== "ready"}
-                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5 text-[10px] font-semibold text-slate-muted transition hover:border-blue-500/30 hover:text-blue-400 disabled:opacity-40"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5 text-[10px] font-semibold text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400 disabled:opacity-40"
                     aria-label={`Download ${snap.label}`}
                   >
                     <Download className="h-3 w-3" aria-hidden />

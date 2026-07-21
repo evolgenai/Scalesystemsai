@@ -44,8 +44,8 @@ const UPTIME_DAYS = Array.from({ length: 30 }, (_, i) => i);
 function StatusPulse() {
   return (
     <span className="relative flex h-2.5 w-2.5" aria-hidden>
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400/70" />
-      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-blue-400" />
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400/70" />
+      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
     </span>
   );
 }
@@ -57,7 +57,7 @@ export default function StatusPage() {
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
         aria-hidden
       >
-        <div className="absolute right-1/4 top-0 h-[500px] w-[700px] rounded-full bg-blue-500/5 blur-[150px]" />
+        <div className="absolute right-1/4 top-0 h-[500px] w-[700px] rounded-full bg-emerald-500/5 blur-[150px]" />
       </div>
 
       <section className="mx-auto max-w-4xl px-4 py-20 sm:px-6 lg:px-8">
@@ -66,7 +66,7 @@ export default function StatusPage() {
           <h1 className="mt-3 font-display text-4xl font-bold tracking-tight text-white sm:text-5xl">
             Platform Operational Status
           </h1>
-          <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-blue-400/20 bg-blue-400/5 px-4 py-2 text-sm font-medium text-blue-300">
+          <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-4 py-2 text-sm font-medium text-emerald-300">
             <StatusPulse />
             All Systems Operational
           </div>
@@ -89,7 +89,7 @@ export default function StatusPage() {
                   </p>
                 </div>
               </div>
-              <span className="shrink-0 rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1 text-xs font-semibold text-blue-300">
+              <span className="shrink-0 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
                 {service.state}
               </span>
             </div>
@@ -109,7 +109,7 @@ export default function StatusPage() {
               <span
                 key={day}
                 title="Operational"
-                className="h-9 flex-1 rounded-sm bg-blue-400/70 transition-colors hover:bg-blue-300"
+                className="h-9 flex-1 rounded-sm bg-emerald-400/70 transition-colors hover:bg-emerald-300"
               />
             ))}
           </div>
@@ -130,7 +130,7 @@ export default function StatusPage() {
                 className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3.5"
               >
                 <div className="flex items-center gap-3">
-                  <span className="h-2 w-2 rounded-full bg-blue-400" aria-hidden />
+                  <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
                   <span className="text-sm text-slate-100">{entry.note}</span>
                 </div>
                 <span className="text-xs text-slate-dim">{entry.label}</span>

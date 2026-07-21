@@ -81,7 +81,7 @@ function PillarCard({
 
 export default function HomePage() {
   return (
-    <main className="relative z-10 min-h-screen overflow-hidden bg-[#09090B]">
+    <main className="relative z-10 min-h-screen overflow-hidden bg-[#040907]">
       <LandingHero />
       <AgentTerminal />
 

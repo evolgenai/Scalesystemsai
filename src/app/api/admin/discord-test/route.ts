@@ -41,7 +41,7 @@ export async function POST(req: Request) {
           color: 0x10b981,
           fields: [
             { name: "Source", value: "Meta-SRE Command Deck", inline: true },
-            { name: "Plane", value: "#09090B Obsidian", inline: true },
+            { name: "Plane", value: "#040907 Obsidian", inline: true },
             {
               name: "Status",
               value: "Webhook reachability OK",

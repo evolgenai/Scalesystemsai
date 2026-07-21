@@ -54,17 +54,17 @@ function statusLabel(status: OrchestratorAgentStatus): string {
 function StatusRing({ status }: { status: OrchestratorAgentStatus }) {
   const ring =
     status === "active"
-      ? "border-blue-400 animate-pulse"
+      ? "border-emerald-400 animate-pulse"
       : status === "done"
-        ? "border-blue-400/70"
+        ? "border-emerald-400/70"
         : status === "error"
           ? "border-rose-400"
           : "border-zinc-600";
   const fill =
     status === "active"
-      ? "bg-blue-400"
+      ? "bg-emerald-400"
       : status === "done"
-        ? "bg-blue-400/80"
+        ? "bg-emerald-400/80"
         : status === "error"
           ? "bg-rose-400"
           : "bg-zinc-600";
@@ -161,7 +161,7 @@ export default function OrchestratorFeed({
             {index < steps.length - 1 ? (
               <span
                 className={`absolute left-[1.125rem] top-9 h-[calc(100%-0.75rem)] w-px ${
-                  step.status === "done" ? "bg-blue-400/40" : "bg-white/10"
+                  step.status === "done" ? "bg-emerald-400/40" : "bg-white/10"
                 }`}
                 aria-hidden
               />
@@ -189,9 +189,9 @@ export default function OrchestratorFeed({
                 <span
                   className={`text-[9px] font-medium uppercase tracking-wide ${
                     step.status === "active"
-                      ? "text-blue-400"
+                      ? "text-emerald-400"
                       : step.status === "done"
-                        ? "text-blue-400/70"
+                        ? "text-emerald-400/70"
                         : step.status === "error"
                           ? "text-rose-300"
                           : "text-zinc-500"

@@ -70,7 +70,7 @@ const BURSTS: { size: BurstSize; label: string; hazard: string }[] = [
 function statusStyles(status: CircuitStatus) {
   switch (status) {
     case "HEALTHY":
-      return "border-blue-500/40 bg-blue-500/15 text-blue-400 shadow-[0_0_18px_rgba(0, 102, 255,0.18)]";
+      return "border-emerald-500/40 bg-emerald-500/15 text-emerald-400 shadow-[0_0_18px_rgba(16, 185, 129,0.18)]";
     case "DEGRADED":
       return "border-amber-400/50 bg-amber-500/15 text-amber-300 shadow-[0_0_22px_rgba(251,191,36,0.28)]";
     case "CIRCUIT_TRIPPED_AUTO_HEALING":
@@ -94,7 +94,7 @@ function GaugeBar({
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
   const fill =
     tone === "sapphire"
-      ? "bg-blue-400"
+      ? "bg-emerald-400"
       : tone === "amber"
         ? "bg-amber-400"
         : tone === "rose"
@@ -102,7 +102,7 @@ function GaugeBar({
           : "bg-cyan-400";
   const glow =
     tone === "sapphire"
-      ? "shadow-[0_0_12px_rgba(0, 102, 255,0.45)]"
+      ? "shadow-[0_0_12px_rgba(16, 185, 129,0.45)]"
       : tone === "amber"
         ? "shadow-[0_0_12px_rgba(251,191,36,0.45)]"
         : tone === "rose"
@@ -272,7 +272,7 @@ export default function ChaosControlPanel() {
     pool.errorRates["429"] + pool.errorRates["500"] + pool.errorRates["503"];
 
   return (
-    <div className="space-y-6" style={{ backgroundColor: "#09090B" }}>
+    <div className="space-y-6" style={{ backgroundColor: "#040907" }}>
       <header className="space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-400/80">
           chaos engineering · developer · ?view=chaos
@@ -409,7 +409,7 @@ export default function ChaosControlPanel() {
               </button>
               <p className="mt-2 text-[11px] text-slate-dim">
                 Forces circuit trip → verifies poolMonitor auto-heal restores{" "}
-                <span className="text-blue-400">HEALTHY</span>.
+                <span className="text-emerald-400">HEALTHY</span>.
               </p>
             </div>
           </div>
@@ -425,13 +425,13 @@ export default function ChaosControlPanel() {
           <div className="flex items-center justify-between gap-2 border-b border-white/5 px-4 py-3">
             <div className="flex items-center gap-2">
               <Hover3DIcon intensity={12}>
-                <Gauge className="h-4 w-4 text-blue-400" aria-hidden />
+                <Gauge className="h-4 w-4 text-emerald-400" aria-hidden />
               </Hover3DIcon>
               <h3 className="text-sm font-semibold text-white">
                 Real-time Stress Telemetry
               </h3>
             </div>
-            <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider text-blue-400/80">
+            <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-wider text-emerald-400/80">
               <Radio className="h-3 w-3 animate-pulse" aria-hidden />
               Live
             </span>
@@ -464,7 +464,7 @@ export default function ChaosControlPanel() {
                         ? "text-rose-300"
                         : pool.errorRates[code] > 5
                           ? "text-amber-300"
-                          : "text-blue-400"
+                          : "text-emerald-400"
                     }`}
                   >
                     {pool.errorRates[code].toFixed(1)}%
@@ -502,10 +502,10 @@ export default function ChaosControlPanel() {
               </div>
               <div className="rounded-lg border border-white/5 bg-black/30 px-3 py-2.5">
                 <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wider text-slate-dim">
-                  <Activity className="h-3 w-3 text-blue-400" aria-hidden />
+                  <Activity className="h-3 w-3 text-emerald-400" aria-hidden />
                   Auto-heal events
                 </p>
-                <p className="mt-1 font-mono text-sm text-blue-400">
+                <p className="mt-1 font-mono text-sm text-emerald-400">
                   {pool.autoHealEvents}
                   {pool.lastHealAt ? (
                     <span className="ml-1.5 text-[10px] text-slate-dim">
@@ -549,7 +549,7 @@ export default function ChaosControlPanel() {
                       line.tone === "warn"
                         ? "text-amber-300"
                         : line.tone === "heal"
-                          ? "text-blue-400"
+                          ? "text-emerald-400"
                           : line.tone === "error"
                             ? "text-rose-300"
                             : "text-slate-muted"

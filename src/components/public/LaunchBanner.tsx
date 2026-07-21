@@ -44,7 +44,7 @@ export default function LaunchBanner() {
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-          className="overflow-hidden border-b border-emerald-500/35 bg-gradient-to-r from-[#05110d] via-[#0a1f18] to-[#05110d]"
+          className="overflow-hidden border-b border-emerald-500/35 bg-gradient-to-r from-[#040907] via-[#0a1f18] to-[#040907]"
           role="region"
           aria-label="Launch announcement"
         >

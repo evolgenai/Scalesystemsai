@@ -32,14 +32,14 @@ export function GasBatteryCrystal({
         style={{ width: px, height: px, perspective: 420 }}
       >
         <span
-          className="absolute inset-[18%] rounded-[28%] border border-blue-400/50 bg-gradient-to-br from-blue-400/35 via-[#0066FF]/25 to-cyan-accent/20 shadow-[0_0_18px_rgba(0,102,255,0.35)]"
+          className="absolute inset-[18%] rounded-[28%] border border-emerald-400/50 bg-gradient-to-br from-emerald-400/35 via-[#059669]/25 to-cyan-accent/20 shadow-[0_0_18px_rgba(16, 185, 129,0.35)]"
           style={{
             transform: "rotateX(28deg) rotateY(-28deg) rotateZ(12deg)",
             transformStyle: "preserve-3d",
           }}
         />
-        <span className="absolute left-1/2 top-[12%] h-[14%] w-[38%] -translate-x-1/2 rounded-sm border border-blue-300/60 bg-blue-400/50" />
-        <span className="absolute inset-[32%] rounded-sm bg-gradient-to-t from-[#0066FF]/80 to-blue-300/40" />
+        <span className="absolute left-1/2 top-[12%] h-[14%] w-[38%] -translate-x-1/2 rounded-sm border border-emerald-300/60 bg-emerald-400/50" />
+        <span className="absolute inset-[32%] rounded-sm bg-gradient-to-t from-[#059669]/80 to-emerald-300/40" />
       </span>
     </Hover3DIcon>
   );
@@ -71,7 +71,7 @@ export function SwarmBridgeCube({
           }}
         >
           <span
-            className="absolute inset-0 border border-blue-400/50 bg-gradient-to-br from-white/15 to-blue-500/30 shadow-[0_0_16px_rgba(59,130,246,0.4)]"
+            className="absolute inset-0 border border-emerald-400/50 bg-gradient-to-br from-white/15 to-emerald-500/30 shadow-[0_0_16px_rgba(16, 185, 129,0.4)]"
             style={{
               transform: `translateZ(${face / 2}px)`,
               width: face,
@@ -79,7 +79,7 @@ export function SwarmBridgeCube({
             }}
           />
           <span
-            className="absolute inset-0 border border-blue-500/35 bg-[#060810]/70"
+            className="absolute inset-0 border border-emerald-500/35 bg-[#040907]/70"
             style={{
               transform: `rotateY(90deg) translateZ(${face / 2}px)`,
               width: face,
@@ -87,7 +87,7 @@ export function SwarmBridgeCube({
             }}
           />
           <span
-            className="absolute inset-0 border border-blue-400/30 bg-blue-600/20"
+            className="absolute inset-0 border border-emerald-400/30 bg-emerald-600/20"
             style={{
               transform: `rotateX(90deg) translateZ(${face / 2}px)`,
               width: face,
@@ -116,13 +116,13 @@ export function SkillChip({
         style={{ width: px, height: px, perspective: 400 }}
       >
         <span
-          className="absolute inset-[16%] rounded-md border border-blue-400/45 bg-gradient-to-br from-[#0A0F1D] via-blue-600/30 to-[#0066FF]/40 shadow-[0_0_14px_rgba(0,102,255,0.35)]"
+          className="absolute inset-[16%] rounded-md border border-emerald-400/45 bg-gradient-to-br from-[#050b08] via-emerald-600/30 to-[#059669]/40 shadow-[0_0_14px_rgba(16, 185, 129,0.35)]"
           style={{
             transform: "rotateX(18deg) rotateY(-24deg)",
             transformStyle: "preserve-3d",
           }}
         />
-        <span className="absolute left-[28%] right-[28%] top-[38%] h-[10%] rounded-full bg-blue-300/80 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+        <span className="absolute left-[28%] right-[28%] top-[38%] h-[10%] rounded-full bg-emerald-300/80 shadow-[0_0_8px_rgba(16, 185, 129,0.8)]" />
         <span className="absolute bottom-[26%] left-[30%] right-[30%] h-[6%] rounded-full bg-cyan-accent/50" />
       </span>
     </Hover3DIcon>

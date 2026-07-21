@@ -276,7 +276,7 @@ function ResultsPane({
 
               {sandboxFrames.length > 0 ? (
                 <div className="space-y-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-300/80">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/80">
                     Live sandbox telemetry
                   </p>
                   {sandboxFrames.map((frame) => (
@@ -322,7 +322,7 @@ function VerbosePane({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#0a0e16] px-3 py-2">
         <div className="flex items-center gap-2">
-          <Terminal className="h-3.5 w-3.5 text-blue-400" aria-hidden />
+          <Terminal className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
           <span className="font-mono text-[10px] uppercase tracking-wider text-slate-dim">
             Swarm Surface
           </span>
@@ -363,7 +363,7 @@ function VerbosePane({
                     line.includes("SECURITY") || line.includes("ERROR")
                       ? "text-rose-400"
                       : line.startsWith("$") || line.includes(" $ ")
-                        ? "text-blue-300"
+                        ? "text-emerald-300"
                         : isLatest
                           ? "text-cyan-accent"
                           : "text-slate-300"
@@ -397,7 +397,7 @@ function VerbosePane({
             Expand only when you need low-level swarm diagnostics.
           </p>
           {connection === "live" ? (
-            <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-blue-300">
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-wider text-emerald-300">
               stream live
             </p>
           ) : connection === "paused" ? (
@@ -584,7 +584,7 @@ export default function LiveStreamTerminal({
             <Radio
               className={`h-3 w-3 ${
                 isLive
-                  ? "animate-pulse text-blue-400"
+                  ? "animate-pulse text-emerald-400"
                   : isPaused
                     ? "animate-pulse text-amber-400"
                     : connection === "error"
@@ -596,7 +596,7 @@ export default function LiveStreamTerminal({
             <span
               className={`text-[10px] font-medium uppercase tracking-wide ${
                 isLive
-                  ? "text-blue-400"
+                  ? "text-emerald-400"
                   : isPaused
                     ? "text-amber-300"
                     : connection === "error"
@@ -628,7 +628,7 @@ export default function LiveStreamTerminal({
                 type="button"
                 onClick={() => onResume?.()}
                 disabled={actionPending || intervenePending}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-400/50 bg-blue-400/15 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300 shadow-[0_0_18px_rgba(59, 130, 246,0.28)] transition hover:bg-blue-400/25 disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/50 bg-emerald-400/15 px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300 shadow-[0_0_18px_rgba(16, 185, 129,0.28)] transition hover:bg-emerald-400/25 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label="Resume swarm"
               >
                 <Play className="h-3 w-3" aria-hidden />
@@ -722,7 +722,7 @@ export default function LiveStreamTerminal({
               role="status"
               className={`mt-2 flex items-start gap-2 rounded-xl border px-3 py-2 text-xs ${
                 toast.tone === "success"
-                  ? "border-blue-500/30 bg-blue-500/10 text-blue-300"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
                   : "border-rose-500/30 bg-rose-500/10 text-rose-300"
               }`}
             >

@@ -18,9 +18,9 @@ function ringClass(member: PresenceMember): string {
     return "ring-cyan-accent/70 shadow-[0_0_12px_rgba(0,242,254,0.35)]";
   }
   if (member.currentActivity === "spectating") {
-    return "ring-blue-400/70 shadow-[0_0_12px_rgba(59, 130, 246,0.3)]";
+    return "ring-emerald-400/70 shadow-[0_0_12px_rgba(16, 185, 129,0.3)]";
   }
-  return "ring-blue-400/40";
+  return "ring-emerald-400/40";
 }
 
 export default function TeamPresenceBar() {
@@ -42,7 +42,7 @@ export default function TeamPresenceBar() {
         {visibleMembers.map((member) => (
           <div key={member.userId} className="group relative">
             <span
-              className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#09090b] bg-gradient-to-br from-white/10 to-white/[0.03] font-mono text-[10px] font-semibold text-white ring-2 ${ringClass(member)}`}
+              className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#040907] bg-gradient-to-br from-white/10 to-white/[0.03] font-mono text-[10px] font-semibold text-white ring-2 ${ringClass(member)}`}
               aria-label={`${member.name} — ${activityLabelFor(member)}`}
             >
               {initials(member.name)}
@@ -61,7 +61,7 @@ export default function TeamPresenceBar() {
           </div>
         ))}
         {overflowCount > 0 ? (
-          <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#09090b] bg-white/[0.06] font-mono text-[10px] font-semibold text-slate-muted ring-2 ring-white/15">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#040907] bg-white/[0.06] font-mono text-[10px] font-semibold text-slate-muted ring-2 ring-white/15">
             +{overflowCount}
           </span>
         ) : null}

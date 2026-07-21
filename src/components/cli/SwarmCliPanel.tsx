@@ -79,11 +79,11 @@ function CopyBlock({ value, label }: { value: string; label: string }) {
         <button
           type="button"
           onClick={onCopy}
-          className="inline-flex items-center gap-1.5 rounded-md border border-white/5 px-2 py-1 text-[11px] font-medium text-slate-muted transition hover:border-blue-500/30 hover:text-blue-400"
+          className="inline-flex items-center gap-1.5 rounded-md border border-white/5 px-2 py-1 text-[11px] font-medium text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400"
         >
           {copied ? (
             <>
-              <Check className="h-3 w-3 text-blue-400" aria-hidden />
+              <Check className="h-3 w-3 text-emerald-400" aria-hidden />
               Copied
             </>
           ) : (
@@ -94,7 +94,7 @@ function CopyBlock({ value, label }: { value: string; label: string }) {
           )}
         </button>
       </div>
-      <pre className="overflow-x-auto px-3 py-3 font-mono text-[12px] leading-relaxed text-blue-300/90">
+      <pre className="overflow-x-auto px-3 py-3 font-mono text-[12px] leading-relaxed text-emerald-300/90">
         <code>{value}</code>
       </pre>
     </div>
@@ -202,11 +202,11 @@ export default function SwarmCliPanel() {
     `npx scalesystems login --key ${key}`;
 
   return (
-    <div className="space-y-6" style={{ backgroundColor: "#09090B" }}>
+    <div className="space-y-6" style={{ backgroundColor: "#040907" }}>
       <header className="glass-panel overflow-hidden p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-lg border border-blue-500/25 bg-blue-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-blue-400">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
               <Hover3DIcon intensity={12}>
                 <Terminal className="h-3 w-3" aria-hidden />
               </Hover3DIcon>
@@ -217,7 +217,7 @@ export default function SwarmCliPanel() {
             </h2>
             <p className="max-w-2xl text-sm text-slate-muted">
               Install the ScaleSystems CLI, mint workspace API keys, and simulate
-              <span className="font-mono text-blue-400/90"> scalesystems deploy </span>
+              <span className="font-mono text-emerald-400/90"> scalesystems deploy </span>
               against your swarm blueprints.
             </p>
           </div>
@@ -259,7 +259,7 @@ export default function SwarmCliPanel() {
       <section className="glass-panel overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-4 py-3">
           <div className="flex items-center gap-2">
-            <KeyRound className="h-4 w-4 text-blue-400" aria-hidden />
+            <KeyRound className="h-4 w-4 text-emerald-400" aria-hidden />
             <h3 className="text-sm font-semibold text-white">API keys</h3>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -268,12 +268,12 @@ export default function SwarmCliPanel() {
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               placeholder="Key label"
-              className="w-40 rounded-lg border border-white/5 bg-black/40 px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-slate-600 focus:border-blue-500/40"
+              className="w-40 rounded-lg border border-white/5 bg-black/40 px-2.5 py-1.5 text-xs text-white outline-none placeholder:text-slate-600 focus:border-emerald-500/40"
             />
             <button
               type="button"
               onClick={createKey}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/15 px-3 py-1.5 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/25"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25"
             >
               Generate key
             </button>
@@ -311,7 +311,7 @@ export default function SwarmCliPanel() {
                       {row.label}
                     </td>
                     <td className="px-4 py-3">
-                      <code className="font-mono text-[11px] text-blue-300/90">
+                      <code className="font-mono text-[11px] text-emerald-300/90">
                         {revealed === row.id
                           ? row.key
                           : `${row.key.slice(0, 12)}…${row.key.slice(-4)}`}
@@ -321,7 +321,7 @@ export default function SwarmCliPanel() {
                         onClick={() =>
                           setRevealed((id) => (id === row.id ? null : row.id))
                         }
-                        className="ml-2 text-[10px] text-slate-dim underline-offset-2 hover:text-blue-400 hover:underline"
+                        className="ml-2 text-[10px] text-slate-dim underline-offset-2 hover:text-emerald-400 hover:underline"
                       >
                         {revealed === row.id ? "Hide" : "Reveal"}
                       </button>
@@ -341,7 +341,7 @@ export default function SwarmCliPanel() {
                           onClick={() =>
                             navigator.clipboard.writeText(loginCmd(row.key))
                           }
-                          className="rounded-md border border-white/5 p-1.5 text-slate-muted transition hover:border-blue-500/30 hover:text-blue-400"
+                          className="rounded-md border border-white/5 p-1.5 text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400"
                           aria-label="Copy login command"
                           title="Copy login command"
                         >
@@ -374,7 +374,7 @@ export default function SwarmCliPanel() {
             </h3>
             <p className="mt-0.5 text-[11px] text-slate-dim">
               Streams terminal output for{" "}
-              <span className="font-mono text-blue-400/80">
+              <span className="font-mono text-emerald-400/80">
                 scalesystems deploy
               </span>
             </p>
@@ -393,7 +393,7 @@ export default function SwarmCliPanel() {
               <button
                 type="button"
                 onClick={runDeploy}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/15 px-3 py-1.5 text-xs font-semibold text-blue-300 transition hover:bg-blue-500/25"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/15 px-3 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/25"
               >
                 <Play className="h-3 w-3" aria-hidden />
                 Run deploy
@@ -423,7 +423,7 @@ export default function SwarmCliPanel() {
                   line.tone === "cmd"
                     ? "text-white"
                     : line.tone === "ok"
-                      ? "text-blue-400"
+                      ? "text-emerald-400"
                       : line.tone === "warn"
                         ? "text-amber-300"
                         : line.tone === "err"
@@ -436,7 +436,7 @@ export default function SwarmCliPanel() {
             ))
           )}
           {running ? (
-            <span className="mt-1 inline-block h-3.5 w-1.5 animate-pulse bg-blue-400/80" />
+            <span className="mt-1 inline-block h-3.5 w-1.5 animate-pulse bg-emerald-400/80" />
           ) : null}
         </div>
       </section>

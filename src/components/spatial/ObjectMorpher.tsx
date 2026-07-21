@@ -193,7 +193,7 @@ function CompositeMesh({
       <mesh position={[0, 0.25, 0]}>
         <cylinderGeometry args={[0.55, 0.75, 0.5, 8]} />
         <meshStandardMaterial
-          color="#05110d"
+          color="#040907"
           metalness={0.9}
           roughness={0.2}
           emissive={EMERALD_DEEP}
@@ -236,7 +236,7 @@ function CompositeMesh({
         />
       </mesh>
       <Html position={[0, suite.height + 0.6, 0]} center distanceFactor={12}>
-        <div className="pointer-events-none whitespace-nowrap rounded-lg border border-emerald-500/40 bg-[#09090B]/92 px-2.5 py-1.5 shadow-[0_0_24px_rgba(16,185,129,0.35)] backdrop-blur-md">
+        <div className="pointer-events-none whitespace-nowrap rounded-lg border border-emerald-500/40 bg-[#040907]/92 px-2.5 py-1.5 shadow-[0_0_24px_rgba(16,185,129,0.35)] backdrop-blur-md">
           <p className="font-mono text-[10px] font-semibold text-emerald-300">
             {suite.name}
           </p>
@@ -354,7 +354,7 @@ export default function ObjectMorpher({
       {canMorph ? (
         <group position={mid}>
           <Html center distanceFactor={10} zIndexRange={[50, 0]}>
-            <div className="pointer-events-none animate-pulse whitespace-nowrap rounded-md border border-emerald-400/55 bg-[#05110d]/95 px-3 py-1.5 font-mono text-[11px] font-semibold text-emerald-300 shadow-[0_0_28px_rgba(16,185,129,0.5)] backdrop-blur-md">
+            <div className="pointer-events-none animate-pulse whitespace-nowrap rounded-md border border-emerald-400/55 bg-[#040907]/95 px-3 py-1.5 font-mono text-[11px] font-semibold text-emerald-300 shadow-[0_0_28px_rgba(16,185,129,0.5)] backdrop-blur-md">
               [Press M to Combine / Morph Objects]
             </div>
           </Html>

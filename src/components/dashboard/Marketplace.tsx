@@ -178,11 +178,11 @@ function ListingCard({
         duration: 0.28,
         paddingBottom: PANEL_SPRING,
       }}
-      className="group relative flex min-h-[17.5rem] flex-col overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4 pt-4 transition hover:border-blue-500/35 sm:min-h-[18.5rem]"
+      className="group relative flex min-h-[17.5rem] flex-col overflow-hidden rounded-lg border border-white/5 bg-[#121212] p-4 pt-4 transition hover:border-emerald-500/35 sm:min-h-[18.5rem]"
       onMouseLeave={() => setIconHot(false)}
     >
       <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-blue-500/[0.06] via-transparent to-transparent opacity-0 transition group-hover:opacity-100"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/[0.06] via-transparent to-transparent opacity-0 transition group-hover:opacity-100"
         aria-hidden
       />
 
@@ -205,14 +205,14 @@ function ListingCard({
           <span
             className={`inline-flex items-center gap-1 rounded border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
               item.kind === "agent"
-                ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
                 : "border-cyan-400/30 bg-cyan-400/10 text-cyan-300"
             }`}
           >
             <Icon className="h-3 w-3 shrink-0" aria-hidden />
             {item.kind === "agent" ? "Agent" : "MCP"}
           </span>
-          <span className="font-mono text-sm font-semibold text-blue-400">
+          <span className="font-mono text-sm font-semibold text-emerald-400">
             {item.price}
           </span>
           <span className="font-mono text-[9px] uppercase tracking-wider text-slate-dim">
@@ -246,7 +246,7 @@ function ListingCard({
 
         <button
           type="button"
-          className="pointer-events-auto relative mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20"
+          className="pointer-events-auto relative mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20"
         >
           {item.pricing === "lease"
             ? "Lease for workspace"
@@ -312,7 +312,7 @@ export default function Marketplace() {
     >
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/5 px-3.5 py-1.5 text-xs font-medium text-blue-400">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/5 px-3.5 py-1.5 text-xs font-medium text-emerald-400">
             <Hover3DIcon intensity={16}>
               <Store className="h-3.5 w-3.5" aria-hidden />
             </Hover3DIcon>
@@ -323,7 +323,7 @@ export default function Marketplace() {
             className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl"
           >
             Extension{" "}
-            <span className="bg-gradient-to-r from-blue-400 to-blue-200 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-400 to-emerald-200 bg-clip-text text-transparent">
               Portal
             </span>
           </h2>
@@ -353,7 +353,7 @@ export default function Marketplace() {
               onClick={() => setFilter(tab.id)}
               className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
                 filter === tab.id
-                  ? "bg-blue-500/15 text-blue-400"
+                  ? "bg-emerald-500/15 text-emerald-400"
                   : "text-slate-muted hover:text-white"
               }`}
             >
@@ -375,7 +375,7 @@ export default function Marketplace() {
       <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
         <div className="flex flex-col gap-3 border-b border-white/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/10 text-blue-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
               <Hover3DIcon intensity={16}>
                 <Upload className="h-5 w-5" aria-hidden />
               </Hover3DIcon>
@@ -408,7 +408,7 @@ export default function Marketplace() {
                 onClick={() => setPublishKind(tab.id)}
                 className={`rounded-md px-3 py-1.5 text-[11px] font-semibold transition ${
                   publishKind === tab.id
-                    ? "bg-blue-500/15 text-blue-400"
+                    ? "bg-emerald-500/15 text-emerald-400"
                     : "text-slate-muted hover:text-white"
                 }`}
               >
@@ -442,7 +442,7 @@ export default function Marketplace() {
                     ? "Fleet Log Scrubber"
                     : "modbus-relay-mcp"
                 }
-                className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-slate-dim/50 focus:border-blue-500/40 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-slate-dim/50 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
               />
             </div>
             <div>
@@ -453,7 +453,7 @@ export default function Marketplace() {
                 Pricing per run (USD)
               </label>
               <div className="relative">
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-blue-400">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-emerald-400">
                   $
                 </span>
                 <input
@@ -463,7 +463,7 @@ export default function Marketplace() {
                   step="0.01"
                   value={pricePerRun}
                   onChange={(e) => setPricePerRun(e.target.value)}
-                  className="w-full rounded-lg border border-white/5 bg-black/40 py-2.5 pl-7 pr-3 font-mono text-xs text-white focus:border-blue-500/40 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-white/5 bg-black/40 py-2.5 pl-7 pr-3 font-mono text-xs text-white focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
                 />
               </div>
             </div>
@@ -483,7 +483,7 @@ export default function Marketplace() {
               placeholder={SCHEMA_PLACEHOLDER}
               spellCheck={false}
               rows={8}
-              className="min-h-[9rem] flex-1 resize-y rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-blue-300/90 placeholder:text-slate-dim/40 focus:border-blue-500/40 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+              className="min-h-[9rem] flex-1 resize-y rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 font-mono text-[11px] leading-relaxed text-emerald-300/90 placeholder:text-slate-dim/40 focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
             />
           </div>
 
@@ -498,7 +498,7 @@ export default function Marketplace() {
             <button
               type="submit"
               disabled={publishState === "submitting"}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-4 py-2 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20 disabled:opacity-60"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-60"
             >
               {publishState === "submitting" ? (
                 <>
@@ -525,7 +525,7 @@ export default function Marketplace() {
       <div className="overflow-hidden rounded-lg border border-white/5 bg-[#121212]">
         <div className="flex flex-col gap-3 border-b border-white/5 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-blue-500/25 bg-blue-500/10 text-blue-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
               <Hover3DIcon intensity={16}>
                 <Code2 className="h-5 w-5" aria-hidden />
               </Hover3DIcon>
@@ -543,7 +543,7 @@ export default function Marketplace() {
 
         <div className="grid gap-0 lg:grid-cols-2">
           <div className="space-y-3 border-b border-white/5 p-4 sm:p-5 lg:border-b-0 lg:border-r">
-            <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
+            <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
               <BookOpen className="h-3.5 w-3.5" aria-hidden />
               Documentation
             </p>
@@ -552,10 +552,10 @@ export default function Marketplace() {
                 <li key={doc.title}>
                   <a
                     href={doc.href}
-                    className="group flex items-start justify-between gap-3 rounded-lg border border-white/5 bg-black/30 px-3 py-2.5 transition hover:border-blue-500/30"
+                    className="group flex items-start justify-between gap-3 rounded-lg border border-white/5 bg-black/30 px-3 py-2.5 transition hover:border-emerald-500/30"
                   >
                     <div>
-                      <p className="text-xs font-medium text-white group-hover:text-blue-400">
+                      <p className="text-xs font-medium text-white group-hover:text-emerald-400">
                         {doc.title}
                       </p>
                       <p className="mt-0.5 text-[11px] text-slate-dim">
@@ -563,7 +563,7 @@ export default function Marketplace() {
                       </p>
                     </div>
                     <ExternalLink
-                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-dim group-hover:text-blue-400"
+                      className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-dim group-hover:text-emerald-400"
                       aria-hidden
                     />
                   </a>
@@ -573,7 +573,7 @@ export default function Marketplace() {
           </div>
 
           <div className="space-y-3 p-4 sm:p-5">
-            <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
+            <p className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
               <Webhook className="h-3.5 w-3.5" aria-hidden />
               Mock webhook endpoints
             </p>
@@ -592,18 +592,18 @@ export default function Marketplace() {
                       <button
                         type="button"
                         onClick={() => void copyPath(hook.path)}
-                        className="inline-flex items-center gap-1 rounded border border-white/5 px-2 py-1 text-[10px] text-slate-muted transition hover:border-blue-500/30 hover:text-blue-400"
+                        className="inline-flex items-center gap-1 rounded border border-white/5 px-2 py-1 text-[10px] text-slate-muted transition hover:border-emerald-500/30 hover:text-emerald-400"
                         aria-label={`Copy ${hook.label} endpoint`}
                       >
                         {copied ? (
-                          <Check className="h-3 w-3 text-blue-400" aria-hidden />
+                          <Check className="h-3 w-3 text-emerald-400" aria-hidden />
                         ) : (
                           <Copy className="h-3 w-3" aria-hidden />
                         )}
                         {copied ? "Copied" : "Copy"}
                       </button>
                     </div>
-                    <p className="mt-1.5 break-all font-mono text-[11px] text-blue-400/90">
+                    <p className="mt-1.5 break-all font-mono text-[11px] text-emerald-400/90">
                       <span className="mr-2 text-slate-dim">{hook.method}</span>
                       {hook.path}
                     </p>

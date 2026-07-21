@@ -44,8 +44,8 @@ const METRICS: Metric[] = [
     value: "1.8s",
     sublabel: "P95: 2.4s across all nodes",
     icon: Activity,
-    accent: "text-blue-400",
-    glow: "from-blue-500/10 to-transparent",
+    accent: "text-emerald-400",
+    glow: "from-emerald-500/10 to-transparent",
   },
   {
     id: "savings",

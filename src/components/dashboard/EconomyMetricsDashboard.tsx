@@ -27,21 +27,21 @@ const GAS_LANES: GasLane[] = [
     id: "supervisor",
     label: "Supervisor Agent",
     tokens: 412_800,
-    color: "bg-blue-400",
+    color: "bg-emerald-400",
     variant: "supervisor",
   },
   {
     id: "writer",
     label: "Writer Agent",
     tokens: 286_400,
-    color: "bg-blue-400/70",
+    color: "bg-emerald-400/70",
     variant: "writer",
   },
   {
     id: "validator",
     label: "Validator Agent",
     tokens: 154_200,
-    color: "bg-blue-400/40",
+    color: "bg-emerald-400/40",
     variant: "validator",
   },
 ];
@@ -81,13 +81,13 @@ function MetricCard({ icon: Icon, title, value, unit, children }: MetricCardProp
           <p className="mt-1 font-display text-2xl font-bold tracking-tight text-white">
             {value}
             {unit ? (
-              <span className="ml-1.5 font-mono text-xs font-medium text-blue-400">
+              <span className="ml-1.5 font-mono text-xs font-medium text-emerald-400">
                 {unit}
               </span>
             ) : null}
           </p>
         </div>
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-blue-500/20 bg-blue-500/10 text-blue-400">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
           <Hover3DIcon intensity={12}>
             <Icon className="h-4 w-4" aria-hidden />
           </Hover3DIcon>
@@ -110,7 +110,7 @@ export default function EconomyMetricsDashboard() {
             size={44}
             active
             label="Billing vault node"
-            className="rounded-lg border border-blue-500/20 bg-white/[0.03]"
+            className="rounded-lg border border-emerald-500/20 bg-white/[0.03]"
           />
           <div>
             <h2
@@ -124,7 +124,7 @@ export default function EconomyMetricsDashboard() {
             </p>
           </div>
         </div>
-        <span className="hidden font-mono text-[10px] text-blue-400/80 sm:inline">
+        <span className="hidden font-mono text-[10px] text-emerald-400/80 sm:inline">
           live metering
         </span>
       </div>
@@ -151,7 +151,7 @@ export default function EconomyMetricsDashboard() {
                       />
                       <span className="truncate">{lane.label}</span>
                     </span>
-                    <span className="shrink-0 font-mono text-blue-400">
+                    <span className="shrink-0 font-mono text-emerald-400">
                       {pct}%
                     </span>
                   </div>
@@ -183,7 +183,7 @@ export default function EconomyMetricsDashboard() {
             {ROYALTY_BARS.map((bar, i) => (
               <div key={bar.week} className="flex flex-1 flex-col items-center gap-1">
                 <motion.div
-                  className="w-full rounded-sm bg-gradient-to-t from-blue-500/80 to-blue-300/90"
+                  className="w-full rounded-sm bg-gradient-to-t from-emerald-500/80 to-emerald-300/90"
                   initial={{ height: 0 }}
                   animate={{ height: `${bar.value}%` }}
                   transition={{ delay: 0.12 + i * 0.05, duration: 0.45 }}
@@ -217,7 +217,7 @@ export default function EconomyMetricsDashboard() {
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
                   <motion.div
-                    className="h-full rounded-full bg-blue-400/80"
+                    className="h-full rounded-full bg-emerald-400/80"
                     initial={{ width: 0 }}
                     animate={{ width: `${meter.share * 100}%` }}
                     transition={{ delay: 0.15 + i * 0.08, duration: 0.5 }}

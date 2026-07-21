@@ -73,10 +73,10 @@ function DiffPane({ patch }: { patch: HealPatchView }) {
         </pre>
       </div>
       <div className="min-w-0 overflow-hidden rounded-lg border border-white/5 bg-black/40">
-        <p className="border-b border-white/5 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-wider text-blue-400/80">
+        <p className="border-b border-white/5 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-wider text-emerald-400/80">
           After · remediation
         </p>
-        <pre className="max-h-36 overflow-auto p-2.5 font-mono text-[10px] leading-relaxed text-blue-300/90 sm:max-h-44">
+        <pre className="max-h-36 overflow-auto p-2.5 font-mono text-[10px] leading-relaxed text-emerald-300/90 sm:max-h-44">
           {lines
             .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
             .join("\n") || patch.unifiedDiff}
@@ -106,7 +106,7 @@ function ToolInvocationFeed({
       <div className="flex items-center gap-2 border-b border-white/5 px-2.5 py-1.5">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
-            streaming ? "animate-pulse bg-amber-400" : "bg-blue-400"
+            streaming ? "animate-pulse bg-amber-400" : "bg-emerald-400"
           }`}
           aria-hidden
         />
@@ -126,7 +126,7 @@ function ToolInvocationFeed({
             <span
               className={
                 log.status === "success"
-                  ? "text-blue-400"
+                  ? "text-emerald-400"
                   : log.status === "error"
                     ? "text-rose-300"
                     : "animate-pulse text-amber-300"
@@ -437,7 +437,7 @@ export default function HealerConsole({
         }
       : {
           label: "NOMINAL",
-          className: "border-blue-500/30 bg-blue-500/10 text-blue-400",
+          className: "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
         };
 
   return (
@@ -514,7 +514,7 @@ export default function HealerConsole({
               type="button"
               onClick={() => void initiateHeal()}
               disabled={busy || unresolved === 0}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1.5 text-[11px] font-semibold text-blue-400 transition hover:bg-blue-500/20 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-40"
             >
               {busy ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -566,7 +566,7 @@ export default function HealerConsole({
           ) : null}
 
           {activePatch || toolLogs.length > 0 || toolsStreaming || orchComplete || orchFailed ? (
-            <div className="min-w-0 space-y-2 overflow-hidden rounded-lg border border-blue-500/20 bg-black/30 p-2.5">
+            <div className="min-w-0 space-y-2 overflow-hidden rounded-lg border border-emerald-500/20 bg-black/30 p-2.5">
               <OrchestratorFeed
                 running={busy || toolsStreaming}
                 complete={orchComplete}
@@ -575,7 +575,7 @@ export default function HealerConsole({
               {activePatch ? (
                 <>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-blue-400">
+                    <p className="text-[11px] font-semibold text-emerald-400">
                       {activePatch.summary}
                     </p>
                     <p className="mt-0.5 truncate font-mono text-[10px] text-slate-dim">
@@ -608,7 +608,7 @@ export default function HealerConsole({
           <ul className="max-h-64 space-y-2 overflow-y-auto">
             {loading && errors.length === 0 ? (
               <li className="flex items-center justify-center gap-2 py-6 text-[11px] text-zinc-500">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-400" />
                 Loading alerts…
               </li>
             ) : errors.length === 0 ? (

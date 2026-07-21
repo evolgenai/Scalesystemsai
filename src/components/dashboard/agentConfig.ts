@@ -46,7 +46,7 @@ export const AGENTS: AgentConfig[] = [
     feedName: "Support Specialist",
     tagline: "Context-aware L1 & L2 autonomous issue resolver",
     icon: Headphones,
-    iconColor: "text-blue-400",
+    iconColor: "text-emerald-400",
     uptime: "99.84%",
     health: "degraded",
     tasksToday: 156,

@@ -39,7 +39,7 @@ type BrandingState = {
 const DEFAULT_BRANDING: BrandingState = {
   domain: "",
   portalTitle: "Tenant Portal",
-  accent: "#3B82F6",
+  accent: "#10B981",
   logoDataUrl: null,
 };
 
@@ -77,7 +77,7 @@ function writeBranding(state: BrandingState): void {
 
 function sslBadgeClasses(status: SslStatus): string {
   if (status === "Active") {
-    return "border-blue-500/40 bg-blue-500/15 text-blue-400";
+    return "border-emerald-500/40 bg-emerald-500/15 text-emerald-400";
   }
   if (status === "DNS Error") {
     return "border-rose-500/40 bg-rose-500/10 text-rose-300";
@@ -205,9 +205,9 @@ export default function DomainManager() {
   );
 
   return (
-    <div className="space-y-6" style={{ backgroundColor: "#09090B" }}>
+    <div className="space-y-6" style={{ backgroundColor: "#040907" }}>
       <header className="space-y-2">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-400/80">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-400/80">
           domains · ?view=domains
         </p>
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -233,7 +233,7 @@ export default function DomainManager() {
         >
           <div className="flex items-center gap-2">
             <Hover3DIcon intensity={12}>
-              <Globe className="h-4 w-4 text-blue-400" aria-hidden />
+              <Globe className="h-4 w-4 text-emerald-400" aria-hidden />
             </Hover3DIcon>
             <h3 className="text-sm font-semibold text-white">
               Domain configuration
@@ -250,13 +250,13 @@ export default function DomainManager() {
                 value={domainDraft}
                 onChange={(e) => setDomainDraft(e.target.value)}
                 placeholder="store.meerendal.co.za"
-                className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 font-mono text-xs text-white placeholder:text-slate-dim/50 transition focus:border-blue-500/40 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 font-mono text-xs text-white placeholder:text-slate-dim/50 transition focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
               />
               <button
                 type="button"
                 onClick={onMapDomain}
                 disabled={!domainDraft.trim()}
-                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3.5 py-2 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20 disabled:opacity-50"
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-50"
               >
                 Map domain
               </button>
@@ -266,7 +266,7 @@ export default function DomainManager() {
           {branding.domain ? (
             <p className="font-mono text-[11px] text-slate-dim">
               Active mapping →{" "}
-              <span className="text-blue-400">{branding.domain}</span>
+              <span className="text-emerald-400">{branding.domain}</span>
             </p>
           ) : null}
 
@@ -275,7 +275,7 @@ export default function DomainManager() {
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-dim">
                 DNS verification checklist
               </span>
-              <span className="font-mono text-[10px] text-blue-400/80">
+              <span className="font-mono text-[10px] text-emerald-400/80">
                 {verifiedCount}/{checks.length}
               </span>
             </div>
@@ -288,7 +288,7 @@ export default function DomainManager() {
                   <div className="flex items-start gap-2.5">
                     {check.verified ? (
                       <Check
-                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-400"
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400"
                         aria-hidden
                       />
                     ) : (
@@ -309,7 +309,7 @@ export default function DomainManager() {
                   <span
                     className={`inline-flex w-fit rounded border px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider ${
                       check.verified
-                        ? "border-blue-500/30 bg-blue-500/10 text-blue-400"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
                         : "border-white/10 bg-white/[0.03] text-slate-dim"
                     }`}
                   >
@@ -325,7 +325,7 @@ export default function DomainManager() {
               type="button"
               onClick={onVerifyDns}
               disabled={!branding.domain || verifying}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3.5 py-2 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-50"
             >
               {verifying ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -353,7 +353,7 @@ export default function DomainManager() {
         >
           <div className="flex items-center gap-2">
             <Hover3DIcon intensity={12}>
-              <Palette className="h-4 w-4 text-blue-400" aria-hidden />
+              <Palette className="h-4 w-4 text-emerald-400" aria-hidden />
             </Hover3DIcon>
             <h3 className="text-sm font-semibold text-white">
               Tenant branding
@@ -371,7 +371,7 @@ export default function DomainManager() {
               onChange={(e) =>
                 persist({ ...branding, portalTitle: e.target.value })
               }
-              className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-slate-dim/50 transition focus:border-blue-500/40 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+              className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-slate-dim/50 transition focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
               placeholder="Meerendal Guest Portal"
             />
           </label>
@@ -396,7 +396,7 @@ export default function DomainManager() {
                 onChange={(e) =>
                   persist({ ...branding, accent: e.target.value })
                 }
-                className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 font-mono text-xs text-white focus:border-blue-500/40 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 font-mono text-xs text-white focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
               />
             </div>
           </label>
@@ -415,7 +415,7 @@ export default function DomainManager() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex w-full items-center gap-3 rounded-lg border border-dashed border-white/10 bg-black/30 px-3 py-4 text-left transition hover:border-blue-500/35"
+              className="flex w-full items-center gap-3 rounded-lg border border-dashed border-white/10 bg-black/30 px-3 py-4 text-left transition hover:border-emerald-500/35"
             >
               {branding.logoDataUrl ? (
                 <img
@@ -424,7 +424,7 @@ export default function DomainManager() {
                   className="h-12 w-12 rounded-lg object-cover ring-1 ring-white/10"
                 />
               ) : (
-                <span className="flex h-12 w-12 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-blue-400">
+                <span className="flex h-12 w-12 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-emerald-400">
                   <ImagePlus className="h-5 w-5" aria-hidden />
                 </span>
               )}

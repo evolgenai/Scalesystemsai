@@ -25,7 +25,7 @@ type IsometricFlowMapProps = {
   stressedNodeIds?: FlowNodeId[];
 };
 
-const SAPPHIRE = "#3B82F6";
+const SAPPHIRE = "#10B981";
 const AMBER = "#f59e0b";
 const ROSE = "#f43f5e";
 const CYAN_GLITCH = "#22d3ee";
@@ -240,7 +240,7 @@ function FlowNode({
           </p>
           <p
             className={`font-mono text-[8px] ${
-              stressed ? "text-cyan-300 animate-pulse" : "text-blue-400/80"
+              stressed ? "text-cyan-300 animate-pulse" : "text-emerald-400/80"
             }`}
           >
             {stressed ? "GLITCH" : sub}
@@ -463,7 +463,7 @@ function FlowScene({
             distanceFactor={7.5}
             style={{ pointerEvents: "none", userSelect: "none" }}
           >
-            <p className="whitespace-nowrap font-mono text-[8px] font-semibold uppercase tracking-wider text-blue-400/90">
+            <p className="whitespace-nowrap font-mono text-[8px] font-semibold uppercase tracking-wider text-emerald-400/90">
               {bot.label}
             </p>
           </Html>
@@ -520,7 +520,7 @@ function FlatFlowFallback({
       ? "text-rose-400 border-rose-400/40"
       : health === "healing"
         ? "text-amber-300 border-amber-400/40"
-        : "text-blue-400 border-blue-500/30";
+        : "text-emerald-400 border-emerald-500/30";
   return (
     <div className="grid gap-2 sm:grid-cols-4">
       {NODES.map((n, i) => {
@@ -625,7 +625,7 @@ export default function IsometricFlowMap({
                 ? "text-rose-400"
                 : health === "healing"
                   ? "text-amber-300"
-                  : "text-blue-400"
+                  : "text-emerald-400"
           }`}
         >
           {glitching ? "GLITCH" : health.toUpperCase()}
@@ -648,7 +648,7 @@ export default function IsometricFlowMap({
             />
           ) : null}
           <div
-            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(59, 130, 246,0.07),transparent_55%)]"
+            className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(16, 185, 129,0.07),transparent_55%)]"
             aria-hidden
           />
           <Canvas

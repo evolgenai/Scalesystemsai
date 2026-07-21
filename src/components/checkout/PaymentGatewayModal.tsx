@@ -220,7 +220,7 @@ function PayPalButtonsHost({
     <div className="space-y-2">
       {(status === "loading" || status === "error") && (
         <p className="flex items-center gap-2 text-xs text-slate-dim">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-400" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-400" />
           {status === "error"
             ? "PayPal SDK failed — retry or use mock."
             : "Loading PayPal SDK…"}
@@ -333,7 +333,7 @@ export default function PaymentGatewayModal({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 12, scale: 0.98 }}
       transition={{ duration: 0.22 }}
-      className={`relative z-10 w-full overflow-hidden rounded-2xl border border-blue-500/25 bg-[#0A0F1D]/95 shadow-[0_0_48px_rgba(0,102,255,0.18)] backdrop-blur-xl ${
+      className={`relative z-10 w-full overflow-hidden rounded-2xl border border-emerald-500/25 bg-[#040907]/95 shadow-[0_0_48px_rgba(16, 185, 129,0.18)] backdrop-blur-xl ${
         embedded ? "max-w-3xl" : "max-w-xl"
       }`}
     >
@@ -349,7 +349,7 @@ export default function PaymentGatewayModal({
 
       <header className="flex items-start justify-between border-b border-white/5 px-5 py-4">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-400/80">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-400/80">
             Multi-gateway checkout
           </p>
           <h2
@@ -359,7 +359,7 @@ export default function PaymentGatewayModal({
             Top up swarm gas
           </h2>
           <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-dim">
-            <ShieldCheck className="h-3.5 w-3.5 text-blue-400" aria-hidden />
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" aria-hidden />
             Stripe · PayPal · Bitcoin Lightning
           </p>
         </div>
@@ -384,14 +384,14 @@ export default function PaymentGatewayModal({
               onClick={() => setPlan(option)}
               className={`rounded-xl border px-2.5 py-2.5 text-left transition ${
                 plan === option
-                  ? "border-blue-500/50 bg-blue-600/15"
+                  ? "border-emerald-500/50 bg-emerald-600/15"
                   : "border-white/10 bg-white/[0.03] hover:border-white/20"
               }`}
             >
               <p className="font-display text-[11px] font-semibold text-white">
                 {option}
               </p>
-              <p className="font-mono text-[10px] text-blue-300">
+              <p className="font-mono text-[10px] text-emerald-300">
                 ${resolvePrice(option)}/mo
               </p>
             </button>
@@ -412,7 +412,7 @@ export default function PaymentGatewayModal({
               onClick={() => setTab(t.id)}
               className={`flex-1 rounded-lg px-2 py-2 text-[11px] font-semibold transition ${
                 tab === t.id
-                  ? "bg-blue-600 text-white shadow-[0_0_20px_rgba(0,102,255,0.35)]"
+                  ? "bg-emerald-600 text-white shadow-[0_0_20px_rgba(16, 185, 129,0.35)]"
                   : "text-slate-muted hover:bg-white/5 hover:text-white"
               }`}
             >
@@ -428,7 +428,7 @@ export default function PaymentGatewayModal({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.18 }}
-            className="min-h-[200px] rounded-xl border border-white/10 bg-[#060810]/80 p-4"
+            className="min-h-[200px] rounded-xl border border-white/10 bg-[#040907]/80 p-4"
             role="tabpanel"
           >
             {tab === "card" ? (
@@ -441,7 +441,7 @@ export default function PaymentGatewayModal({
                   type="button"
                   disabled={pending}
                   onClick={() => void launchStripe()}
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_28px_rgba(0,102,255,0.35)] transition hover:bg-blue-500 disabled:opacity-50"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_0_28px_rgba(16, 185, 129,0.35)] transition hover:bg-emerald-500 disabled:opacity-50"
                 >
                   <CreditCard className="h-4 w-4" aria-hidden />
                   {pending ? "Opening Stripe…" : "Continue with Stripe / Google Pay"}
@@ -478,7 +478,7 @@ export default function PaymentGatewayModal({
               <div className="space-y-3">
                 <p className="text-xs leading-relaxed text-slate-muted">
                   Bitcoin Lightning · zero-confirmation gas top-up ·{" "}
-                  <span className="font-mono text-blue-300">
+                  <span className="font-mono text-emerald-300">
                     {sats.toLocaleString()} sats
                   </span>
                 </p>
@@ -489,11 +489,11 @@ export default function PaymentGatewayModal({
                     alt="Lightning Bolt11 QR code"
                     width={160}
                     height={160}
-                    className="rounded-xl border border-blue-500/30 bg-white p-2 shadow-[0_0_24px_rgba(0,102,255,0.2)]"
+                    className="rounded-xl border border-emerald-500/30 bg-white p-2 shadow-[0_0_24px_rgba(16, 185, 129,0.2)]"
                   />
                   <div className="min-w-0 flex-1 space-y-2">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-400/80">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">
                         Bolt11
                       </p>
                       <p className="mt-1 break-all font-mono text-[10px] leading-relaxed text-slate-300">
@@ -501,7 +501,7 @@ export default function PaymentGatewayModal({
                       </p>
                     </div>
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-400/80">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">
                         LNURL
                       </p>
                       <p className="mt-1 break-all font-mono text-[10px] text-slate-400">
@@ -512,7 +512,7 @@ export default function PaymentGatewayModal({
                       <button
                         type="button"
                         onClick={() => void copyBolt()}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-500/35 bg-blue-600/15 px-3 py-1.5 text-[11px] font-semibold text-blue-300 transition hover:bg-blue-600/25"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/35 bg-emerald-600/15 px-3 py-1.5 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-600/25"
                       >
                         {copied ? (
                           <Check className="h-3 w-3" aria-hidden />
@@ -556,7 +556,7 @@ export default function PaymentGatewayModal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-[#060810]/90 p-4 backdrop-blur-md sm:items-center">
+    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-[#040907]/90 p-4 backdrop-blur-md sm:items-center">
       <button
         type="button"
         className="absolute inset-0 cursor-default"

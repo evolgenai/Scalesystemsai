@@ -124,7 +124,7 @@ export default function TokenVault() {
             size={44}
             active={verifiedCount > 0}
             label="Cryptographic vault node"
-            className="rounded-lg border border-blue-500/20 bg-white/[0.03]"
+            className="rounded-lg border border-emerald-500/20 bg-white/[0.03]"
           />
           <div>
             <h2
@@ -138,7 +138,7 @@ export default function TokenVault() {
             </p>
           </div>
         </div>
-        <span className="inline-flex w-fit items-center gap-1.5 rounded border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-blue-400">
+        <span className="inline-flex w-fit items-center gap-1.5 rounded border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
           <ShieldCheck className="h-3 w-3" aria-hidden />
           AES-256 Encrypted
         </span>
@@ -153,7 +153,7 @@ export default function TokenVault() {
             <li key={field.id} className="px-3.5 py-3.5 sm:px-4">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <Icon className="h-3.5 w-3.5 shrink-0 text-blue-400" aria-hidden />
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-emerald-400" aria-hidden />
                   <div className="min-w-0">
                     <label
                       htmlFor={`vault-${field.id}`}
@@ -178,7 +178,7 @@ export default function TokenVault() {
                   placeholder={field.placeholder}
                   autoComplete="off"
                   spellCheck={false}
-                  className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 pr-10 font-mono text-xs text-white placeholder:text-slate-dim/50 transition focus:border-blue-500/40 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                  className="w-full rounded-lg border border-white/5 bg-black/40 px-3 py-2.5 pr-10 font-mono text-xs text-white placeholder:text-slate-dim/50 transition focus:border-emerald-500/40 focus:outline-none focus:ring-1 focus:ring-emerald-500/20"
                 />
                 <button
                   type="button"
@@ -188,7 +188,7 @@ export default function TokenVault() {
                       [field.id]: !prev[field.id],
                     }))
                   }
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-dim transition hover:text-blue-400"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-dim transition hover:text-emerald-400"
                   aria-label={isVisible ? "Hide key" : "Show key"}
                 >
                   {isVisible ? (
@@ -211,7 +211,7 @@ export default function TokenVault() {
           type="button"
           onClick={() => void handleSave()}
           disabled={saveState === "saving"}
-          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-blue-500/40 bg-blue-500/10 px-3.5 py-2 text-xs font-semibold text-blue-400 transition hover:bg-blue-500/20 disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-500/20 disabled:opacity-60"
         >
           {saveState === "saving" ? (
             <>
@@ -238,7 +238,7 @@ export default function TokenVault() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="border-t border-blue-500/20 bg-blue-500/5 px-4 py-2 text-[11px] text-blue-400"
+            className="border-t border-emerald-500/20 bg-emerald-500/5 px-4 py-2 text-[11px] text-emerald-400"
           >
             Verified keys active for next swarm heartbeat.
           </motion.p>
@@ -258,10 +258,10 @@ function StatusPill({
   if (status === "verified") {
     return (
       <span
-        className="inline-flex shrink-0 items-center gap-1 rounded-full border border-blue-500/40 bg-blue-500/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-blue-400"
+        className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-400"
         title={preview}
       >
-        <span className="h-1.5 w-1.5 rounded-full bg-blue-400" aria-hidden />
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" aria-hidden />
         Verified
       </span>
     );

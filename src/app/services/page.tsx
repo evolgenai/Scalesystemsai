@@ -94,7 +94,7 @@ export default function ServicesPage() {
   const [activeAgent, setActiveAgent] = useState(AI_EMPLOYEES[0]);
 
   return (
-    <main className="bg-[#09090b] min-h-screen text-white">
+    <main className="bg-[#040907] min-h-screen text-white">
       {/* Background Neon Aura */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden>
         <div className="absolute right-1/4 top-1/4 h-[600px] w-[800px] rounded-full bg-cyan-accent/5 blur-[150px]" />
@@ -191,7 +191,7 @@ export default function ServicesPage() {
                       </div>
                     </div>
                     <div className="bg-black/30 border border-white/5 p-3.5 rounded-lg flex gap-3 items-center">
-                      <Database className="h-4 w-4 text-blue-400 shrink-0" />
+                      <Database className="h-4 w-4 text-emerald-400 shrink-0" />
                       <div>
                         <p className="text-[10px] uppercase font-bold tracking-wider text-slate-dim">Memory Configuration</p>
                         <p className="text-xs font-medium text-white">{activeAgent.specs.memory}</p>
@@ -227,7 +227,7 @@ export default function ServicesPage() {
                   <div className="flex gap-6 items-center">
                     <div>
                       <div className="text-xs text-slate-dim font-medium uppercase tracking-wider flex items-center gap-1">
-                        <TrendingUp className="h-3 w-3 text-blue-400" /> Operational Efficiency
+                        <TrendingUp className="h-3 w-3 text-emerald-400" /> Operational Efficiency
                       </div>
                       <div className="text-lg font-bold text-white">{activeAgent.impact.efficiency}</div>
                     </div>

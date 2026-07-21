@@ -15,8 +15,8 @@ const MAX_TX_RETRIES = 3 as const;
 const TX_TIMEOUT_MS = 15_000;
 const TX_MAX_WAIT_MS = 5_000;
 
-/** Default 10% of referred purchase Gas (basis points). */
-const DEFAULT_REWARD_BPS = 1_000;
+/** Default 15% recurring Gas reward on referred purchases (basis points). */
+const DEFAULT_REWARD_BPS = 1_500;
 /** Soft cap so oversized packs cannot mint unbounded referral Gas. */
 const DEFAULT_REWARD_CAP = 250_000;
 

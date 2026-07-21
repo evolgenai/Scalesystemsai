@@ -21,8 +21,8 @@ const STATUS_STYLES: Record<
   },
   EXECUTING: {
     badge:
-      "border-blue-500/40 bg-blue-500/10 text-blue-400 shadow-[0_0_14px_rgba(0, 102, 255,0.35)]",
-    dot: "bg-blue-400 shadow-[0_0_8px_rgba(0, 102, 255,0.9)]",
+      "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 shadow-[0_0_14px_rgba(16, 185, 129,0.35)]",
+    dot: "bg-emerald-400 shadow-[0_0_8px_rgba(16, 185, 129,0.9)]",
   },
   REFLECTING: {
     badge: "border-purple-500/30 bg-purple-500/10 text-purple-400",

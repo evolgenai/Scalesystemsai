@@ -29,9 +29,9 @@ export default function SocialShareCardGenerator({
     if (!ctx) return;
 
     const g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, "#05110d");
+    g.addColorStop(0, "#040907");
     g.addColorStop(0.45, "#0a1f18");
-    g.addColorStop(1, "#05110d");
+    g.addColorStop(1, "#040907");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
@@ -118,7 +118,7 @@ export default function SocialShareCardGenerator({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="overflow-hidden rounded-xl border border-[#059669]/25 bg-[#05110d]">
+        <div className="overflow-hidden rounded-xl border border-[#059669]/25 bg-[#040907]">
           <canvas
             ref={canvasRef}
             width={W}

@@ -54,12 +54,12 @@ export const PERSONA_ACCENT_CLASSES: Record<
     ring: "ring-amber-400/40",
   },
   sapphire: {
-    border: "border-blue-400/25 hover:border-blue-400/50",
-    borderActive: "border-blue-400/60",
-    glow: "hover:shadow-[0_0_28px_rgba(59,130,246,0.18)]",
-    iconWrap: "bg-blue-400/10 border-blue-400/30",
-    icon: "text-blue-300",
-    ring: "ring-blue-400/40",
+    border: "border-emerald-400/25 hover:border-emerald-400/50",
+    borderActive: "border-emerald-400/60",
+    glow: "hover:shadow-[0_0_28px_rgba(16, 185, 129,0.18)]",
+    iconWrap: "bg-emerald-400/10 border-emerald-400/30",
+    icon: "text-emerald-300",
+    ring: "ring-emerald-400/40",
   },
 };
 

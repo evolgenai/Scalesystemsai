@@ -165,7 +165,7 @@ class WebGLBoundary extends Component<
 function FlatFallback({ className }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-lg border border-blue-500/30 bg-blue-500/10 ${className ?? "h-10 w-10"}`}
+      className={`inline-flex items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 ${className ?? "h-10 w-10"}`}
       aria-hidden
       style={{ boxShadow: `0 0 14px ${SAPPHIRE}55` }}
     >
