@@ -563,6 +563,7 @@ model Workspace {
   inboundWebhooks    InboundWebhook[]
   skillInstalls      AgentSkillInstall[]
   gasPayments        GasPayment[]
+  persistentSandboxes PersistentSandbox[]
   referralCode       ReferralCode?
   referralsMade      ReferralAttribution[] @relation("ReferrerWorkspace")
   referredBy         ReferralAttribution?  @relation("ReferredWorkspace")
@@ -807,6 +808,40 @@ model SandboxRuntimeMetric {
   @@index([developerAccountId, runtimeId])
   @@index([workspaceId, createdAt(sort: Desc)])
   @@index([status, createdAt(sort: Desc)])
+}
+
+/**
+ * Lifecycle for long-running E2B developer microVMs (persistent sandboxes).
+ */
+enum PersistentSandboxStatus {
+  ACTIVE
+  TERMINATED
+}
+
+/**
+ * Stateful E2B sandbox session bound to a workspace.
+ * `sandboxId` is the E2B provider id used with Sandbox.connect / kill.
+ */
+model PersistentSandbox {
+  id           String                  @id @default(cuid())
+  /** E2B cloud sandbox identifier. */
+  sandboxId    String                  @unique
+  workspaceId  String
+  workspace    Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  status       PersistentSandboxStatus @default(ACTIVE)
+  /** Working directory for sequential exec commands. */
+  cwd          String                  @default("/home/user/workspace")
+  /** Soft lifetime requested at create (ms). */
+  timeoutMs    Int                     @default(3600000)
+  label        String?
+  lastActiveAt DateTime                @default(now())
+  terminatedAt DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  @@index([workspaceId, status, lastActiveAt(sort: Desc)])
+  @@index([status, lastActiveAt(sort: Desc)])
+  @@index([workspaceId, createdAt(sort: Desc)])
 }
 
 /**

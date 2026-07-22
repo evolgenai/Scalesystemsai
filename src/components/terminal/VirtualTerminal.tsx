@@ -1,8 +1,7 @@
 "use client";
 
 /**
- * Virtual Terminal — E2B isolated container execution stream
- * (stdout / stderr / exit codes / runtime metrics).
+ * Virtual Terminal — Ephemeral E2B isolate OR Persistent Workspace Sandbox.
  */
 
 import {
@@ -13,27 +12,26 @@ import {
   useState,
   type ChangeEvent,
   type DragEvent,
+  type FormEvent,
+  type KeyboardEvent,
 } from "react";
 import {
   CheckCircle2,
   FileCode2,
   Loader2,
   Play,
+  Power,
   Square,
   Terminal,
   Upload,
+  Zap,
 } from "lucide-react";
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 
-const PROMPT = "root@e2b:~#";
+const PROMPT_EPHEMERAL = "root@e2b:~#";
+const PROMPT_PERSISTENT = "root@persistent:~#";
 
-const BOOT_LINES = [
-  "ScaleSystems virt-tty 2.0 · E2B isolate bridge",
-  "Kernel: e2b-microvm · network denied · namespace isolated",
-  "Drop a script or paste below — Run streams stdout/stderr live.",
-  "",
-];
-
+type SandboxMode = "ephemeral" | "persistent";
 type UploadPhase = "idle" | "reading" | "staging" | "ready" | "error";
 type RunPhase = "idle" | "connecting" | "running" | "done" | "error";
 
@@ -69,10 +67,30 @@ type StreamFrame = {
   message?: string;
 };
 
+type PersistentView = {
+  sandboxId: string;
+  status: string;
+  cwd: string;
+  createdAt: string | number;
+  uptimeMs?: number;
+  processCount?: number;
+};
+
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function formatUptime(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 function isShellLike(file: File): boolean {
@@ -117,16 +135,10 @@ function toRunnableCode(
 ): string {
   const trimmed = content.trim();
   if (language === "python") {
-    if (trimmed.startsWith("#!")) {
-      return trimmed.replace(/^#!.*\n/, "");
-    }
+    if (trimmed.startsWith("#!")) return trimmed.replace(/^#!.*\n/, "");
     return trimmed;
   }
-  // Shell/JS paste — wrap echo-style shell as JS console for sandbox
-  if (
-    trimmed.startsWith("#!") ||
-    /^\s*(echo|set|export)\b/m.test(trimmed)
-  ) {
+  if (trimmed.startsWith("#!") || /^\s*(echo|set|export)\b/m.test(trimmed)) {
     const echoes = trimmed
       .split("\n")
       .map((l) => l.trim())
@@ -167,8 +179,30 @@ function uid(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function bootLines(mode: SandboxMode): E2BLogLine[] {
+  const lines =
+    mode === "persistent"
+      ? [
+          "ScaleSystems virt-tty 2.1 · Persistent Workspace Sandbox",
+          "Mode: stateful container · cwd/env/files survive across commands",
+          "Toggle Ephemeral for one-shot E2B isolates. Terminate to reset.",
+          "",
+        ]
+      : [
+          "ScaleSystems virt-tty 2.1 · E2B Ephemeral isolate",
+          "Kernel: e2b-microvm · destroyed after each run",
+          "Drop a script or paste below — Run streams stdout/stderr live.",
+          "",
+        ];
+  return lines.map((text) => ({
+    id: uid("boot"),
+    channel: "system" as const,
+    text,
+    ts: new Date().toISOString(),
+  }));
+}
+
 export type VirtualTerminalProps = {
-  /** External matrix / agent lines appended into the tty log. */
   liveLines?: string[];
   telemetryState?: string;
   className?: string;
@@ -184,23 +218,19 @@ export default function VirtualTerminal({
   const logEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const liveCursor = useRef(0);
+  const cmdInputRef = useRef<HTMLInputElement>(null);
 
-  const [log, setLog] = useState<E2BLogLine[]>(() =>
-    BOOT_LINES.map((text) => ({
-      id: uid("boot"),
-      channel: "system" as const,
-      text,
-      ts: new Date().toISOString(),
-    }))
-  );
+  const [mode, setMode] = useState<SandboxMode>("ephemeral");
+  const [log, setLog] = useState<E2BLogLine[]>(() => bootLines("ephemeral"));
   const [buffer, setBuffer] = useState(
     'console.log("[e2b] hello from isolated container");\nconsole.log("runtime metrics will follow");\n'
   );
+  const [cmdInput, setCmdInput] = useState("");
   const [dragging, setDragging] = useState(false);
   const [phase, setPhase] = useState<UploadPhase>("idle");
   const [runPhase, setRunPhase] = useState<RunPhase>("idle");
   const [staged, setStaged] = useState<StagedScript | null>(null);
-  const [statusLine, setStatusLine] = useState("ready · no payload");
+  const [statusLine, setStatusLine] = useState("ready · ephemeral");
   const [language, setLanguage] = useState<"javascript" | "python">(
     "javascript"
   );
@@ -210,6 +240,16 @@ export default function VirtualTerminal({
     runtimeMs: null,
     language: "javascript",
   });
+
+  const [sandboxId, setSandboxId] = useState<string | null>(null);
+  const [persistentView, setPersistentView] = useState<PersistentView | null>(
+    null
+  );
+  const [uptimeMs, setUptimeMs] = useState(0);
+  const [terminating, setTerminating] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  const prompt = mode === "persistent" ? PROMPT_PERSISTENT : PROMPT_EPHEMERAL;
 
   const appendLines = useCallback((lines: E2BLogLine[]) => {
     setLog((prev) => {
@@ -238,6 +278,156 @@ export default function VirtualTerminal({
     );
   }, [liveLines, appendLines]);
 
+  // Live uptime ticker for persistent sessions
+  useEffect(() => {
+    if (mode !== "persistent" || !persistentView) {
+      setUptimeMs(0);
+      return;
+    }
+    const created =
+      typeof persistentView.createdAt === "number"
+        ? persistentView.createdAt
+        : Date.parse(persistentView.createdAt);
+    const tick = () => {
+      setUptimeMs(Date.now() - (Number.isFinite(created) ? created : Date.now()));
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [mode, persistentView]);
+
+  const resetEphemeralMetrics = useCallback(() => {
+    setMetrics({
+      sessionId: null,
+      exitCode: null,
+      runtimeMs: null,
+      language: "javascript",
+    });
+    setRunPhase("idle");
+  }, []);
+
+  const ensurePersistentSandbox = useCallback(async (): Promise<string | null> => {
+    if (sandboxId) return sandboxId;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/sandbox/persistent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...getClientAuthHeaders(),
+        },
+        body: JSON.stringify({ action: "create" }),
+      });
+      const body = (await res.json()) as {
+        success?: boolean;
+        sandboxId?: string;
+        sandbox?: PersistentView;
+        error?: string;
+      };
+      if (!res.ok || !body.success || !body.sandboxId) {
+        throw new Error(body.error ?? `create failed (${res.status})`);
+      }
+      setSandboxId(body.sandboxId);
+      if (body.sandbox) setPersistentView(body.sandbox);
+      appendLines([
+        {
+          id: uid("sys"),
+          channel: "system",
+          text: `[ok] persistent sandbox ${body.sandboxId} online`,
+          ts: new Date().toISOString(),
+        },
+      ]);
+      setStatusLine(`persistent · ${body.sandboxId}`);
+      return body.sandboxId;
+    } catch (err) {
+      appendLines([
+        {
+          id: uid("err"),
+          channel: "stderr",
+          text:
+            err instanceof Error
+              ? err.message
+              : "Failed to create persistent sandbox.",
+          ts: new Date().toISOString(),
+        },
+      ]);
+      setStatusLine("error · create failed");
+      return null;
+    } finally {
+      setCreating(false);
+    }
+  }, [appendLines, sandboxId]);
+
+  const switchMode = useCallback(
+    (next: SandboxMode) => {
+      if (next === mode) return;
+      setMode(next);
+      setLog(bootLines(next));
+      setCmdInput("");
+      setStatusLine(next === "persistent" ? "ready · persistent" : "ready · ephemeral");
+      resetEphemeralMetrics();
+      if (next === "ephemeral") {
+        // Keep sandboxId until explicit terminate; clear UI indicators only
+        // when leaving persistent without terminate — soft detach
+        setPersistentView(null);
+        setSandboxId(null);
+        setUptimeMs(0);
+      } else {
+        void (async () => {
+          await ensurePersistentSandbox();
+        })();
+      }
+    },
+    [mode, resetEphemeralMetrics, ensurePersistentSandbox]
+  );
+
+  const terminateSandbox = useCallback(async () => {
+    if (!sandboxId) {
+      setPersistentView(null);
+      setSandboxId(null);
+      setUptimeMs(0);
+      setStatusLine("ready · persistent (no session)");
+      return;
+    }
+    setTerminating(true);
+    try {
+      await fetch("/api/sandbox/persistent", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...getClientAuthHeaders(),
+        },
+        body: JSON.stringify({ action: "kill", sandboxId }),
+      });
+      appendLines([
+        {
+          id: uid("sys"),
+          channel: "system",
+          text: `[terminate] sandbox ${sandboxId} destroyed · state cleared`,
+          ts: new Date().toISOString(),
+        },
+      ]);
+    } catch {
+      appendLines([
+        {
+          id: uid("err"),
+          channel: "stderr",
+          text: "[terminate] request failed — local state cleared",
+          ts: new Date().toISOString(),
+        },
+      ]);
+    } finally {
+      setSandboxId(null);
+      setPersistentView(null);
+      setUptimeMs(0);
+      setRunPhase("idle");
+      setStatusLine("terminated · ready to spawn");
+      setTerminating(false);
+    }
+  }, [appendLines, sandboxId]);
+
   const stageContent = useCallback(
     async (name: string, content: string) => {
       setPhase("reading");
@@ -246,18 +436,16 @@ export default function VirtualTerminal({
         {
           id: uid("sys"),
           channel: "system",
-          text: `${PROMPT} ingest ${name}`,
+          text: `${prompt} ingest ${name}`,
           ts: new Date().toISOString(),
         },
       ]);
-
-      await new Promise((r) => setTimeout(r, 320));
+      await new Promise((r) => setTimeout(r, 280));
       setPhase("staging");
       const lang = detectLanguage(name, content);
       setLanguage(lang);
-      setStatusLine(`staging · e2b isolate · ${lang}`);
-
-      await new Promise((r) => setTimeout(r, 480));
+      setStatusLine(`staging · ${mode} · ${lang}`);
+      await new Promise((r) => setTimeout(r, 420));
       const next: StagedScript = {
         name,
         bytes: new Blob([content]).size,
@@ -272,12 +460,12 @@ export default function VirtualTerminal({
         {
           id: uid("sys"),
           channel: "system",
-          text: `[ok] staged ${name} for E2B container`,
+          text: `[ok] staged ${name}`,
           ts: new Date().toISOString(),
         },
       ]);
     },
-    [appendLines]
+    [appendLines, mode, prompt]
   );
 
   const ingestFile = useCallback(
@@ -285,25 +473,16 @@ export default function VirtualTerminal({
       if (!isShellLike(file)) {
         setPhase("error");
         setStatusLine("error · unsupported type");
-        appendLines([
-          {
-            id: uid("err"),
-            channel: "stderr",
-            text: `[!] expected .js / .py / .sh — got ${file.name}`,
-            ts: new Date().toISOString(),
-          },
-        ]);
         return;
       }
       try {
-        const text = await file.text();
-        await stageContent(file.name, text);
+        await stageContent(file.name, await file.text());
       } catch {
         setPhase("error");
         setStatusLine("error · read failed");
       }
     },
-    [appendLines, stageContent]
+    [stageContent]
   );
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -326,7 +505,125 @@ export default function VirtualTerminal({
     setStatusLine("aborted · session closed");
   }, []);
 
-  const runE2B = useCallback(async () => {
+  const dispatchPersistent = useCallback(
+    async (opts: {
+      command?: string;
+      code?: string;
+      language?: "javascript" | "python" | "bash";
+    }) => {
+      const id = await ensurePersistentSandbox();
+      if (!id) return;
+
+      setRunPhase("running");
+      setStatusLine(`exec · ${id}`);
+
+      const display =
+        opts.command?.trim() ||
+        (opts.code ? `[${opts.language ?? "code"} payload]` : "");
+      appendLines([
+        {
+          id: uid("sys"),
+          channel: "system",
+          text: `${PROMPT_PERSISTENT} ${display}`,
+          ts: new Date().toISOString(),
+        },
+      ]);
+
+      try {
+        const res = await fetch("/api/sandbox/persistent", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...getClientAuthHeaders(),
+          },
+          body: JSON.stringify({
+            action: "exec",
+            sandboxId: id,
+            command: opts.command,
+            code: opts.code,
+            language: opts.language,
+          }),
+        });
+        const body = (await res.json()) as {
+          success?: boolean;
+          stdout?: string;
+          stderr?: string;
+          exitCode?: number;
+          durationMs?: number;
+          cwd?: string;
+          uptimeMs?: number;
+          sandbox?: PersistentView;
+          error?: string;
+        };
+
+        if (!res.ok || !body.success) {
+          throw new Error(body.error ?? `exec failed (${res.status})`);
+        }
+
+        if (body.sandbox) setPersistentView(body.sandbox);
+
+        const out = (body.stdout ?? "").replace(/\n$/, "");
+        const err = (body.stderr ?? "").replace(/\n$/, "");
+        if (out) {
+          appendLines(
+            out.split("\n").map((text) => ({
+              id: uid("out"),
+              channel: "stdout" as const,
+              text,
+              ts: new Date().toISOString(),
+            }))
+          );
+        }
+        if (err) {
+          appendLines(
+            err.split("\n").map((text) => ({
+              id: uid("err"),
+              channel: "stderr" as const,
+              text,
+              ts: new Date().toISOString(),
+            }))
+          );
+        }
+
+        setMetrics({
+          sessionId: id,
+          exitCode: body.exitCode ?? 0,
+          runtimeMs: body.durationMs ?? null,
+          language: (opts.language === "python" ? "python" : "javascript"),
+        });
+        appendLines([
+          {
+            id: uid("met"),
+            channel: "metrics",
+            text: `[exit] code=${body.exitCode ?? "?"} · ${body.durationMs ?? "?"}ms · cwd=${body.cwd ?? "?"}`,
+            ts: new Date().toISOString(),
+          },
+        ]);
+        setRunPhase("done");
+        setStatusLine(
+          `persistent · exit ${body.exitCode ?? "?"} · ${formatUptime(body.uptimeMs ?? uptimeMs)}`
+        );
+      } catch (err) {
+        setRunPhase("error");
+        setStatusLine("error · persistent exec failed");
+        appendLines([
+          {
+            id: uid("err"),
+            channel: "stderr",
+            text:
+              err instanceof Error
+                ? err.message
+                : "Persistent exec failed.",
+            ts: new Date().toISOString(),
+          },
+        ]);
+      }
+    },
+    [appendLines, ensurePersistentSandbox, uptimeMs]
+  );
+
+  const runEphemeralE2B = useCallback(async () => {
     const payload = staged?.content ?? buffer;
     if (!payload.trim()) return;
 
@@ -349,7 +646,7 @@ export default function VirtualTerminal({
       {
         id: uid("sys"),
         channel: "system",
-        text: `${PROMPT} e2b exec --lang=${lang}`,
+        text: `${PROMPT_EPHEMERAL} e2b exec --lang=${lang}`,
         ts: new Date().toISOString(),
       },
     ]);
@@ -370,12 +667,10 @@ export default function VirtualTerminal({
         signal: ac.signal,
       });
 
-      if (!res.ok || !res.body) {
-        throw new Error(`E2B stream HTTP ${res.status}`);
-      }
+      if (!res.ok || !res.body) throw new Error(`E2B stream HTTP ${res.status}`);
 
       setRunPhase("running");
-      setStatusLine("running · isolate live");
+      setStatusLine("running · ephemeral isolate");
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -392,17 +687,18 @@ export default function VirtualTerminal({
           if (frame.sessionId) {
             setMetrics((m) => ({ ...m, sessionId: frame.sessionId! }));
           }
-
           switch (frame.type) {
             case "session_start":
-              appendLines([
-                {
-                  id: uid("sys"),
-                  channel: "system",
-                  text: frame.message ?? "session start",
-                  ts: frame.ts ?? new Date().toISOString(),
-                },
-              ]);
+              if (frame.message) {
+                appendLines([
+                  {
+                    id: uid("sys"),
+                    channel: "system",
+                    text: frame.message,
+                    ts: frame.ts ?? new Date().toISOString(),
+                  },
+                ]);
+              }
               break;
             case "stdout":
               if (frame.line != null) {
@@ -434,16 +730,6 @@ export default function VirtualTerminal({
                 runtimeMs: frame.runtimeMs ?? m.runtimeMs,
                 language: frame.language ?? m.language,
               }));
-              appendLines([
-                {
-                  id: uid("met"),
-                  channel: "metrics",
-                  text:
-                    frame.message ??
-                    `runtime ${frame.runtimeMs ?? "?"}ms`,
-                  ts: frame.ts ?? new Date().toISOString(),
-                },
-              ]);
               break;
             case "exit":
               setMetrics((m) => ({
@@ -455,7 +741,7 @@ export default function VirtualTerminal({
                 {
                   id: uid("exit"),
                   channel: "system",
-                  text: `[exit] code=${frame.exitCode ?? "?"} · ${frame.runtimeMs ?? "?"}ms · ${frame.message ?? ""}`,
+                  text: `[exit] code=${frame.exitCode ?? "?"} · ${frame.runtimeMs ?? "?"}ms`,
                   ts: frame.ts ?? new Date().toISOString(),
                 },
               ]);
@@ -474,7 +760,6 @@ export default function VirtualTerminal({
                 },
               ]);
               setRunPhase("error");
-              setStatusLine("error · isolate failed");
               break;
             default:
               break;
@@ -505,7 +790,38 @@ export default function VirtualTerminal({
     }
   }, [appendLines, buffer, staged]);
 
-  const busy = phase === "reading" || phase === "staging";
+  const runPayload = useCallback(() => {
+    if (mode === "persistent") {
+      const payload = staged?.content ?? buffer;
+      const lang = detectLanguage(staged?.name ?? "inline.js", payload);
+      void dispatchPersistent({
+        code: toRunnableCode(payload, lang),
+        language: lang,
+      });
+      return;
+    }
+    void runEphemeralE2B();
+  }, [mode, staged, buffer, dispatchPersistent, runEphemeralE2B]);
+
+  const submitCommand = useCallback(
+    (e?: FormEvent) => {
+      e?.preventDefault();
+      const cmd = cmdInput.trim();
+      if (!cmd || mode !== "persistent") return;
+      setCmdInput("");
+      void dispatchPersistent({ command: cmd, language: "bash" });
+    },
+    [cmdInput, mode, dispatchPersistent]
+  );
+
+  const onCmdKey = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitCommand();
+    }
+  };
+
+  const busy = phase === "reading" || phase === "staging" || creating;
   const running = runPhase === "connecting" || runPhase === "running";
 
   const channelClass = (channel: E2BLogLine["channel"]) => {
@@ -527,7 +843,7 @@ export default function VirtualTerminal({
         className ??
         "glass-panel flex min-h-[420px] flex-col overflow-hidden"
       }
-      aria-label="Virtual Linux terminal · E2B"
+      aria-label="Virtual Linux terminal"
     >
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 px-3.5 py-2.5 sm:px-4">
         <div className="flex items-center gap-2.5">
@@ -539,44 +855,143 @@ export default function VirtualTerminal({
               Virtual Terminal
             </h2>
             <p className="font-mono text-[10px] text-slate-dim">
-              E2B isolate · stdout/stderr stream
+              {mode === "persistent"
+                ? "Persistent Workspace Sandbox"
+                : "Ephemeral E2B isolate"}
               {telemetryState ? ` · ${telemetryState}` : ""}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 font-mono text-[10px]">
-          <span className="rounded border border-white/10 bg-black/30 px-2 py-1 text-slate-muted">
-            {language}
-          </span>
-          {metrics.sessionId ? (
-            <span className="max-w-[9rem] truncate rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-emerald-300">
-              {metrics.sessionId}
-            </span>
-          ) : null}
-          {metrics.exitCode != null ? (
+
+        <div
+          className="inline-flex rounded-xl border border-white/10 bg-black/40 p-0.5"
+          role="group"
+          aria-label="Sandbox mode"
+        >
+          <button
+            type="button"
+            onClick={() => switchMode("ephemeral")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition ${
+              mode === "ephemeral"
+                ? "bg-amber-400/15 text-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.15)]"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
             <span
-              className={`rounded border px-2 py-1 ${
-                metrics.exitCode === 0
-                  ? "border-emerald-500/30 text-emerald-300"
-                  : "border-rose-500/30 text-rose-300"
+              className={`h-2 w-2 rounded-full ${
+                mode === "ephemeral"
+                  ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+                  : "bg-slate-600"
               }`}
-            >
-              exit {metrics.exitCode}
-            </span>
-          ) : null}
-          {metrics.runtimeMs != null ? (
-            <span className="rounded border border-amber-400/25 bg-amber-400/10 px-2 py-1 text-amber-200">
-              {metrics.runtimeMs}ms
-            </span>
-          ) : null}
-          <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
+              aria-hidden
+            />
+            <Zap className="h-3 w-3" aria-hidden />
+            Ephemeral
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode("persistent")}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition ${
+              mode === "persistent"
+                ? "bg-emerald-500/15 text-emerald-300 shadow-[0_0_16px_rgba(16,185,129,0.2)]"
+                : "text-slate-muted hover:text-white"
+            }`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                mode === "persistent" && sandboxId
+                  ? "animate-pulse bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)]"
+                  : mode === "persistent"
+                    ? "bg-emerald-700"
+                    : "bg-slate-600"
+              }`}
+              aria-hidden
+            />
+            Persistent Session
+          </button>
         </div>
       </header>
 
+      {mode === "persistent" ? (
+        <div className="mx-3 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2 sm:mx-4">
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${
+              sandboxId
+                ? "animate-pulse bg-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.85)]"
+                : "bg-slate-600"
+            }`}
+            title={sandboxId ? "Session live" : "No session"}
+            aria-label={sandboxId ? "Session live" : "No session"}
+          />
+          <span className="font-mono text-[10px] text-slate-dim">Sandbox ID</span>
+          <span className="max-w-[12rem] truncate font-mono text-[11px] font-semibold text-emerald-300 sm:max-w-xs">
+            {sandboxId ?? "— spawning —"}
+          </span>
+          <span className="font-mono text-[10px] text-slate-dim">uptime</span>
+          <span className="rounded border border-white/10 bg-black/30 px-2 py-0.5 font-mono text-[11px] text-emerald-200 tabular-nums">
+            {sandboxId ? formatUptime(uptimeMs) : "00:00"}
+          </span>
+          {persistentView ? (
+            <span className="font-mono text-[10px] text-slate-dim">
+              cwd {persistentView.cwd} · procs {persistentView.processCount}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void terminateSandbox()}
+            disabled={terminating || (!sandboxId && !persistentView)}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-rose-500/35 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {terminating ? (
+              <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+            ) : (
+              <Power className="h-3 w-3" aria-hidden />
+            )}
+            Terminate Sandbox
+          </button>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-2 px-3.5 pt-2 font-mono text-[10px] sm:px-4">
+        <span className="rounded border border-white/10 bg-black/30 px-2 py-1 text-slate-muted">
+          {language}
+        </span>
+        {metrics.sessionId && mode === "ephemeral" ? (
+          <span className="max-w-[9rem] truncate rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-emerald-300">
+            {metrics.sessionId}
+          </span>
+        ) : null}
+        {metrics.exitCode != null ? (
+          <span
+            className={`rounded border px-2 py-1 ${
+              metrics.exitCode === 0
+                ? "border-emerald-500/30 text-emerald-300"
+                : "border-rose-500/30 text-rose-300"
+            }`}
+          >
+            exit {metrics.exitCode}
+          </span>
+        ) : null}
+        {metrics.runtimeMs != null ? (
+          <span className="rounded border border-amber-400/25 bg-amber-400/10 px-2 py-1 text-amber-200">
+            {metrics.runtimeMs}ms
+          </span>
+        ) : null}
+        <span className="ml-auto flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-500/80" />
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-400/80" />
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${
+              mode === "persistent" && sandboxId
+                ? "bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)]"
+                : "bg-emerald-400/80"
+            }`}
+          />
+        </span>
+      </div>
+
       <div
-        className={`relative mx-3 mt-3 rounded-lg border border-dashed transition sm:mx-4 ${
+        className={`relative mx-3 mt-2 rounded-lg border border-dashed transition sm:mx-4 ${
           dragging
             ? "border-emerald-400/60 bg-emerald-500/10"
             : "border-white/10 bg-black/30"
@@ -602,7 +1017,7 @@ export default function VirtualTerminal({
         />
         <label
           htmlFor={inputId}
-          className="flex cursor-pointer flex-col items-center gap-2 px-4 py-5 text-center sm:flex-row sm:justify-center sm:gap-4 sm:py-4"
+          className="flex cursor-pointer flex-col items-center gap-2 px-4 py-4 text-center sm:flex-row sm:justify-center sm:gap-4"
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-white/[0.04]">
             {busy || running ? (
@@ -619,7 +1034,7 @@ export default function VirtualTerminal({
           <div className="min-w-0">
             <p className="text-xs font-medium text-white">
               {busy
-                ? "Preparing E2B payload…"
+                ? "Preparing payload…"
                 : dragging
                   ? "Release to stage script"
                   : "Drop JS / Python / shell scripts"}
@@ -639,7 +1054,7 @@ export default function VirtualTerminal({
         <div className="flex min-h-[180px] flex-1 flex-col overflow-hidden rounded-lg border border-white/5 bg-[#050b08]">
           <div className="flex items-center justify-between border-b border-white/5 px-3 py-1.5">
             <span className="font-mono text-[10px] uppercase tracking-wider text-slate-dim">
-              tty · e2b session
+              tty · {mode}
             </span>
             {staged ? (
               <span className="truncate font-mono text-[10px] text-emerald-400/90">
@@ -660,6 +1075,28 @@ export default function VirtualTerminal({
             ))}
             <div ref={logEndRef} />
           </div>
+          {mode === "persistent" ? (
+            <form
+              onSubmit={submitCommand}
+              className="flex items-center gap-2 border-t border-white/5 px-3 py-1.5"
+            >
+              <span className="shrink-0 font-mono text-[10px] text-emerald-400">
+                {PROMPT_PERSISTENT}
+              </span>
+              <input
+                ref={cmdInputRef}
+                value={cmdInput}
+                onChange={(e) => setCmdInput(e.target.value)}
+                onKeyDown={onCmdKey}
+                disabled={running || creating}
+                placeholder="pwd · ls · export FOO=bar · echo $FOO"
+                className="min-w-0 flex-1 bg-transparent font-mono text-[11px] text-emerald-100 outline-none placeholder:text-slate-600"
+                aria-label="Persistent shell command"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </form>
+          ) : null}
         </div>
 
         <div className="flex min-h-[180px] flex-1 flex-col overflow-hidden rounded-lg border border-white/5 bg-[#050b08]">
@@ -691,12 +1128,12 @@ export default function VirtualTerminal({
               ) : (
                 <button
                   type="button"
-                  onClick={() => void runE2B()}
+                  onClick={runPayload}
                   disabled={busy || !buffer.trim()}
                   className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <Play className="h-3 w-3" aria-hidden />
-                  run e2b
+                  {mode === "persistent" ? "run persistent" : "run e2b"}
                 </button>
               )}
             </div>
@@ -708,8 +1145,8 @@ export default function VirtualTerminal({
             className="min-h-[140px] flex-1 resize-none bg-transparent px-3 py-2 font-mono text-[11px] leading-relaxed text-cyan-100/90 outline-none placeholder:text-slate-600"
             placeholder={
               language === "python"
-                ? "print('hello from e2b')"
-                : "console.log('hello from e2b')"
+                ? "print('hello from sandbox')"
+                : "console.log('hello from sandbox')"
             }
             aria-label="Sandbox script editor"
           />
@@ -718,11 +1155,13 @@ export default function VirtualTerminal({
 
       <footer className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/5 px-3.5 py-2.5 sm:px-4">
         <p className="font-mono text-[10px] text-slate-dim">
-          {PROMPT}{" "}
+          {prompt}{" "}
           <span className="animate-pulse text-emerald-400">▌</span>
         </p>
         <p className="font-mono text-[10px] text-slate-dim">
-          e2b isolate · no host egress
+          {mode === "persistent"
+            ? "stateful · /api/sandbox/persistent"
+            : "ephemeral · destroyed after run"}
         </p>
       </footer>
     </section>
