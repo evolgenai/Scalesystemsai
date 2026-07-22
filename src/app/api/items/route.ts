@@ -12,6 +12,11 @@ import { withPrisma } from "@/lib/prisma";
 import { resolveWorkspaceGate } from "@/lib/auth/workspaceGate";
 import { parseJsonBody } from "@/lib/http/parseJsonBody";
 import { apiError, apiSuccess } from "@/lib/http/apiResponse";
+import {
+  captureStructuredError,
+  telemetryContextFromRequest,
+  withSentryTelemetryAsync,
+} from "@/lib/sentry";
 import type { CatalogItemStatus, Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -76,31 +81,46 @@ export async function GET(request: Request) {
   };
 
   try {
-    const [items, total] = await withPrisma(
-      (db) =>
-        Promise.all([
-          db.catalogItem.findMany({
-            where,
-            orderBy: { createdAt: "desc" },
-            skip: (page - 1) * limit,
-            take: limit,
-          }),
-          db.catalogItem.count({ where }),
-        ]),
-      "items.list"
-    );
+    return await withSentryTelemetryAsync(
+      telemetryContextFromRequest(request, {
+        tenantId: gate.workspaceId,
+        source: "api",
+        route: "/api/items",
+      }),
+      async () => {
+        const [items, total] = await withPrisma(
+          (db) =>
+            Promise.all([
+              db.catalogItem.findMany({
+                where,
+                orderBy: { createdAt: "desc" },
+                skip: (page - 1) * limit,
+                take: limit,
+              }),
+              db.catalogItem.count({ where }),
+            ]),
+          "items.list"
+        );
 
-    return apiSuccess({
-      data: items,
-      meta: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        workspaceId: gate.workspaceId,
-      },
-    });
+        return apiSuccess({
+          data: items,
+          meta: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            workspaceId: gate.workspaceId,
+          },
+        });
+      }
+    );
   } catch (err) {
+    captureStructuredError(err, {
+      tenantId: gate.workspaceId,
+      source: "api",
+      route: "/api/items",
+      level: "error",
+    });
     console.error("[api/items] GET failed:", err);
     return apiError(
       err instanceof Error ? err.message : "Failed to list catalog items.",

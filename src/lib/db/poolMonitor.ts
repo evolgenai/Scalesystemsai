@@ -328,6 +328,30 @@ export async function interceptPoolFailure(
       processAlive: true,
     });
 
+    try {
+      const { captureStructuredError, getSentryTelemetryContext } =
+        await import("@/lib/sentry/telemetry");
+      const active = getSentryTelemetryContext();
+      captureStructuredError(err, {
+        source: "pool",
+        route,
+        tenantId: active?.tenantId,
+        traceId: active?.traceId,
+        agentExecutionId: active?.agentExecutionId,
+        level: healed ? "warning" : "error",
+        extra: {
+          incidentId,
+          healed,
+          circuitState: s.state,
+          processAlive: true,
+          force,
+          kind: opts?.kind ?? (isTimeout ? "POOL_TIMEOUT" : "POOL_DISCONNECT"),
+        },
+      });
+    } catch {
+      /* Sentry optional */
+    }
+
     return {
       intercepted: true,
       healed,

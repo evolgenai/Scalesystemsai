@@ -46,6 +46,15 @@ import {
   mountDynamicTools,
 } from "@/lib/agents/tools/registry";
 import { resolveBillingProfileForRequest } from "@/lib/org/orgScope";
+import {
+  captureStructuredError,
+  telemetryContextFromRequest,
+} from "@/lib/sentry";
+import {
+  isSseAbortError,
+  reportSseConnectionDrop,
+  safeSseEnqueue,
+} from "@/lib/sse/resiliency";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -78,21 +87,29 @@ function pushEvent(
   controller: ReadableStreamDefaultController<Uint8Array>,
   encoder: TextEncoder,
   closed: () => boolean,
-  event: AgentStreamEvent
+  markClosed: () => void,
+  event: AgentStreamEvent,
+  telemetry?: {
+    tenantId?: string | null;
+    traceId?: string | null;
+    agentExecutionId?: string | null;
+  }
 ): void {
   if (closed()) return;
-  try {
-    controller.enqueue(encoder.encode(encodeSseData(event)));
-  } catch {
-    // Client disconnected mid-write.
-  }
+  safeSseEnqueue(controller, encoder.encode(encodeSseData(event)), {
+    isClosed: closed,
+    markClosed,
+    telemetry: {
+      ...telemetry,
+      route: "/api/agents/stream",
+      stream: "agents.stream",
+      source: "sse",
+    },
+  });
 }
 
 function isAbortError(error: unknown): boolean {
-  return (
-    (error instanceof DOMException && error.name === "AbortError") ||
-    (error instanceof Error && error.name === "AbortError")
-  );
+  return isSseAbortError(error);
 }
 
 /**
@@ -552,6 +569,13 @@ export async function GET(request: Request) {
       })
     : null;
 
+  const requestTelemetry = telemetryContextFromRequest(request, {
+    tenantId: orgId ?? profile.id ?? null,
+    agentExecutionId: liveSessionId,
+    source: "sse",
+    route: "/api/agents/stream",
+  });
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       // Return Response immediately; drive the async Gemini + tool loop in a background IIFE
@@ -565,9 +589,29 @@ export async function GET(request: Request) {
         let hitlUsed = false;
         const runStartedAt = Date.now();
 
+        const telemetryCtx = {
+          tenantId: requestTelemetry.tenantId,
+          traceId: requestTelemetry.traceId,
+          agentExecutionId: liveSessionId,
+          route: "/api/agents/stream",
+          source: "sse" as const,
+          stream: "agents.stream",
+        };
+
+        const markClosed = () => {
+          closed = true;
+        };
+
         const emit = (event: AgentStreamEvent) => {
           recordedEvents.push(event);
-          pushEvent(controller, encoder, isClosed, event);
+          pushEvent(
+            controller,
+            encoder,
+            isClosed,
+            markClosed,
+            event,
+            telemetryCtx
+          );
         };
 
         const flushSession = async () => {
@@ -1247,10 +1291,26 @@ export async function GET(request: Request) {
           } while (loop && !isClosed());
         } catch (error) {
           if (isAbortError(error)) {
+            reportSseConnectionDrop(error, {
+              tenantId: orgId ?? profile.id ?? null,
+              agentExecutionId: liveSessionId,
+              route: "/api/agents/stream",
+              stream: "agents.stream",
+              reason: "client_abort",
+            });
             sessionStatus = "TIMEOUT";
             await flushSession();
             return;
           }
+
+          captureStructuredError(error, {
+            tenantId: orgId ?? profile.id ?? null,
+            agentExecutionId: liveSessionId,
+            route: "/api/agents/stream",
+            source: "sse",
+            level: "error",
+            extra: { stream: "agents.stream" },
+          });
 
           sessionStatus = "FAILED";
           emit(

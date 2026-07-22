@@ -5,7 +5,12 @@
 
 import { head, BlobNotFoundError } from "@vercel/blob";
 import { withPrisma } from "@/lib/prisma";
+import {
+  getCircuitBreakerHealth,
+  getPoolMonitorSnapshot,
+} from "@/lib/db/poolMonitor";
 import { assertPublicHttpUrl } from "@/lib/security/ssrf";
+import { captureStructuredError } from "@/lib/sentry";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -88,17 +93,49 @@ export async function GET() {
 
   const services: ServiceFlags = { db, blob, discord };
   const allHealthy = db && blob && discord;
-  const status = allHealthy ? "HEALTHY" : "DEGRADED";
+  const pool = getPoolMonitorSnapshot();
+  const circuit = getCircuitBreakerHealth();
+  const poolHealthy =
+    pool.status === "HEALTHY" || pool.status === "DEGRADED";
+  const status =
+    allHealthy && poolHealthy
+      ? pool.status === "DEGRADED"
+        ? "DEGRADED"
+        : "HEALTHY"
+      : "DEGRADED";
   const uptimeMs = Date.now() - SERVER_START_MS;
+
+  if (!db || !poolHealthy) {
+    captureStructuredError(
+      new Error(
+        `Health degraded — db=${db} pool=${pool.status} circuit=${circuit.state}`
+      ),
+      {
+        source: "api",
+        route: "/api/health",
+        level: "warning",
+        extra: { services, pool, circuit },
+      }
+    );
+  }
 
   return Response.json(
     {
       status,
       uptimeMs,
       services,
+      pool: {
+        status: pool.status,
+        activeConnections: pool.activeConnections,
+        maxConnections: pool.maxConnections,
+        waitingClients: pool.waitingClients,
+        circuitState: circuit.state,
+        totalHeals: circuit.totalHeals,
+        lastHealAt: circuit.lastHealAt,
+      },
     },
     {
-      status: allHealthy ? 200 : 503,
+      status: status === "HEALTHY" ? 200 : 503,
       headers: { "cache-control": "no-store" },
     }
   );

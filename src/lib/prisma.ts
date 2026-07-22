@@ -48,7 +48,36 @@ function attachPoolGuards(pool: Pool): void {
       message: err.message,
       code: (err as NodeJS.ErrnoException).code,
     });
-    void resetPrismaClient("pool_error");
+    void (async () => {
+      try {
+        const { captureStructuredError, getSentryTelemetryContext } =
+          await import("@/lib/sentry/telemetry");
+        const active = getSentryTelemetryContext();
+        captureStructuredError(err, {
+          source: "pool",
+          route: "prisma.pool",
+          tenantId: active?.tenantId,
+          traceId: active?.traceId,
+          agentExecutionId: active?.agentExecutionId,
+          level: "error",
+          extra: {
+            code: (err as NodeJS.ErrnoException).code ?? null,
+            generation: globalForPrisma.prismaGeneration ?? null,
+          },
+        });
+      } catch {
+        /* optional */
+      }
+      try {
+        const { interceptPoolFailure } = await import("@/lib/db/poolMonitor");
+        await interceptPoolFailure(err, "prisma.pool_error", {
+          force: true,
+          kind: "POOL_ERROR_EVENT",
+        });
+      } catch {
+        await resetPrismaClient("pool_error");
+      }
+    })();
   });
 }
 
@@ -176,8 +205,37 @@ export function getPrisma(): PrismaClient {
 
 const MAX_PRISMA_RETRIES = 2 as const;
 
+async function reportDbError(
+  err: unknown,
+  label: string,
+  extra?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const { captureStructuredError, getSentryTelemetryContext } = await import(
+      "@/lib/sentry/telemetry"
+    );
+    const active = getSentryTelemetryContext();
+    captureStructuredError(err, {
+      source: "db",
+      route: label,
+      tenantId: active?.tenantId,
+      traceId: active?.traceId,
+      agentExecutionId: active?.agentExecutionId,
+      level: "error",
+      extra: {
+        adapter: "prisma-pg",
+        generation: globalForPrisma.prismaGeneration ?? null,
+        ...extra,
+      },
+    });
+  } catch {
+    /* Sentry optional during early boot */
+  }
+}
+
 /**
  * Run a DB operation with one automatic reconnect on sudden disconnect.
+ * Final failures are reported to Sentry with tenant/trace/execution tags.
  */
 export async function withPrisma<T>(
   operation: (db: PrismaClient) => Promise<T>,
@@ -215,7 +273,10 @@ export async function withPrisma<T>(
                   ? monitorErr.message
                   : String(monitorErr),
             });
+            await reportDbError(monitorErr, `${label}:poolMonitor`);
           }
+        } else {
+          await reportDbError(err, label, { disconnect: false });
         }
         throw err;
       }
@@ -232,6 +293,7 @@ export async function withPrisma<T>(
     }
   }
 
+  await reportDbError(lastError, label, { exhaustedRetries: true });
   throw lastError instanceof Error
     ? lastError
     : new Error(`${LOG_PREFIX} operation failed: ${label}`);

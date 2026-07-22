@@ -10,6 +10,14 @@ import { enforcePermission } from "@/lib/auth/rbacMiddleware";
 import { apiError } from "@/lib/http/apiResponse";
 import { getPrisma } from "@/lib/prisma";
 import {
+  captureStructuredError,
+  telemetryContextFromRequest,
+} from "@/lib/sentry";
+import {
+  reportSseConnectionDrop,
+  safeSseEnqueue,
+} from "@/lib/sse/resiliency";
+import {
   getRecentTelemetryEvents,
   publishTelemetryEvent,
   subscribeTelemetry,
@@ -154,6 +162,11 @@ export async function GET(request: Request) {
 
   const { workspaceId } = rbac.ctx;
   const pollMs = clampPollMs(new URL(request.url).searchParams.get("pollMs"));
+  const telemetry = telemetryContextFromRequest(request, {
+    tenantId: workspaceId,
+    source: "sse",
+    route: "/api/telemetry/stream",
+  });
 
   const encoder = new TextEncoder();
   let closed = false;
@@ -164,15 +177,23 @@ export async function GET(request: Request) {
   let lastIncidentFingerprint = "";
   let lastGasBalance: number | null = null;
 
+  const markClosed = () => {
+    closed = true;
+  };
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
       const push = (event: string, data: unknown, id?: string) => {
         if (closed) return;
-        try {
-          controller.enqueue(encoder.encode(encodeFrame(event, data, id)));
-        } catch {
-          closed = true;
-        }
+        safeSseEnqueue(controller, encoder.encode(encodeFrame(event, data, id)), {
+          isClosed: () => closed,
+          markClosed,
+          telemetry: {
+            ...telemetry,
+            stream: "telemetry.stream",
+            source: "sse",
+          },
+        });
       };
 
       const pushTelemetry = (event: TelemetryEvent) => {
@@ -237,6 +258,12 @@ export async function GET(request: Request) {
             for (const e of snap.incidents) pushTelemetry(e);
           }
         } catch (err) {
+          captureStructuredError(err, {
+            ...telemetry,
+            source: "sse",
+            level: "warning",
+            extra: { stream: "telemetry.stream", phase: "poll" },
+          });
           push("error", {
             message:
               err instanceof Error ? err.message : "Telemetry poll failed.",
@@ -257,6 +284,11 @@ export async function GET(request: Request) {
 
       const cleanup = () => {
         if (closed) return;
+        reportSseConnectionDrop(new Error("telemetry SSE client abort"), {
+          ...telemetry,
+          stream: "telemetry.stream",
+          reason: "client_abort",
+        });
         closed = true;
         unsubscribe?.();
         unsubscribe = null;

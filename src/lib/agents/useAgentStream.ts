@@ -10,6 +10,12 @@ import {
 } from "@/lib/agents/streamProtocol";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
+import {
+  SSE_RECONNECT_DEFAULTS,
+  isSseAbortError,
+  shouldAttemptSseReconnect,
+  sseReconnectDelayMs,
+} from "@/lib/sse/resiliency";
 
 export type StreamConnectionState =
   | "idle"
@@ -431,12 +437,50 @@ export function useAgentStream(
 
       void (async () => {
         const isActive = () => abortRef.current === controller;
+        let attempt = 0;
+        let streamCompletedCleanly = false;
 
+        while (
+          isActive() &&
+          !controller.signal.aborted &&
+          !streamCompletedCleanly
+        ) {
         try {
+          if (attempt > 0) {
+            setConnection("connecting");
+            setLines((prev) => [
+              ...prev.slice(-(maxLines - 1)),
+              {
+                type: "error",
+                message: `Stream reconnecting (attempt ${attempt}/${SSE_RECONNECT_DEFAULTS.maxAttempts})…`,
+                status: "THINKING",
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            await new Promise<void>((resolve, reject) => {
+              const delay = sseReconnectDelayMs(attempt);
+              const timer = setTimeout(resolve, delay);
+              const onAbort = () => {
+                clearTimeout(timer);
+                reject(new DOMException("Aborted", "AbortError"));
+              };
+              if (controller.signal.aborted) {
+                onAbort();
+                return;
+              }
+              controller.signal.addEventListener("abort", onAbort, {
+                once: true,
+              });
+            });
+            if (!isActive() || controller.signal.aborted) return;
+          }
+
           const response = await fetch(streamUrl, {
             method: "GET",
             headers: {
               Accept: "text/event-stream",
+              "x-agent-execution-id": nextSessionId,
+              "x-trace-id": nextSessionId,
               ...getClientAuthHeaders(),
             },
             signal: controller.signal,
@@ -446,37 +490,67 @@ export function useAgentStream(
           if (!isActive()) return;
 
           if (!response.ok || !response.body) {
-            setConnection("error");
+            if (
+              response.status === 402 ||
+              response.status === 401 ||
+              response.status === 403
+            ) {
+              setConnection("error");
+              if (response.status === 402) {
+                setPaymentRequired(true);
+                trackFunnelEvent({ event: "stream_quota_hit" });
+              }
 
-            if (response.status === 402) {
-              setPaymentRequired(true);
-              trackFunnelEvent({ event: "stream_quota_hit" });
+              let detail = `Stream refused — HTTP ${response.status}`;
+              try {
+                const payload = (await response.json()) as {
+                  message?: string;
+                  code?: string;
+                };
+                if (payload.message) detail = payload.message;
+              } catch {
+                // Keep default detail.
+              }
+              setLines((prev) => [
+                ...prev.slice(-(maxLines - 1)),
+                {
+                  type: "error",
+                  message: detail,
+                  status: "ERROR",
+                  timestamp: new Date().toISOString(),
+                },
+              ]);
               return;
             }
 
-            let detail = `Stream refused — HTTP ${response.status}`;
-            try {
-              const payload = (await response.json()) as {
-                message?: string;
-                code?: string;
-              };
-              if (payload.message) detail = payload.message;
-            } catch {
-              // Keep default detail.
+            const httpErr = new Error(
+              `Stream refused — HTTP ${response.status}`
+            );
+            attempt += 1;
+            if (
+              !shouldAttemptSseReconnect(
+                attempt,
+                httpErr,
+                SSE_RECONNECT_DEFAULTS.maxAttempts
+              )
+            ) {
+              setConnection("error");
+              setLines((prev) => [
+                ...prev.slice(-(maxLines - 1)),
+                {
+                  type: "error",
+                  message: httpErr.message,
+                  status: "ERROR",
+                  timestamp: new Date().toISOString(),
+                },
+              ]);
+              return;
             }
-            setLines((prev) => [
-              ...prev.slice(-(maxLines - 1)),
-              {
-                type: "error",
-                message: detail,
-                status: "ERROR",
-                timestamp: new Date().toISOString(),
-              },
-            ]);
-            return;
+            continue;
           }
 
           setConnection("live");
+          attempt = 0;
 
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
@@ -689,12 +763,14 @@ export function useAgentStream(
             pausedRef.current = false;
             setConnection("closed");
           }
+          streamCompletedCleanly = true;
         } catch (error) {
           // Rapid page switches / stop() abort the fetch — discard quietly.
           if (
             !isActive() ||
             controller.signal.aborted ||
-            isAbortError(error)
+            isAbortError(error) ||
+            isSseAbortError(error)
           ) {
             if (isActive()) {
               pausedRef.current = false;
@@ -703,21 +779,32 @@ export function useAgentStream(
             return;
           }
 
-          pausedRef.current = false;
-          setConnection("error");
-          setLines((prev) => [
-            ...prev.slice(-(maxLines - 1)),
-            {
-              type: "error",
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "ReadableStream connection failed.",
-              status: "ERROR",
-              timestamp: new Date().toISOString(),
-            },
-          ]);
+          attempt += 1;
+          if (
+            !shouldAttemptSseReconnect(
+              attempt,
+              error,
+              SSE_RECONNECT_DEFAULTS.maxAttempts
+            )
+          ) {
+            pausedRef.current = false;
+            setConnection("error");
+            setLines((prev) => [
+              ...prev.slice(-(maxLines - 1)),
+              {
+                type: "error",
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "ReadableStream connection failed.",
+                status: "ERROR",
+                timestamp: new Date().toISOString(),
+              },
+            ]);
+            return;
+          }
         }
+        } // reconnect while
       })();
     },
     [endpoint, loop, maxLines]

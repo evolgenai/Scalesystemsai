@@ -181,10 +181,23 @@ export async function POST(request: Request) {
               ? "process exited cleanly"
               : `process exited with code ${result.exitCode}`,
         });
-      } catch (err) {
+} catch (err) {
         const runtimeMs = Date.now() - started;
         const message =
           err instanceof Error ? err.message : "E2B sandbox execution failed.";
+        try {
+          const { captureStructuredError } = await import("@/lib/sentry");
+          captureStructuredError(err, {
+            tenantId: workspaceId,
+            agentExecutionId: sessionId,
+            route: "/api/terminal/e2b/stream",
+            source: "sse",
+            level: "error",
+            extra: { stream: "e2b.stream", language },
+          });
+        } catch {
+          /* optional */
+        }
         push({
           type: "stderr",
           sessionId,

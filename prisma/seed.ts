@@ -116,6 +116,177 @@ const MARKETPLACE_AGENTS: Array<{
     },
     isOfficial: true,
   },
+  // Sprint 48 — official Scale Systems AI catalog (mirrors /api/catalog)
+  {
+    title: "Meta-SRE",
+    slug: "meta-sre",
+    description:
+      "Autonomous principal engineer that diagnoses incidents, proposes policy-safe remediations, and opens heal PRs with sandbox verification.",
+    category: "agent_template",
+    author: "Scale Systems AI",
+    iconName: "Shield",
+    configSchema: {
+      type: "object",
+      properties: {
+        policy: {
+          type: "string",
+          enum: ["safe-heal", "observe", "aggressive"],
+          default: "safe-heal",
+        },
+        requiresApproval: { type: "boolean", default: true },
+        objective: { type: "string" },
+      },
+    },
+    isOfficial: true,
+  },
+  {
+    title: "Full-Stack Dev",
+    slug: "full-stack-dev",
+    description:
+      "End-to-end implementation agent for Next.js App Router, Prisma, API routes, and UI — ships typed patches with sandbox smoke checks.",
+    category: "agent_template",
+    author: "Scale Systems AI",
+    iconName: "Code2",
+    configSchema: {
+      type: "object",
+      properties: {
+        stack: { type: "string", default: "next15-react19-prisma" },
+        personaId: { type: "string", default: "researcher" },
+        requiresApproval: { type: "boolean", default: false },
+      },
+    },
+    isOfficial: true,
+  },
+  {
+    title: "Security Auditor",
+    slug: "security-auditor",
+    description:
+      "Adversarial security lead that maps OWASP risks, abuse paths, and concrete mitigations across agents, webhooks, and MCP hosts.",
+    category: "agent_template",
+    author: "Scale Systems AI",
+    iconName: "ShieldCheck",
+    configSchema: {
+      type: "object",
+      properties: {
+        personaId: { type: "string", default: "security" },
+        scope: {
+          type: "string",
+          enum: ["api", "mcp", "auth", "full"],
+          default: "full",
+        },
+        requiresApproval: { type: "boolean", default: true },
+      },
+    },
+    isOfficial: true,
+  },
+  {
+    title: "Sentry MCP",
+    slug: "sentry-mcp",
+    description:
+      "Official MCP bridge to Sentry — search issues, analyze with Seer, and feed production telemetry into agent tool context.",
+    category: "mcp_plugin",
+    author: "Scale Systems AI",
+    iconName: "Activity",
+    configSchema: {
+      type: "object",
+      properties: {
+        transport: { type: "string", enum: ["http", "sse"], default: "http" },
+        mcpUrl: {
+          type: "string",
+          format: "uri",
+          default: "https://mcp.sentry.dev/mcp",
+        },
+        organizationSlug: { type: "string" },
+      },
+      required: ["mcpUrl"],
+    },
+    isOfficial: true,
+  },
+  {
+    title: "GitHub MCP",
+    slug: "github-mcp",
+    description:
+      "GitHub MCP plugin for issues, pull requests, and remediation branch workflows used by Meta-SRE heal pipelines.",
+    category: "mcp_plugin",
+    author: "Scale Systems AI",
+    iconName: "GitBranch",
+    configSchema: {
+      type: "object",
+      properties: {
+        transport: { type: "string", enum: ["http", "sse"], default: "http" },
+        owner: { type: "string" },
+        repo: { type: "string" },
+        mcpUrl: { type: "string", format: "uri" },
+      },
+      required: ["mcpUrl"],
+    },
+    isOfficial: true,
+  },
+  {
+    title: "Postgres DB MCP",
+    slug: "postgres-db-mcp",
+    description:
+      "Read-safe Postgres MCP host for schema introspection, explain plans, and pool health probes against Neon/Prisma adapters.",
+    category: "mcp_plugin",
+    author: "Scale Systems AI",
+    iconName: "Database",
+    configSchema: {
+      type: "object",
+      properties: {
+        transport: { type: "string", enum: ["http", "sse"], default: "http" },
+        readOnly: { type: "boolean", default: true },
+        mcpUrl: { type: "string", format: "uri" },
+      },
+      required: ["mcpUrl"],
+    },
+    isOfficial: true,
+  },
+  {
+    title: "Node.js Persistent Sandbox",
+    slug: "nodejs-persistent-sandbox",
+    description:
+      "Long-lived Node.js microVM that keeps filesystem state across agent turns — ideal for multi-step coding and eval loops.",
+    category: "sandbox_blueprint",
+    author: "Scale Systems AI",
+    iconName: "Box",
+    configSchema: {
+      type: "object",
+      properties: {
+        language: { type: "string", const: "javascript" },
+        timeoutMs: {
+          type: "integer",
+          minimum: 60_000,
+          maximum: 86_400_000,
+          default: 3_600_000,
+        },
+        cwd: { type: "string", default: "/home/user/workspace" },
+      },
+    },
+    isOfficial: true,
+  },
+  {
+    title: "Python Executor",
+    slug: "python-executor",
+    description:
+      "Isolated Python executor for agent scripts, data transforms, and ScaleAgent skill stubs with stdout/stderr capture.",
+    category: "sandbox_blueprint",
+    author: "Scale Systems AI",
+    iconName: "Terminal",
+    configSchema: {
+      type: "object",
+      properties: {
+        language: { type: "string", const: "python" },
+        timeoutMs: {
+          type: "integer",
+          minimum: 1_000,
+          maximum: 120_000,
+          default: 30_000,
+        },
+        injectScaleAgentStub: { type: "boolean", default: true },
+      },
+    },
+    isOfficial: true,
+  },
 ];
 
 type SystemTemplate = {
