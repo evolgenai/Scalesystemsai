@@ -1654,6 +1654,7 @@ export default function DashboardClient({
                 onDismissPaymentRequired={dismissPaymentRequired}
                 onPause={pause}
                 onResume={resume}
+                onRetryConnection={() => start(objective)}
                 onProceedCheckout={() => {
                   trackFunnelEvent({ event: "checkout_redirect" });
                   router.push("/checkout");

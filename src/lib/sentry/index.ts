@@ -20,3 +20,17 @@ export {
   type ServerActionContext,
   type ServerActionResult,
 } from "@/lib/sentry/withServerAction";
+
+export {
+  applySpatialSentryTags,
+  captureSpatialInteraction,
+  withSpatialTelemetry,
+  captureSpatialError,
+  SENTRY_TAG_SPATIAL_OBJECT,
+  SENTRY_TAG_SPATIAL_ACCESS,
+  SENTRY_TAG_SPATIAL_AUTH,
+  SENTRY_TAG_SPATIAL_SPEED,
+  SENTRY_TAG_SPATIAL_COORDS,
+  type SpatialInteractionTags,
+  type SpatialTelemetryContext,
+} from "@/lib/spatial/spatialTelemetry";

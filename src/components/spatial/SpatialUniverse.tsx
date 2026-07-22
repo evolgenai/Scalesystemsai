@@ -1,19 +1,23 @@
 "use client";
 
 import {
-  Component,
   Suspense,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ErrorInfo,
-  type ReactNode,
+  type MutableRefObject,
 } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { Html } from "@react-three/drei";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { ContactShadows, Html, Stars } from "@react-three/drei";
+import {
+  EffectComposer,
+  Bloom,
+  ChromaticAberration,
+  Vignette,
+} from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
 import {
@@ -31,6 +35,12 @@ import {
   Zap,
 } from "lucide-react";
 import RobotAvatar from "@/components/spatial/RobotAvatar";
+import InstancedHardwareGrid, {
+  type HardwareInteractable,
+} from "@/components/spatial/InstancedHardwareGrid";
+import AutomobileUnit, {
+  DRIVE_SPEED_MULT,
+} from "@/components/spatial/AutomobileUnit";
 import ObjectMorpher, {
   type CompositeSuite,
   type MorphNode,
@@ -39,9 +49,10 @@ import ObjectMorpher, {
   CYAN,
   AMBER,
 } from "@/components/spatial/ObjectMorpher";
+import WebGLErrorBoundary from "@/components/ui/WebGLErrorBoundary";
 
 const YELLOW = "#facc15";
-const GRID_SIZE = 80;
+const GRID_SIZE = 120;
 const PROXIMITY = 3;
 const MORPH_PROX = 5.5;
 
@@ -394,53 +405,54 @@ function supportsWebGL(): boolean {
   }
 }
 
-class SceneErrorBoundary extends Component<
-  { children: ReactNode; onError?: () => void },
-  { failed: boolean }
-> {
-  state = { failed: false };
-
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-
-  componentDidCatch(_error: Error, _info: ErrorInfo) {
-    this.props.onError?.();
-  }
-
-  render() {
-    if (this.state.failed) return null;
-    return this.props.children;
-  }
-}
-
 function CyberGrid() {
   const gridRef = useRef<THREE.GridHelper>(null);
   useFrame(({ clock }) => {
     if (!gridRef.current) return;
     const mat = gridRef.current.material;
     if (Array.isArray(mat)) return;
-    mat.opacity = 0.32 + Math.sin(clock.elapsedTime * 0.6) * 0.05;
+    mat.opacity = 0.28 + Math.sin(clock.elapsedTime * 0.6) * 0.05;
   });
 
   return (
     <>
+      {/* Cosmic skybox — deep void + star field */}
+      <color attach="background" args={["#05080a"]} />
+      <fog attach="fog" args={["#080b0c", 42, 160]} />
+      <Stars
+        radius={180}
+        depth={60}
+        count={4200}
+        factor={3.2}
+        saturation={0.35}
+        fade
+        speed={0.35}
+      />
       <gridHelper
         ref={gridRef}
-        args={[GRID_SIZE, 80, "#059669", "#064e3b"]}
-        position={[0, 0.01, 0]}
+        args={[GRID_SIZE, 80, "#00ffaa", "#152e24"]}
+        position={[0, 0.015, 0]}
       />
+      {/* Dark reflective bio-terrain */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[GRID_SIZE, GRID_SIZE]} />
+        <planeGeometry args={[GRID_SIZE * 1.4, GRID_SIZE * 1.4]} />
         <meshStandardMaterial
-          color="#040907"
-          metalness={0.82}
-          roughness={0.42}
-          envMapIntensity={1.1}
-          transparent
-          opacity={0.96}
+          color="#0c1214"
+          metalness={0.92}
+          roughness={0.18}
+          envMapIntensity={1.35}
+          emissive="#152e24"
+          emissiveIntensity={0.12}
         />
       </mesh>
+      <ContactShadows
+        position={[0, 0.02, 0]}
+        opacity={0.55}
+        scale={55}
+        blur={2.4}
+        far={18}
+        color="#000000"
+      />
     </>
   );
 }
@@ -1385,10 +1397,34 @@ function ProximityBillboard({ tower }: { tower: TowerDef }) {
       </mesh>
       <Html center distanceFactor={10} zIndexRange={[40, 0]}>
         <div className="pointer-events-none whitespace-nowrap rounded-md border border-emerald-400/50 bg-[#040907]/92 px-3 py-1.5 font-mono text-[11px] font-semibold text-emerald-300 shadow-[0_0_28px_rgba(16,185,129,0.45)] backdrop-blur-md">
-          [Press E to Connect / Open Script]
+          [E] Interact / Open Script
         </div>
       </Html>
     </group>
+  );
+}
+
+function DriveMotionFx({
+  blurIntensityRef,
+}: {
+  blurIntensityRef: MutableRefObject<number>;
+}) {
+  const effectRef = useRef<{ offset: THREE.Vector2 } | null>(null);
+  const offset = useMemo(() => new THREE.Vector2(0, 0), []);
+  useFrame(() => {
+    const fx = effectRef.current;
+    if (!fx?.offset) return;
+    const i = blurIntensityRef.current;
+    fx.offset.set(0.0014 * i, 0.001 * i);
+  });
+  return (
+    <ChromaticAberration
+      ref={effectRef as never}
+      blendFunction={BlendFunction.NORMAL}
+      offset={offset}
+      radialModulation={false}
+      modulationOffset={0.15}
+    />
   );
 }
 
@@ -1399,6 +1435,13 @@ function Scene({
   nearestTower,
   consumedIds,
   nearbyIds,
+  avatarPosRef,
+  mountedRef,
+  speedMultRef,
+  camBoostRef,
+  speedRef,
+  blurIntensityRef,
+  mountSnapRef,
   onNearestTower,
   onNearbyIds,
   onRobotPos,
@@ -1406,6 +1449,8 @@ function Scene({
   onInspect,
   onInteract,
   onMorph,
+  onHardwareInteract,
+  onMountChange,
 }: {
   locked: boolean;
   activeId: string | null;
@@ -1413,6 +1458,13 @@ function Scene({
   nearestTower: TowerDef | null;
   consumedIds: Set<string>;
   nearbyIds: string[];
+  avatarPosRef: MutableRefObject<THREE.Vector3>;
+  mountedRef: MutableRefObject<boolean>;
+  speedMultRef: MutableRefObject<number>;
+  camBoostRef: MutableRefObject<number>;
+  speedRef: MutableRefObject<number>;
+  blurIntensityRef: MutableRefObject<number>;
+  mountSnapRef: MutableRefObject<THREE.Vector3 | null>;
   onNearestTower: (tower: TowerDef | null) => void;
   onNearbyIds: (ids: string[]) => void;
   onRobotPos: (pos: [number, number, number]) => void;
@@ -1420,6 +1472,8 @@ function Scene({
   onInspect: (tower: TowerDef) => void;
   onInteract: (towerId: string) => void;
   onMorph: (suite: CompositeSuite, consumed: string[]) => void;
+  onHardwareInteract: (node: HardwareInteractable) => void;
+  onMountChange: (mounted: boolean) => void;
 }) {
   const targets = useMemo(
     () =>
@@ -1465,14 +1519,20 @@ function Scene({
     [onRobotPos]
   );
 
+  const handleMount = useCallback(
+    (mounted: boolean) => {
+      speedMultRef.current = mounted ? DRIVE_SPEED_MULT : 1;
+      onMountChange(mounted);
+    },
+    [onMountChange, speedMultRef]
+  );
+
   return (
     <>
-      <color attach="background" args={["#040907"]} />
-      <fog attach="fog" args={["#040907", 35, 120]} />
-      <ambientLight intensity={0.28} />
+      <ambientLight intensity={0.22} />
       <directionalLight
         position={[10, 18, 8]}
-        intensity={0.85}
+        intensity={0.9}
         color="#e2e8f0"
         castShadow
         shadow-mapSize-width={1024}
@@ -1484,12 +1544,27 @@ function Scene({
         shadow-camera-bottom={-25}
         shadow-bias={-0.0002}
       />
-      <pointLight position={[-10, 8, -6]} intensity={1.15} color={EMERALD} />
-      <pointLight position={[8, 6, 5]} intensity={1} color={CYAN} />
-      <pointLight position={[0, 10, 0]} intensity={0.45} color={YELLOW} />
+      <pointLight position={[-10, 8, -6]} intensity={1.2} color="#00ffaa" />
+      <pointLight position={[8, 6, 5]} intensity={0.85} color={CYAN} />
+      <pointLight position={[0, 10, 0]} intensity={0.4} color={YELLOW} />
       <CyberGrid />
       <AmbientDrift />
       <AlienArtifactField />
+      <InstancedHardwareGrid
+        avatarPosRef={avatarPosRef}
+        locked={locked}
+        onInteract={onHardwareInteract}
+      />
+      <AutomobileUnit
+        locked={locked}
+        avatarPosRef={avatarPosRef}
+        mountedRef={mountedRef}
+        speedRef={speedRef}
+        camBoostRef={camBoostRef}
+        blurIntensityRef={blurIntensityRef}
+        mountSnapRef={mountSnapRef}
+        onMountChange={handleMount}
+      />
       <Constellation
         activeId={activeId}
         hoveredId={hoveredId}
@@ -1506,11 +1581,16 @@ function Scene({
         onNearbyChange={onNearbyIds}
         onPositionChange={handlePos}
         onInteract={onInteract}
+        positionRef={avatarPosRef}
+        mountedRef={mountedRef}
+        speedMultRef={speedMultRef}
+        camBoostRef={camBoostRef}
+        mountSnapRef={mountSnapRef}
       />
       <ObjectMorpher
         nearbyNodes={nearbyNodes}
         robotPosition={robotPos}
-        locked={locked}
+        locked={locked && !mountedRef.current}
         consumedIds={consumedIds}
         onMorph={onMorph}
       />
@@ -1519,11 +1599,17 @@ function Scene({
       ) : null}
       <EffectComposer multisampling={0} enableNormalPass={false}>
         <Bloom
-          intensity={1.15}
-          luminanceThreshold={0.55}
-          luminanceSmoothing={0.35}
+          intensity={1.25}
+          luminanceThreshold={0.5}
+          luminanceSmoothing={0.32}
           mipmapBlur
         />
+        <Vignette
+          offset={0.28}
+          darkness={0.72}
+          blendFunction={BlendFunction.NORMAL}
+        />
+        <DriveMotionFx blurIntensityRef={blurIntensityRef} />
       </EffectComposer>
     </>
   );
@@ -1632,7 +1718,7 @@ function ProximityChip({
               {tower.name}
             </h3>
             <p className="mt-0.5 font-mono text-[11px] text-emerald-300/90">
-              [Press E to Connect / Open Script]
+              [E] Interact / Open Script
             </p>
           </div>
           <button
@@ -1658,6 +1744,232 @@ function ProximityChip({
   );
 }
 
+function PinKeypadOverlay({
+  node,
+  onUnlock,
+  onClose,
+}: {
+  node: HardwareInteractable;
+  onUnlock: () => void;
+  onClose: () => void;
+}) {
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const EXPECTED = "0480";
+
+  const press = (digit: string) => {
+    setError(null);
+    setPin((p) => (p.length >= 4 ? p : p + digit));
+  };
+
+  const submit = () => {
+    if (pin === EXPECTED) {
+      onUnlock();
+      return;
+    }
+    setError("ACCESS DENIED · invalid PIN");
+    setPin("");
+  };
+
+  return (
+    <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div
+        role="dialog"
+        aria-modal
+        aria-labelledby="pin-keypad-title"
+        className="w-full max-w-xs overflow-hidden rounded-2xl border border-[#00ffaa]/25 bg-[#0a0e12]/95 shadow-[0_0_48px_rgba(0,255,170,0.18)] backdrop-blur-xl"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-white/5 px-4 py-3">
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] uppercase tracking-wider text-[#00ffaa]/80">
+              superadmin · pin gate
+            </p>
+            <h3
+              id="pin-keypad-title"
+              className="truncate text-sm font-semibold text-white"
+            >
+              {node.label}
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-slate-500 transition hover:bg-white/5 hover:text-white"
+            aria-label="Close PIN keypad"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="px-4 py-3">
+          <div className="mb-3 flex justify-center gap-2 font-mono text-lg tracking-[0.35em] text-[#00ffaa]">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <span
+                key={i}
+                className="inline-flex h-9 w-8 items-center justify-center rounded border border-[#00ffaa]/25 bg-black/40"
+              >
+                {pin[i] ? "●" : ""}
+              </span>
+            ))}
+          </div>
+          {error ? (
+            <p className="mb-2 text-center font-mono text-[10px] text-red-400">
+              {error}
+            </p>
+          ) : (
+            <p className="mb-2 text-center font-mono text-[10px] text-slate-500">
+              Enter 4-digit workstation PIN
+            </p>
+          )}
+          <div className="grid grid-cols-3 gap-1.5">
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "↵"].map(
+              (k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => {
+                    if (k === "C") {
+                      setPin("");
+                      setError(null);
+                    } else if (k === "↵") submit();
+                    else press(k);
+                  }}
+                  className="rounded-lg border border-white/10 bg-gradient-to-b from-[#1a1f2a] to-[#0c1016] py-2.5 font-mono text-sm font-semibold text-emerald-200 shadow-inner transition hover:border-[#00ffaa]/35 hover:text-[#00ffaa]"
+                >
+                  {k}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NetworkDiagOverlay({
+  node,
+  onClose,
+}: {
+  node: HardwareInteractable;
+  onClose: () => void;
+}) {
+  const isSentry =
+    node.id === "sentry-log-ws" || node.label.toLowerCase().includes("sentry");
+
+  const lines = isSentry
+    ? [
+        "[sentry] live error stream · project scalesystems",
+        "[!] TypeError: Cannot read props of undefined · DashboardClient",
+        "    at renderFleet (DashboardClient.tsx:412)",
+        "[!] SSE stall · /api/agents/stream · reconnecting…",
+        "[*] issue SS-4821 · fingerprint agent.stream.timeout",
+        "[*] issue SS-4790 · fingerprint webgl.context.lost",
+        "[ok] Seer suggestion · wrap Canvas in WebGLErrorBoundary",
+        "[*] events/min 14 · p95 ingest 38ms · quota green",
+      ]
+    : [
+        "[net] virtual IP · 10.48.12.77 /24",
+        "[*] uplink eth0 · 1.0 Gbps · duplex full",
+        "[*] latency p50 4.2ms · p95 11.8ms · p99 19.1ms",
+        "[*] hop1 10.48.12.1 · 0.4ms · gw-core-a",
+        "[*] hop2 10.0.0.1 · 1.2ms · edge-relay",
+        "[*] packet loss 0.0% · jitter 0.3ms · ACL green",
+        "[ok] path healthy · telemetry nominal",
+      ];
+
+  return (
+    <div className="pointer-events-auto absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div
+        role="dialog"
+        aria-modal
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-[#00ffaa]/25 bg-gradient-to-b from-slate-950 via-zinc-900 to-emerald-950/40 shadow-[0_0_48px_rgba(0,255,170,0.16)] backdrop-blur-xl"
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-bio-moss/40 px-4 py-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-[#00ffaa]/80">
+              {isSentry ? "superadmin · sentry live" : "admin · ip diagnostic"}
+            </p>
+            <h3 className="text-sm font-semibold text-white">{node.label}</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md p-1 text-slate-500 transition hover:bg-white/5 hover:text-white"
+            aria-label="Close diagnostic"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <pre className="terminal-scroll max-h-56 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed text-[#00ffaa]/90">
+          {lines.map((line, i) => (
+            <div key={i} className="whitespace-pre-wrap">
+              {line}
+            </div>
+          ))}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
+/** Speedometer HUD — DOM updates via rAF reading speedRef (no React re-renders). */
+function SpeedometerHud({
+  speedRef,
+  visible,
+}: {
+  speedRef: MutableRefObject<number>;
+  visible: boolean;
+}) {
+  const valueRef = useRef<HTMLSpanElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!visible) return;
+    let raf = 0;
+    const tick = () => {
+      const spd = speedRef.current;
+      const display = Math.round(spd * 3.6);
+      if (valueRef.current) valueRef.current.textContent = String(display);
+      if (barRef.current) {
+        const pct = Math.min(100, (spd / 22) * 100);
+        barRef.current.style.width = `${pct}%`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [visible, speedRef]);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      ref={rootRef}
+      className="pointer-events-none absolute bottom-4 left-1/2 z-20 w-[min(16rem,calc(100%-2rem))] -translate-x-1/2"
+    >
+      <div className="overflow-hidden rounded-xl border border-[#00ffaa]/30 bg-[#0a0e12]/9 px-3.5 py-2.5 shadow-[0_0_40px_rgba(0,255,170,0.15)] backdrop-blur-xl">
+        <div className="flex items-end justify-between gap-2">
+          <p className="font-mono text-[10px] uppercase tracking-wider text-[#00ffaa]/75">
+            velocity · 2× drive
+          </p>
+          <p className="font-mono text-lg font-semibold tabular-nums text-[#00ffaa]">
+            <span ref={valueRef}>0</span>
+            <span className="ml-1 text-[10px] text-emerald-400/80">u/h</span>
+          </p>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5">
+          <div
+            ref={barRef}
+            className="h-full rounded-full bg-gradient-to-r from-emerald-700 to-[#00ffaa] shadow-[0_0_12px_rgba(0,255,170,0.55)] transition-[width] duration-75"
+            style={{ width: "0%" }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export type SpatialUniverseProps = {
   onOpenTerminal?: (towerId: string) => void;
 };
@@ -1674,7 +1986,19 @@ export default function SpatialUniverse({
   const [dismissed, setDismissed] = useState<string | null>(null);
   const [nearbyIds, setNearbyIds] = useState<string[]>([]);
   const [consumedIds, setConsumedIds] = useState<Set<string>>(() => new Set());
+  const [driving, setDriving] = useState(false);
+  const [pinNode, setPinNode] = useState<HardwareInteractable | null>(null);
+  const [diagNode, setDiagNode] = useState<HardwareInteractable | null>(null);
+  const [unlockedSentry, setUnlockedSentry] = useState(false);
   const nearestRef = useRef<string | null>(null);
+
+  const avatarPosRef = useRef(new THREE.Vector3(0, 0, 8));
+  const mountedRef = useRef(false);
+  const speedMultRef = useRef(1);
+  const camBoostRef = useRef(0);
+  const speedRef = useRef(0);
+  const blurIntensityRef = useRef(0);
+  const mountSnapRef = useRef<THREE.Vector3 | null>(null);
 
   useEffect(() => {
     setWebgl(supportsWebGL());
@@ -1683,6 +2007,14 @@ export default function SpatialUniverse({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === "Escape") {
+        if (pinNode) {
+          setPinNode(null);
+          return;
+        }
+        if (diagNode) {
+          setDiagNode(null);
+          return;
+        }
         if (inspect) {
           setInspect(null);
           return;
@@ -1697,7 +2029,7 @@ export default function SpatialUniverse({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [inspect, fullscreen]);
+  }, [inspect, fullscreen, pinNode, diagNode]);
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -1729,12 +2061,38 @@ export default function SpatialUniverse({
 
   const handleInteract = useCallback(
     (towerId: string) => {
+      if (mountedRef.current) return;
       const tower = TOWERS.find((t) => t.id === towerId);
       if (!tower || consumedIds.has(towerId)) return;
       setInspect(tower);
       onOpenTerminal?.(towerId);
     },
     [onOpenTerminal, consumedIds]
+  );
+
+  const handleHardwareInteract = useCallback(
+    (node: HardwareInteractable) => {
+      if (mountedRef.current) return;
+      if (node.requiresPin && !unlockedSentry) {
+        setPinNode(node);
+        setLocked(false);
+        return;
+      }
+      if (node.id === "ip-network-diag") {
+        setDiagNode(node);
+        setLocked(false);
+        return;
+      }
+      if (node.id === "sentry-log-ws") {
+        onOpenTerminal?.(node.id);
+        setDiagNode({
+          ...node,
+          label: "Sentry Log · unlocked stream",
+        });
+        setLocked(false);
+      }
+    },
+    [unlockedSentry, onOpenTerminal]
   );
 
   const handleMorph = useCallback(
@@ -1752,10 +2110,13 @@ export default function SpatialUniverse({
     setFullscreen((v) => !v);
   }, []);
 
+  const overlayOpen = !!(inspect || pinNode || diagNode);
+
   const showChip =
     nearest &&
     dismissed !== nearest.id &&
-    !inspect &&
+    !overlayOpen &&
+    !driving &&
     !consumedIds.has(nearest.id)
       ? nearest
       : null;
@@ -1779,7 +2140,7 @@ export default function SpatialUniverse({
               Spatial Universe
             </h2>
             <p className="font-mono text-[10px] text-slate-dim">
-              {TOWERS.length} nodes · morph · WASD ·{" "}
+              160 hardware · CyberRover · WASD ·{" "}
               {fullscreen ? "fullscreen" : "embedded"}
             </p>
           </div>
@@ -1789,7 +2150,7 @@ export default function SpatialUniverse({
             WASD / arrows
           </span>
           <span className="hidden rounded border border-white/10 bg-white/[0.03] px-2 py-1 md:inline">
-            E connect · M morph
+            E interact · F CyberRover · M morph
           </span>
           <button
             type="button"
@@ -1822,7 +2183,10 @@ export default function SpatialUniverse({
             </p>
           </div>
         ) : (
-          <SceneErrorBoundary onError={() => setWebgl(false)}>
+          <WebGLErrorBoundary
+            label="spatial-universe"
+            onError={() => setWebgl(false)}
+          >
             <Suspense fallback={null}>
               <Canvas
                 shadows
@@ -1841,18 +2205,25 @@ export default function SpatialUniverse({
                   failIfMajorPerformanceCaveat: false,
                 }}
                 onPointerDown={() => {
-                  if (!inspect) setLocked(true);
+                  if (!overlayOpen) setLocked(true);
                 }}
                 className="h-full w-full touch-none"
                 style={{ width: "100%", height: "100%" }}
               >
                 <Scene
-                  locked={locked && !inspect}
+                  locked={locked && !overlayOpen}
                   activeId={inspect?.id ?? showChip?.id ?? null}
                   hoveredId={hoveredId}
-                  nearestTower={nearest && !inspect ? nearest : null}
+                  nearestTower={nearest && !overlayOpen ? nearest : null}
                   consumedIds={consumedIds}
                   nearbyIds={nearbyIds}
+                  avatarPosRef={avatarPosRef}
+                  mountedRef={mountedRef}
+                  speedMultRef={speedMultRef}
+                  camBoostRef={camBoostRef}
+                  speedRef={speedRef}
+                  blurIntensityRef={blurIntensityRef}
+                  mountSnapRef={mountSnapRef}
                   onNearestTower={handleNearest}
                   onNearbyIds={setNearbyIds}
                   onRobotPos={() => {}}
@@ -1860,25 +2231,29 @@ export default function SpatialUniverse({
                   onInspect={handleInspect}
                   onInteract={handleInteract}
                   onMorph={handleMorph}
+                  onHardwareInteract={handleHardwareInteract}
+                  onMountChange={setDriving}
                 />
               </Canvas>
             </Suspense>
-          </SceneErrorBoundary>
+          </WebGLErrorBoundary>
         )}
 
-        {!locked && webgl && !inspect ? (
+        {!locked && webgl && !overlayOpen ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
-            <div className="rounded-lg border border-white/10 bg-[#040907]/80 px-4 py-3 text-center backdrop-blur-xl">
-              <Terminal className="mx-auto mb-2 h-5 w-5 text-emerald-400" />
+            <div className="rounded-lg border border-[#00ffaa]/25 bg-gradient-to-b from-slate-950/95 via-zinc-900/90 to-emerald-950/50 px-4 py-3 text-center backdrop-blur-xl">
+              <Terminal className="mx-auto mb-2 h-5 w-5 text-[#00ffaa]" />
               <p className="text-sm font-medium text-white">
-                Click to pilot robot avatar
+                Click to pilot alien avatar
               </p>
               <p className="mt-1 text-[11px] text-slate-muted">
-                Approach nodes · E connect · M morph composites
+                E terminals · F CyberRover · M morph
               </p>
             </div>
           </div>
         ) : null}
+
+        <SpeedometerHud speedRef={speedRef} visible={driving && locked} />
 
         {showChip ? (
           <ProximityChip
@@ -1890,6 +2265,29 @@ export default function SpatialUniverse({
 
         {inspect ? (
           <InspectModal tower={inspect} onClose={() => setInspect(null)} />
+        ) : null}
+
+        {pinNode ? (
+          <PinKeypadOverlay
+            node={pinNode}
+            onClose={() => setPinNode(null)}
+            onUnlock={() => {
+              setUnlockedSentry(true);
+              setPinNode(null);
+              onOpenTerminal?.(pinNode.id);
+              setDiagNode({
+                ...pinNode,
+                label: "Sentry Log · stream unlocked",
+              });
+            }}
+          />
+        ) : null}
+
+        {diagNode && !pinNode ? (
+          <NetworkDiagOverlay
+            node={diagNode}
+            onClose={() => setDiagNode(null)}
+          />
         ) : null}
       </div>
     </section>

@@ -1,18 +1,19 @@
 "use client";
 
 import {
-  Component,
   Suspense,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode,
   type RefObject,
 } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
+import { Box } from "lucide-react";
+import WebGLErrorBoundary from "@/components/ui/WebGLErrorBoundary";
+import ConnectionFallback from "@/components/ui/ConnectionFallback";
 
 const OBSIDIAN = "#040907";
 const SAPPHIRE = "#059669";
@@ -306,32 +307,22 @@ function SwarmScene() {
   );
 }
 
-class CanvasErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
-  { error: boolean }
-> {
-  state = { error: false };
-
-  static getDerivedStateFromError() {
-    return { error: true };
+function FallbackMesh({ onRetry }: { onRetry?: () => void }) {
+  if (onRetry) {
+    return (
+      <ConnectionFallback
+        icon={Box}
+        title="3D agent mesh unavailable"
+        description="WebGL failed to start. Retry Connection remounts the canvas scene."
+        onRetry={onRetry}
+      />
+    );
   }
-
-  componentDidCatch() {
-    /* swallow WebGL failures for marketing canvas */
-  }
-
-  render() {
-    if (this.state.error) return this.props.fallback;
-    return this.props.children;
-  }
-}
-
-function FallbackMesh() {
   return (
     <div className="flex h-full w-full items-center justify-center bg-[#040907]">
       <div className="relative h-40 w-40">
         <div className="absolute inset-0 animate-pulse rounded-full border border-emerald-500/30 bg-emerald-600/10 blur-sm" />
-        <div className="absolute inset-6 rounded-full border border-emerald-400/40 bg-emerald-600/15 shadow-[0_0_40px_rgba(16, 185, 129,0.25)]" />
+        <div className="absolute inset-6 rounded-full border border-emerald-400/40 bg-emerald-600/15 shadow-[0_0_40px_rgba(16,185,129,0.25)]" />
         <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] uppercase tracking-[0.2em] text-emerald-400">
           Swarm live
         </div>
@@ -358,7 +349,7 @@ export default function AgentNetworkCanvas({
         Agent mesh · live
       </div>
       <div className="absolute inset-0 flex items-center justify-center bg-[#040907]">
-        <CanvasErrorBoundary fallback={<FallbackMesh />}>
+        <WebGLErrorBoundary label="Agent mesh" className="h-full w-full">
           <Suspense fallback={<FallbackMesh />}>
             <Canvas
               className="block h-full w-full bg-[#040907]"
@@ -407,7 +398,7 @@ export default function AgentNetworkCanvas({
               <SwarmScene />
             </Canvas>
           </Suspense>
-        </CanvasErrorBoundary>
+        </WebGLErrorBoundary>
       </div>
       {!ready ? (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#040907]">

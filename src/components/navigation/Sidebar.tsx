@@ -183,8 +183,8 @@ const NAV_LINKS: NavLink[] = [
     match: "billing",
   },
   {
-    href: "/dashboard?view=catalog",
-    label: "Item Catalog",
+    href: "/catalog",
+    label: "Catalog",
     icon: ShoppingBag,
     match: "catalog",
   },
@@ -229,8 +229,8 @@ const NAV_LINKS: NavLink[] = [
 function linkClassName(active: boolean): string {
   return `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
     active
-      ? "bg-emerald-500/15 text-emerald-400"
-      : "text-slate-muted hover:bg-white/5 hover:text-white"
+      ? "border border-[#00ffaa]/25 bg-[#00ffaa]/10 text-[#00ffaa] shadow-glow-sm"
+      : "border border-transparent text-slate-muted hover:bg-bio-gunmetal/80 hover:text-white"
   }`;
 }
 
@@ -265,7 +265,8 @@ function SidebarNav() {
   const builderOpen = onDashboard && view === "builder";
   const cliOpen = onDashboard && view === "cli";
   const domainsOpen = onDashboard && view === "domains";
-  const catalogOpen = onDashboard && view === "catalog";
+  const catalogOpen =
+    pathname === "/catalog" || pathname.startsWith("/catalog/") || (onDashboard && view === "catalog");
   const inventoryOpen = onDashboard && view === "inventory";
   const sreHealthOpen = onDashboard && view === "sre-health";
   const securityOpen = onDashboard && view === "security";
@@ -349,7 +350,7 @@ function SidebarNav() {
       aria-label="Sidebar navigation"
     >
       {onDashboard ? (
-        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-emerald-400/80">
+        <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-[#00ffaa]/80">
           {mode === "USER" ? "User nav" : "Developer nav"}
         </p>
       ) : null}
@@ -401,20 +402,20 @@ export default function Sidebar() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 hidden w-[min(18rem,88vw)] flex-col border-r border-white/5 bg-obsidian/95 backdrop-blur-xl transition-transform duration-300 ease-out md:flex xl:static xl:z-auto xl:w-64 xl:shrink-0 xl:translate-x-0 xl:border-white/10 xl:bg-obsidian/80 ${
+        className={`fixed inset-y-0 left-0 z-50 hidden w-[min(18rem,88vw)] flex-col border-r border-bio-moss/50 bg-gradient-to-b from-slate-950 via-bio-gunmetal to-bio-moss/40 backdrop-blur-xl transition-transform duration-300 ease-out md:flex xl:static xl:z-auto xl:w-64 xl:shrink-0 xl:translate-x-0 xl:border-bio-moss/40 ${
           open
-            ? "!flex translate-x-0 shadow-2xl"
+            ? "!flex translate-x-0 shadow-2xl shadow-black/60"
             : "-translate-x-full xl:translate-x-0"
         }`}
       >
-        <div className="border-b border-white/5 px-5 py-5">
+        <div className="border-b border-bio-moss/40 bg-bio-panel/60 px-5 py-5">
           <div className="flex items-center justify-between gap-2">
             <Link
               href="/"
               className="font-display text-lg font-bold text-white"
               onClick={closeDrawer}
             >
-              Scale<span className="text-emerald-400">Systems</span>
+              Scale<span className="text-[#00ffaa]">Systems</span>
             </Link>
             <button
               type="button"

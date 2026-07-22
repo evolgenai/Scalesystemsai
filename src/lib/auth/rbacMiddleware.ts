@@ -19,6 +19,8 @@ import { getPrisma } from "@/lib/prisma";
 export type WorkspacePermission =
   | "terminal.execute"
   | "spatial.morph"
+  | "spatial.interact"
+  | "spatial.vehicle"
   | "payments.mutate"
   | "telemetry.read";
 
@@ -30,16 +32,20 @@ export const ROLE_PERMISSIONS: Record<
   ADMIN: [
     "terminal.execute",
     "spatial.morph",
+    "spatial.interact",
+    "spatial.vehicle",
     "payments.mutate",
     "telemetry.read",
   ],
   DEVELOPER: [
     "terminal.execute",
     "spatial.morph",
+    "spatial.interact",
+    "spatial.vehicle",
     "payments.mutate",
     "telemetry.read",
   ],
-  MEMBER: ["telemetry.read", "payments.mutate"],
+  MEMBER: ["telemetry.read", "payments.mutate", "spatial.vehicle"],
 } as const;
 
 export type RbacContext = {

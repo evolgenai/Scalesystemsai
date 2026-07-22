@@ -4,6 +4,8 @@ import React, { useEffect, useRef } from 'react';
 import { Radio, Terminal } from 'lucide-react';
 import { useAgentStream } from '@/lib/agents/useAgentStream';
 import type { AgentStreamEvent } from '@/lib/agents/streamProtocol';
+import SseConnectionFallback from '@/components/ui/SseConnectionFallback';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 type AgentTerminalProps = {
   /** Opt into live SSE (`/api/agents/stream`). Defaults to true. */
@@ -38,7 +40,7 @@ export default function AgentTerminal({
   live = true,
   className = '',
 }: AgentTerminalProps) {
-  const { lines, connection, agents, overallProgress } = useAgentStream({
+  const { lines, connection, agents, overallProgress, start } = useAgentStream({
     enabled: live,
     loop: true,
     objective:
@@ -57,6 +59,7 @@ export default function AgentTerminal({
   ).length;
 
   return (
+    <ErrorBoundary label="Agent Terminal">
     <div
       className={`mx-auto my-12 flex w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-emerald-900/30 bg-[#050d09]/80 shadow-alien backdrop-blur-md ${className}`}
     >
@@ -95,7 +98,13 @@ export default function AgentTerminal({
         role="log"
         aria-live="polite"
       >
-        {lines.length === 0 ? (
+        {connection === 'error' ? (
+          <SseConnectionFallback
+            compact
+            onRetry={() => start()}
+            detail="Agent SSE channel closed unexpectedly"
+          />
+        ) : lines.length === 0 ? (
           <p className="animate-pulse text-slate-500">
             Connecting swarm telemetry…
           </p>
@@ -155,5 +164,6 @@ export default function AgentTerminal({
         </div>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }

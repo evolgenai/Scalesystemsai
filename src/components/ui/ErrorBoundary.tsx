@@ -5,6 +5,7 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 
 type ErrorBoundaryProps = {
@@ -22,13 +23,14 @@ type ErrorBoundaryProps = {
 type ErrorBoundaryState = {
   error: Error | null;
   resetCount: number;
+  eventId: string | null;
 };
 
 export default class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  state: ErrorBoundaryState = { error: null, resetCount: 0 };
+  state: ErrorBoundaryState = { error: null, resetCount: 0, eventId: null };
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { error };
@@ -36,11 +38,35 @@ export default class ErrorBoundary extends Component<
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     this.props.onError?.(error, info);
+
+    const eventId = Sentry.captureException(error, {
+      tags: {
+        boundary: "react-error-boundary",
+        surface: this.props.label ?? "view",
+      },
+      contexts: {
+        react: {
+          componentStack: info.componentStack,
+        },
+        ui: {
+          label: this.props.label ?? "view",
+          compact: Boolean(this.props.compact),
+          resetKey: this.props.resetKey ?? null,
+        },
+      },
+      extra: {
+        digest: (error as Error & { digest?: string }).digest ?? null,
+      },
+    });
+
+    this.setState({ eventId });
+
     if (process.env.NODE_ENV !== "production") {
       console.error(
         `[ErrorBoundary:${this.props.label ?? "view"}]`,
         error,
-        info
+        info,
+        eventId ? `sentry:${eventId}` : ""
       );
     }
   }
@@ -51,16 +77,24 @@ export default class ErrorBoundary extends Component<
       this.props.resetKey !== undefined &&
       prev.resetKey !== this.props.resetKey
     ) {
-      this.setState((s) => ({ error: null, resetCount: s.resetCount + 1 }));
+      this.setState((s) => ({
+        error: null,
+        eventId: null,
+        resetCount: s.resetCount + 1,
+      }));
     }
   }
 
   private hotReload = () => {
-    this.setState((s) => ({ error: null, resetCount: s.resetCount + 1 }));
+    this.setState((s) => ({
+      error: null,
+      eventId: null,
+      resetCount: s.resetCount + 1,
+    }));
   };
 
   render() {
-    const { error, resetCount } = this.state;
+    const { error, resetCount, eventId } = this.state;
     const { children, label = "Panel", compact = false, fallback } = this.props;
 
     if (error) {
@@ -89,13 +123,18 @@ export default class ErrorBoundary extends Component<
                   {error.message}
                 </p>
               ) : null}
+              {!compact && eventId ? (
+                <p className="mt-1 font-mono text-[9px] text-slate-500">
+                  Sentry {eventId}
+                </p>
+              ) : null}
               <button
                 type="button"
                 onClick={this.hotReload}
                 className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-400 transition hover:border-emerald-400/60 hover:bg-emerald-500/20 active:scale-[0.98]"
               >
                 <RefreshCw className="h-3.5 w-3.5" aria-hidden />
-                Hot-reload {label}
+                Retry Connection
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
 
+const BIO_GLOW = "#00ffaa";
 const EMERALD = "#10B981";
 const ROBOT_HEIGHT = 1.15;
 const GROUND_Y = 0;
@@ -18,10 +19,10 @@ const CAM_DIST_MAX = 11;
 const CAM_DIST_DEFAULT = 5.5;
 
 const BOUNDS = {
-  minX: -38,
-  maxX: 38,
-  minZ: -38,
-  maxZ: 38,
+  minX: -95,
+  maxX: 95,
+  minZ: -95,
+  maxZ: 95,
 } as const;
 
 export type ProximityTarget = {
@@ -40,9 +41,20 @@ export type RobotAvatarProps = {
   onPositionChange?: (pos: [number, number, number]) => void;
   onInteract?: (id: string) => void;
   enabled?: boolean;
+  /** Shared world position — updated every frame (no React setState). */
+  positionRef?: MutableRefObject<THREE.Vector3>;
+  /** When true, avatar is seated in vehicle (hidden mesh, drive physics). */
+  mountedRef?: MutableRefObject<boolean>;
+  /** Extra speed multiplier (vehicle = 2). Read every frame from ref. */
+  speedMultRef?: MutableRefObject<number>;
+  /** Extra camera distance while driving. */
+  camBoostRef?: MutableRefObject<number>;
+  /** One-shot world snap on vehicle mount (cleared after apply). */
+  mountSnapRef?: MutableRefObject<THREE.Vector3 | null>;
 };
 
-function RobotMesh({
+/** Sprint 48 bio-metallic alien pilot mesh */
+function AlienMesh({
   state,
 }: {
   state: MutableRefObject<{ moving: boolean; hovering: boolean }>;
@@ -53,6 +65,7 @@ function RobotMesh({
   const thrusterL = useRef<Mesh>(null);
   const thrusterR = useRef<Mesh>(null);
   const core = useRef<Mesh>(null);
+  const cranium = useRef<Mesh>(null);
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
@@ -60,128 +73,134 @@ function RobotMesh({
     const bob = hovering ? Math.sin(t * 6.5) * 0.04 : Math.sin(t * 3.2) * 0.012;
     if (group.current) group.current.position.y = bob;
 
-    const eyePulse = 0.85 + Math.sin(t * 5.5) * 0.35;
+    const eyePulse = 1.1 + Math.sin(t * 6.2) * 0.55;
     for (const eye of [eyeL.current, eyeR.current]) {
       if (!eye) continue;
       const mat = eye.material as THREE.MeshStandardMaterial;
       mat.emissiveIntensity = eyePulse;
+      eye.scale.setScalar(0.95 + Math.sin(t * 5 + (eye === eyeL.current ? 0 : 1)) * 0.08);
     }
 
-    const thrust = hovering || moving ? 1.4 + Math.sin(t * 18) * 0.55 : 0.25;
+    const thrust = hovering || moving ? 1.5 + Math.sin(t * 18) * 0.55 : 0.28;
     for (const thr of [thrusterL.current, thrusterR.current]) {
       if (!thr) continue;
       const mat = thr.material as THREE.MeshStandardMaterial;
       mat.emissiveIntensity = thrust;
-      thr.scale.y = hovering || moving ? 1.2 + Math.sin(t * 22) * 0.35 : 0.55;
+      thr.scale.y = hovering || moving ? 1.25 + Math.sin(t * 22) * 0.35 : 0.55;
     }
 
     if (core.current) {
       const mat = core.current.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = 0.45 + Math.sin(t * 2.8) * 0.2;
+      mat.emissiveIntensity = 0.55 + Math.sin(t * 2.8) * 0.25;
+    }
+    if (cranium.current) {
+      cranium.current.rotation.y = Math.sin(t * 0.6) * 0.04;
     }
   });
 
   return (
     <group ref={group}>
-      {/* Torso */}
+      {/* Elongated alien cranium */}
+      <mesh ref={cranium} position={[0, 1.28, -0.02]} castShadow>
+        <sphereGeometry args={[0.32, 24, 20]} />
+        <meshStandardMaterial
+          color="#152e24"
+          metalness={0.75}
+          roughness={0.28}
+          emissive="#0a1f18"
+          emissiveIntensity={0.25}
+        />
+      </mesh>
+      <mesh position={[0, 1.48, -0.08]} castShadow scale={[0.85, 1.15, 0.9]}>
+        <sphereGeometry args={[0.22, 20, 16]} />
+        <meshStandardMaterial
+          color="#13191c"
+          metalness={0.88}
+          roughness={0.2}
+        />
+      </mesh>
+      {/* Large bioluminescent eyes */}
+      <mesh ref={eyeL} position={[-0.12, 1.26, 0.22]}>
+        <sphereGeometry args={[0.085, 16, 16]} />
+        <meshStandardMaterial
+          color={BIO_GLOW}
+          emissive={BIO_GLOW}
+          emissiveIntensity={1.2}
+          metalness={0.15}
+          roughness={0.12}
+        />
+      </mesh>
+      <mesh ref={eyeR} position={[0.12, 1.26, 0.22]}>
+        <sphereGeometry args={[0.085, 16, 16]} />
+        <meshStandardMaterial
+          color={BIO_GLOW}
+          emissive={BIO_GLOW}
+          emissiveIntensity={1.2}
+          metalness={0.15}
+          roughness={0.12}
+        />
+      </mesh>
+      {/* Slim bio-metallic torso */}
       <mesh position={[0, 0.72, 0]} castShadow>
-        <boxGeometry args={[0.55, 0.7, 0.38]} />
+        <capsuleGeometry args={[0.22, 0.42, 8, 16]} />
         <meshStandardMaterial
-          color="#1a1f2a"
-          metalness={0.92}
-          roughness={0.18}
-          envMapIntensity={1.2}
+          color="#1a2428"
+          metalness={0.94}
+          roughness={0.16}
+          envMapIntensity={1.3}
         />
       </mesh>
-      {/* Chest plate */}
-      <mesh ref={core} position={[0, 0.78, 0.2]} castShadow>
-        <boxGeometry args={[0.32, 0.28, 0.06]} />
+      <mesh ref={core} position={[0, 0.78, 0.18]} castShadow>
+        <circleGeometry args={[0.12, 20]} />
         <meshStandardMaterial
-          color="#0b1220"
-          metalness={0.85}
-          roughness={0.22}
-          emissive={EMERALD}
-          emissiveIntensity={0.5}
-        />
-      </mesh>
-      {/* Head */}
-      <mesh position={[0, 1.18, 0]} castShadow>
-        <boxGeometry args={[0.42, 0.36, 0.36]} />
-        <meshStandardMaterial
-          color="#121820"
-          metalness={0.95}
-          roughness={0.14}
-        />
-      </mesh>
-      {/* Visor */}
-      <mesh position={[0, 1.18, 0.19]}>
-        <boxGeometry args={[0.34, 0.14, 0.04]} />
-        <meshStandardMaterial
-          color="#04120e"
-          metalness={0.4}
-          roughness={0.08}
-          transparent
-          opacity={0.85}
-        />
-      </mesh>
-      {/* Eyes */}
-      <mesh ref={eyeL} position={[-0.1, 1.18, 0.22]}>
-        <sphereGeometry args={[0.045, 12, 12]} />
-        <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
-          emissiveIntensity={1}
-          metalness={0.2}
-          roughness={0.15}
-        />
-      </mesh>
-      <mesh ref={eyeR} position={[0.1, 1.18, 0.22]}>
-        <sphereGeometry args={[0.045, 12, 12]} />
-        <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
-          emissiveIntensity={1}
-          metalness={0.2}
-          roughness={0.15}
-        />
-      </mesh>
-      {/* Antenna */}
-      <mesh position={[0.12, 1.42, 0]} castShadow>
-        <cylinderGeometry args={[0.015, 0.015, 0.22, 6]} />
-        <meshStandardMaterial color="#334155" metalness={0.9} roughness={0.25} />
-      </mesh>
-      <mesh position={[0.12, 1.55, 0]}>
-        <sphereGeometry args={[0.035, 8, 8]} />
-        <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
-          emissiveIntensity={0.9}
+          color="#080b0c"
+          metalness={0.8}
+          roughness={0.2}
+          emissive={BIO_GLOW}
+          emissiveIntensity={0.6}
+          side={THREE.DoubleSide}
         />
       </mesh>
       {/* Arms */}
-      <mesh position={[-0.42, 0.72, 0]} castShadow>
-        <boxGeometry args={[0.16, 0.55, 0.16]} />
-        <meshStandardMaterial color="#151b24" metalness={0.9} roughness={0.2} />
+      <mesh position={[-0.38, 0.7, 0]} rotation={[0, 0, 0.25]} castShadow>
+        <capsuleGeometry args={[0.055, 0.38, 6, 10]} />
+        <meshStandardMaterial color="#13191c" metalness={0.9} roughness={0.22} />
       </mesh>
-      <mesh position={[0.42, 0.72, 0]} castShadow>
-        <boxGeometry args={[0.16, 0.55, 0.16]} />
-        <meshStandardMaterial color="#151b24" metalness={0.9} roughness={0.2} />
+      <mesh position={[0.38, 0.7, 0]} rotation={[0, 0, -0.25]} castShadow>
+        <capsuleGeometry args={[0.055, 0.38, 6, 10]} />
+        <meshStandardMaterial color="#13191c" metalness={0.9} roughness={0.22} />
       </mesh>
-      {/* Legs / thruster mounts */}
-      <mesh position={[-0.16, 0.28, 0]} castShadow>
-        <boxGeometry args={[0.18, 0.4, 0.2]} />
-        <meshStandardMaterial color="#0f141c" metalness={0.88} roughness={0.22} />
-      </mesh>
-      <mesh position={[0.16, 0.28, 0]} castShadow>
-        <boxGeometry args={[0.18, 0.4, 0.2]} />
-        <meshStandardMaterial color="#0f141c" metalness={0.88} roughness={0.22} />
-      </mesh>
-      {/* Hover thrusters */}
-      <mesh ref={thrusterL} position={[-0.16, 0.04, 0]} rotation={[Math.PI, 0, 0]}>
-        <coneGeometry args={[0.09, 0.28, 8]} />
+      {/* Digit digits */}
+      <mesh position={[-0.42, 0.42, 0.05]} castShadow>
+        <sphereGeometry args={[0.05, 10, 10]} />
         <meshStandardMaterial
-          color={EMERALD}
+          color={BIO_GLOW}
           emissive={EMERALD}
+          emissiveIntensity={0.45}
+        />
+      </mesh>
+      <mesh position={[0.42, 0.42, 0.05]} castShadow>
+        <sphereGeometry args={[0.05, 10, 10]} />
+        <meshStandardMaterial
+          color={BIO_GLOW}
+          emissive={EMERALD}
+          emissiveIntensity={0.45}
+        />
+      </mesh>
+      {/* Legs / hover mounts */}
+      <mesh position={[-0.14, 0.28, 0]} castShadow>
+        <capsuleGeometry args={[0.07, 0.22, 6, 10]} />
+        <meshStandardMaterial color="#0c1214" metalness={0.88} roughness={0.24} />
+      </mesh>
+      <mesh position={[0.14, 0.28, 0]} castShadow>
+        <capsuleGeometry args={[0.07, 0.22, 6, 10]} />
+        <meshStandardMaterial color="#0c1214" metalness={0.88} roughness={0.24} />
+      </mesh>
+      <mesh ref={thrusterL} position={[-0.14, 0.04, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.09, 0.28, 10]} />
+        <meshStandardMaterial
+          color={BIO_GLOW}
+          emissive={BIO_GLOW}
           emissiveIntensity={0.4}
           transparent
           opacity={0.85}
@@ -189,33 +208,24 @@ function RobotMesh({
           roughness={0.35}
         />
       </mesh>
-      <mesh ref={thrusterR} position={[0.16, 0.04, 0]} rotation={[Math.PI, 0, 0]}>
-        <coneGeometry args={[0.09, 0.28, 8]} />
+      <mesh ref={thrusterR} position={[0.14, 0.04, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.09, 0.28, 10]} />
         <meshStandardMaterial
-          color={EMERALD}
-          emissive={EMERALD}
+          color={BIO_GLOW}
+          emissive={BIO_GLOW}
           emissiveIntensity={0.4}
           transparent
           opacity={0.85}
           metalness={0.1}
           roughness={0.35}
         />
-      </mesh>
-      {/* Shoulder pads */}
-      <mesh position={[-0.38, 0.98, 0]} castShadow>
-        <boxGeometry args={[0.22, 0.12, 0.28]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.95} roughness={0.16} />
-      </mesh>
-      <mesh position={[0.38, 0.98, 0]} castShadow>
-        <boxGeometry args={[0.22, 0.12, 0.28]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.95} roughness={0.16} />
       </mesh>
     </group>
   );
 }
 
 /**
- * GTA-style third-person robot avatar: WASD relative to camera yaw,
+ * GTA-style third-person alien avatar: WASD relative to camera yaw,
  * Shift sprint, Space jump/hover, 360° orbit mouse look with damping.
  */
 export default function RobotAvatar({
@@ -228,9 +238,15 @@ export default function RobotAvatar({
   onPositionChange,
   onInteract,
   enabled = true,
+  positionRef,
+  mountedRef,
+  speedMultRef,
+  camBoostRef,
+  mountSnapRef,
 }: RobotAvatarProps) {
   const { camera, gl } = useThree();
   const root = useRef<Group>(null);
+  const meshVisible = useRef<Group>(null);
   const keys = useRef<Record<string, boolean>>({});
   const vel = useRef(new THREE.Vector3());
   const wish = useRef(new THREE.Vector3());
@@ -271,6 +287,7 @@ export default function RobotAvatar({
       }
       if (e.code === "Space" && locked) e.preventDefault();
       if (e.code === "KeyE" && locked && nearestId.current && onInteract) {
+        if (mountedRef?.current) return;
         e.preventDefault();
         onInteract(nearestId.current);
       }
@@ -284,7 +301,7 @@ export default function RobotAvatar({
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
     };
-  }, [enabled, locked, onInteract]);
+  }, [enabled, locked, onInteract, mountedRef]);
 
   useEffect(() => {
     if (!enabled) return;
@@ -318,20 +335,41 @@ export default function RobotAvatar({
     };
   }, [gl, locked, enabled]);
 
+  // Sync vehicle spawn into avatar root when mount snaps position
   useFrame((_, delta) => {
     if (!enabled || !root.current) return;
     const dt = Math.min(delta, 0.033);
+    const driving = !!mountedRef?.current;
+    const speedMult = speedMultRef?.current ?? 1;
+    const camBoost = camBoostRef?.current ?? 0;
+
+    if (mountSnapRef?.current) {
+      const snap = mountSnapRef.current;
+      root.current.position.set(snap.x, GROUND_Y, snap.z);
+      vel.current.set(0, 0, 0);
+      vy.current = 0;
+      mountSnapRef.current = null;
+    }
+
+    if (meshVisible.current) {
+      meshVisible.current.visible = !driving;
+    }
 
     // Orbit damping (OrbitControls-equivalent)
     const damp = 1 - Math.exp(-10 * dt);
     lookSmooth.current.yaw += (look.current.yaw - lookSmooth.current.yaw) * damp;
     lookSmooth.current.pitch +=
       (look.current.pitch - lookSmooth.current.pitch) * damp;
-    lookSmooth.current.dist +=
-      (look.current.dist - lookSmooth.current.dist) * damp;
+    const targetDist = THREE.MathUtils.clamp(
+      look.current.dist + camBoost,
+      CAM_DIST_MIN,
+      CAM_DIST_MAX + 6
+    );
+    lookSmooth.current.dist += (targetDist - lookSmooth.current.dist) * damp;
 
     const sprint = keys.current.ShiftLeft || keys.current.ShiftRight;
-    const speed = sprint ? 11 : 5.5;
+    const base = driving ? (sprint ? 11 : 5.5) * speedMult : sprint ? 11 : 5.5;
+    const speed = base;
 
     // Camera-relative planar axes
     forward.current.set(
@@ -358,14 +396,17 @@ export default function RobotAvatar({
     const hasWish = wish.current.lengthSq() > 1e-6;
     if (hasWish) wish.current.normalize().multiplyScalar(speed);
 
-    vel.current.x += (wish.current.x - vel.current.x) * (1 - Math.exp(-12 * dt));
-    vel.current.z += (wish.current.z - vel.current.z) * (1 - Math.exp(-12 * dt));
+    const accel = driving ? 8 : 12;
+    vel.current.x +=
+      (wish.current.x - vel.current.x) * (1 - Math.exp(-accel * dt));
+    vel.current.z +=
+      (wish.current.z - vel.current.z) * (1 - Math.exp(-accel * dt));
 
     moving.current = vel.current.lengthSq() > 0.04;
     anim.current.moving = moving.current;
 
-    // Jump / hover
-    const space = !!keys.current.Space;
+    // Jump / hover — disabled while driving
+    const space = !!keys.current.Space && !driving;
     if (space && grounded.current && !hovering.current) {
       vy.current = 7.2;
       grounded.current = false;
@@ -378,7 +419,9 @@ export default function RobotAvatar({
     }
     anim.current.hovering = hovering.current;
 
-    if (hovering.current) {
+    if (driving) {
+      vy.current = 0;
+    } else if (hovering.current) {
       vy.current += (1.6 - vy.current) * (1 - Math.exp(-6 * dt));
     } else {
       vy.current -= 22 * dt;
@@ -390,7 +433,7 @@ export default function RobotAvatar({
     pos.y += vy.current * dt;
 
     // Ground collision
-    if (pos.y <= GROUND_Y) {
+    if (pos.y <= GROUND_Y || driving) {
       pos.y = GROUND_Y;
       vy.current = 0;
       grounded.current = true;
@@ -413,11 +456,14 @@ export default function RobotAvatar({
     }
     root.current.rotation.y = facing.current;
 
-    // Third-person orbit camera
+    // Sync shared position ref every frame (vehicle + hardware proximity)
+    positionRef?.current.set(pos.x, pos.y, pos.z);
+
+    // Third-person orbit camera (zooms out while driving via camBoost)
     const pitch = lookSmooth.current.pitch;
     const yaw = lookSmooth.current.yaw;
     const dist = lookSmooth.current.dist;
-    const focusY = pos.y + ROBOT_HEIGHT * 0.85;
+    const focusY = pos.y + (driving ? 1.35 : ROBOT_HEIGHT * 0.85);
 
     camOffset.current.set(
       Math.sin(yaw) * Math.cos(pitch) * dist,
@@ -465,13 +511,15 @@ export default function RobotAvatar({
 
   return (
     <group ref={root} position={[0, 0, 8]}>
-      <RobotMesh state={anim} />
-      <pointLight
-        position={[0, 1.2, 0.4]}
-        intensity={0.55}
-        distance={4}
-        color={EMERALD}
-      />
+      <group ref={meshVisible}>
+        <AlienMesh state={anim} />
+        <pointLight
+          position={[0, 1.2, 0.4]}
+          intensity={0.7}
+          distance={4.5}
+          color={BIO_GLOW}
+        />
+      </group>
     </group>
   );
 }

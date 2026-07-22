@@ -30,6 +30,7 @@ import RecalledMemoriesIndicator from "@/components/dashboard/RecalledMemoriesIn
 import ResultMarkdown from "@/components/dashboard/ResultMarkdown";
 import SandboxConsole from "@/components/dashboard/SandboxConsole";
 import WorkspaceActivityFeed from "@/components/org/WorkspaceActivityFeed";
+import SseConnectionFallback from "@/components/ui/SseConnectionFallback";
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 
 type LiveStreamTerminalProps = {
@@ -49,6 +50,8 @@ type LiveStreamTerminalProps = {
   onProceedCheckout?: () => void;
   onPause?: () => void;
   onResume?: () => void;
+  /** Re-open the SSE agent stream after a connection failure. */
+  onRetryConnection?: () => void;
 };
 
 function formatStamp(iso: string): string {
@@ -427,6 +430,7 @@ export default function LiveStreamTerminal({
   onProceedCheckout,
   onPause,
   onResume,
+  onRetryConnection,
 }: LiveStreamTerminalProps) {
   const [fullscreen, setFullscreen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -571,6 +575,16 @@ export default function LiveStreamTerminal({
             : "relative flex h-[500px] max-h-[600px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#050507] shadow-[0_0_30px_rgba(0,242,254,0.04)]"
       }
     >
+      {connection === "error" && onRetryConnection ? (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#050507]/92 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm">
+            <SseConnectionFallback
+              onRetry={onRetryConnection}
+              detail="runtime-sse-swarm-stream disconnected"
+            />
+          </div>
+        </div>
+      ) : null}
       <div className="flex shrink-0 flex-col border-b border-white/10 bg-[#0d0d11]">
         <div className="flex items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-2">

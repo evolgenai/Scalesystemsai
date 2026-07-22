@@ -7,6 +7,7 @@ import { NavDrawerProvider } from "@/components/navigation/NavDrawerContext";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WorkspaceModeProvider } from "@/components/dashboard/ModeWrapper";
 import LaunchBanner from "@/components/public/LaunchBanner";
+import DevToolsMount from "@/components/dev/DevToolsMount";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,7 +28,7 @@ const siteDescription =
   "ScaleSystems delivers cloud-hosted agentic workflows and multi-agent orchestration. Deploy AI swarm employees for lead generation, autonomous system operations, and 24/7 technical support.";
 
 export const viewport: Viewport = {
-  themeColor: "#040907",
+  themeColor: "#080b0c",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -127,7 +128,7 @@ export default function RootLayout({
         <AuthProvider>
           <NavDrawerProvider>
             <WorkspaceModeProvider>
-              <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-obsidian text-white">
+              <div className="bio-vignette flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-gradient-to-b from-slate-950 via-zinc-900 to-emerald-950/30 text-white">
                 <Sidebar />
                 <div className="flex min-w-0 w-full flex-1 flex-col">
                   <LaunchBanner />
@@ -137,6 +138,7 @@ export default function RootLayout({
                   </main>
                 </div>
               </div>
+              <DevToolsMount />
             </WorkspaceModeProvider>
           </NavDrawerProvider>
         </AuthProvider>
