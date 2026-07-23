@@ -39,6 +39,7 @@ export type NodeDialogKind =
   | "database_shard_monitor"
   | "cyber_rover_drive"
   | "sentry_terminal"
+  | "meta_sre"
   | "ip_diagnostic"
   | "webhook_relay"
   | "llm_router_console"
@@ -98,6 +99,7 @@ const LABEL_PREFIX: Record<NodeDialogKind, string> = {
   database_shard_monitor: "Database Shard Monitor",
   cyber_rover_drive: "CyberRover 2x Drive",
   sentry_terminal: "Sentry Terminal",
+  meta_sre: "Meta-SRE Memory Core",
   ip_diagnostic: "IP Diagnostic Node",
   webhook_relay: "Webhook Relay",
   llm_router_console: "LLM Router Console",
@@ -138,7 +140,11 @@ function kindForDialog(d: NodeDialogKind): HardwareKind {
     return "server_rack";
   if (d === "ip_diagnostic" || d === "teletraffic_probe" || d === "webhook_relay")
     return "diagnostic_router";
-  if (d === "sse_stream_analyzer" || d === "llm_router_console")
+  if (
+    d === "sse_stream_analyzer" ||
+    d === "llm_router_console" ||
+    d === "meta_sre"
+  )
     return "cyber_console";
   return "terminal";
 }
@@ -201,6 +207,15 @@ function buildMetrics(
         errorRate: Number((rand() * 2.5).toFixed(2)),
         apdex: Number((0.86 + rand() * 0.12).toFixed(3)),
         lastSpike: `${Math.floor(rand() * 40)}m ago`,
+      };
+    case "meta_sre":
+      return {
+        agent: "meta-sre",
+        healBudget: `${4 - (n % 4)}/5`,
+        patchesToday: Math.floor(2 + rand() * 9),
+        memoryDepth: Math.floor(12 + rand() * 40),
+        lastRecall: `${Math.floor(rand() * 12)}m ago`,
+        feedSource: "agent-memory",
       };
     case "ip_diagnostic":
       return {
@@ -298,6 +313,20 @@ export function generateHardwareScatter(seed = 48_001): ScatterSlot[] {
     metrics: buildMetrics("sentry_terminal", 0, rand),
   });
   pushUnique({
+    id: "meta-sre-core",
+    kind: "cyber_console",
+    dialogKind: "meta_sre",
+    label: "Meta-SRE Memory Core",
+    position: [-10.2, 0, 9.8],
+    yaw: 0.35,
+    scale: [1.2, 2.5, 0.9],
+    interactive: true,
+    access: "superadmin",
+    requiresPin: true,
+    height: 2.55,
+    metrics: buildMetrics("meta_sre", 0, rand),
+  });
+  pushUnique({
     id: "ip-network-diag",
     kind: "diagnostic_router",
     dialogKind: "ip_diagnostic",
@@ -316,6 +345,7 @@ export function generateHardwareScatter(seed = 48_001): ScatterSlot[] {
     [0, 8],
     [-13.5, 11.5],
     [18.5, -4.2],
+    [-10.2, 9.8],
     [-19.2, 5.4],
     [6.5, 10.5],
     [-8, -6],
@@ -326,7 +356,7 @@ export function generateHardwareScatter(seed = 48_001): ScatterSlot[] {
   ] as const;
 
   let i = 0;
-  let interactiveCount = 2;
+  let interactiveCount = 3;
   while (slots.length < TOTAL_INSTANCES && i < 9000) {
     i++;
     const x = (rand() - 0.5) * WORLD_EXTENT * 0.72;
@@ -361,6 +391,7 @@ export function generateHardwareScatter(seed = 48_001): ScatterSlot[] {
     const pinLocked =
       interactive &&
       (dialogKind === "sentry_terminal" ||
+        dialogKind === "meta_sre" ||
         rand() < PIN_LOCKED_RATIO);
 
     const unit = Math.floor(idx / DIALOG_CYCLE.length) + 1;

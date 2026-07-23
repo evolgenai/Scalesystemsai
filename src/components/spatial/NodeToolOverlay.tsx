@@ -62,6 +62,15 @@ function linesFor(node: HardwareInteractable): string[] {
         `[*] last spike ${m.lastSpike}`,
         "[ok] unlock via [Z] PIN for live error stream",
       ];
+    case "meta_sre":
+      return [
+        `[meta-sre] memory core · ${node.label}`,
+        `[*] agent ${m.agent} · heal budget ${m.healBudget}`,
+        `[*] patches today ${m.patchesToday} · memory depth ${m.memoryDepth}`,
+        `[*] last recall ${m.lastRecall} · feed ${m.feedSource}`,
+        "[*] PIN unlock opens persistent memory HUD",
+        "[ok] auto-patches · sentry resolutions · step logs",
+      ];
     case "ip_diagnostic":
       return [
         `[ip] diagnostic · ${node.label}`,
@@ -162,7 +171,9 @@ export default function NodeToolOverlay({
   const live = sentryLines(sentryTelemetry);
   const lines =
     live &&
-    (node.dialogKind === "sentry_terminal" || node.requiresPin)
+    (node.dialogKind === "sentry_terminal" ||
+      node.dialogKind === "meta_sre" ||
+      node.requiresPin)
       ? live
       : linesFor(node);
 

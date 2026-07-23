@@ -47,6 +47,9 @@ import PinKeypadModal, {
   type SentryTelemetryPayload,
 } from "@/components/spatial/PinKeypadModal";
 import NodeToolOverlay from "@/components/spatial/NodeToolOverlay";
+import MetaSreTerminalModal from "@/components/spatial/MetaSreTerminalModal";
+import { useStreamEngine } from "@/components/spatial/StreamEngineContext";
+import { playSpatialCue } from "@/lib/spatial/spatialAudio";
 import ObjectMorpher, {
   type CompositeSuite,
   type MorphNode,
@@ -61,6 +64,16 @@ const YELLOW = "#facc15";
 const GRID_SIZE = 120;
 const PROXIMITY = 3;
 const MORPH_PROX = 5.5;
+
+function isMemoryHudNode(node: HardwareInteractable): boolean {
+  return (
+    node.dialogKind === "sentry_terminal" ||
+    node.dialogKind === "meta_sre" ||
+    node.id === "sentry-log-ws" ||
+    node.id === "meta-sre-core" ||
+    /meta-sre|sentry/i.test(node.label)
+  );
+}
 
 type NodeKind =
   | "gas"
@@ -1827,6 +1840,7 @@ export type SpatialUniverseProps = {
 export default function SpatialUniverse({
   onOpenTerminal,
 }: SpatialUniverseProps = {}) {
+  const { mode: streamMode } = useStreamEngine();
   const [webgl, setWebgl] = useState(true);
   const [locked, setLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
@@ -1839,6 +1853,9 @@ export default function SpatialUniverse({
   const [driving, setDriving] = useState(false);
   const [pinNode, setPinNode] = useState<HardwareInteractable | null>(null);
   const [toolNode, setToolNode] = useState<HardwareInteractable | null>(null);
+  const [memoryNode, setMemoryNode] = useState<HardwareInteractable | null>(
+    null
+  );
   const [sentryTelemetry, setSentryTelemetry] = useState<
     SentryTelemetryPayload | Record<string, unknown> | null
   >(null);
@@ -1871,6 +1888,10 @@ export default function SpatialUniverse({
           setPinNode(null);
           return;
         }
+        if (memoryNode) {
+          setMemoryNode(null);
+          return;
+        }
         if (toolNode) {
           setToolNode(null);
           setSentryTelemetry(null);
@@ -1890,7 +1911,7 @@ export default function SpatialUniverse({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [inspect, fullscreen, pinNode, toolNode]);
+  }, [inspect, fullscreen, pinNode, toolNode, memoryNode]);
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -1931,6 +1952,21 @@ export default function SpatialUniverse({
     [onOpenTerminal, consumedIds]
   );
 
+  const openUnlockedNode = useCallback(
+    (node: HardwareInteractable) => {
+      if (isMemoryHudNode(node)) {
+        setMemoryNode(node);
+        setToolNode(null);
+      } else {
+        setToolNode(node);
+        setMemoryNode(null);
+      }
+      setLocked(false);
+      onOpenTerminal?.(node.id);
+    },
+    [onOpenTerminal]
+  );
+
   const handleHardwareInteract = useCallback(
     (node: HardwareInteractable) => {
       if (mountedRef.current) return;
@@ -1939,25 +1975,22 @@ export default function SpatialUniverse({
         setLocked(false);
         return;
       }
-      setToolNode(node);
-      setLocked(false);
-      onOpenTerminal?.(node.id);
+      openUnlockedNode(node);
     },
-    [unlockedPins, onOpenTerminal]
+    [unlockedPins, openUnlockedNode]
   );
 
   const handlePinRequest = useCallback(
     (node: HardwareInteractable) => {
       if (mountedRef.current) return;
       if (unlockedPins.has(node.id)) {
-        setToolNode(node);
-        setLocked(false);
+        openUnlockedNode(node);
         return;
       }
       setPinNode(node);
       setLocked(false);
     },
-    [unlockedPins]
+    [unlockedPins, openUnlockedNode]
   );
 
   const handlePinSuccess = useCallback(
@@ -1972,10 +2005,10 @@ export default function SpatialUniverse({
         (result.sentryTelemetry as SentryTelemetryPayload) ?? null
       );
       setPinNode(null);
-      setToolNode(pinNode);
-      onOpenTerminal?.(pinNode.id);
+      playSpatialCue("unlock");
+      openUnlockedNode(pinNode);
     },
-    [pinNode, onOpenTerminal]
+    [pinNode, openUnlockedNode]
   );
 
   const handleTorActivate = useCallback((maskedIp: string) => {
@@ -1997,7 +2030,7 @@ export default function SpatialUniverse({
     setFullscreen((v) => !v);
   }, []);
 
-  const overlayOpen = !!(inspect || pinNode || toolNode);
+  const overlayOpen = !!(inspect || pinNode || toolNode || memoryNode);
 
   const showChip =
     nearest &&
@@ -2027,7 +2060,7 @@ export default function SpatialUniverse({
               Spatial Universe
             </h2>
             <p className="font-mono text-[10px] text-slate-dim">
-              160 hardware · Tor · CyberRover · WASD ·{" "}
+              Meta-SRE memory · Tor · CyberRover · UE5 hybrid ·{" "}
               {fullscreen ? "fullscreen" : "embedded"}
             </p>
           </div>
@@ -2061,6 +2094,11 @@ export default function SpatialUniverse({
           fullscreen
             ? "relative min-h-0 flex-1 bg-[#040907]"
             : "relative min-h-[360px] flex-1 bg-[#040907] sm:min-h-[480px] lg:min-h-[560px]"
+        }
+        style={
+          streamMode === "ue5"
+            ? { opacity: 0.35, filter: "saturate(0.7)" }
+            : undefined
         }
       >
         {!webgl ? (
@@ -2180,7 +2218,15 @@ export default function SpatialUniverse({
           />
         ) : null}
 
-        {toolNode && !pinNode ? (
+        {memoryNode && !pinNode ? (
+          <MetaSreTerminalModal
+            node={memoryNode}
+            sessionId={sessionIdRef.current}
+            onClose={() => setMemoryNode(null)}
+          />
+        ) : null}
+
+        {toolNode && !pinNode && !memoryNode ? (
           <NodeToolOverlay
             node={toolNode}
             sentryTelemetry={sentryTelemetry}

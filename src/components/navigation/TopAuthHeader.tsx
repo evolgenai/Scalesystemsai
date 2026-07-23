@@ -11,6 +11,7 @@ import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
 import TeamPresenceBar from "@/components/org/TeamPresenceBar";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
 import { SwarmBridgeCube, SkillChip } from "@/components/ui/Ecosystem3DIcons";
+import StreamEngineToggle from "@/components/spatial/StreamEngineToggle";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
   OPEN_AUTH_EVENT,
@@ -142,6 +143,11 @@ export default function TopAuthHeader() {
           </Link>
         </div>
         <div className="ml-auto flex min-w-0 items-center gap-2">
+          {onDashboard ? (
+            <div className="hidden sm:block">
+              <StreamEngineToggle />
+            </div>
+          ) : null}
           <WorkspaceSwitcher enabled={ready} />
           {!ready ? (
             <div className="h-8 w-28 animate-pulse rounded-lg bg-white/5" />

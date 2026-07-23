@@ -202,11 +202,26 @@ export type RecallAgentMemoryQuery = {
   sessionId?: string;
   agentId?: string;
   kind?: MemoryKind;
+  /** Match any of these kinds when set (overrides singular `kind`). */
+  kinds?: MemoryKind[];
   userId?: string | null;
   workspaceId?: string | null;
   q?: string;
+  tags?: string[];
+  sentryIssueId?: string | null;
   limit?: number;
 };
+
+function matchesKindFilter(
+  entry: AgentMemoryEntry,
+  query: RecallAgentMemoryQuery
+): boolean {
+  if (query.kinds && query.kinds.length > 0) {
+    return query.kinds.includes(entry.kind);
+  }
+  if (query.kind) return entry.kind === query.kind;
+  return true;
+}
 
 export async function recallAgentMemory(
   query: RecallAgentMemoryQuery
@@ -216,11 +231,12 @@ export async function recallAgentMemory(
   source: "ring" | "mixed" | "db";
 }> {
   const limit = Math.min(50, Math.max(1, query.limit ?? 12));
+  const tagNeedles = (query.tags ?? []).map((t) => t.toLowerCase());
   const ringHits = ring()
     .filter((e) => {
       if (query.sessionId && e.sessionId !== query.sessionId) return false;
       if (query.agentId && e.agentId !== query.agentId) return false;
-      if (query.kind && e.kind !== query.kind) return false;
+      if (!matchesKindFilter(e, query)) return false;
       if (query.userId && e.userId && e.userId !== query.userId) return false;
       if (
         query.workspaceId &&
@@ -228,6 +244,17 @@ export async function recallAgentMemory(
         e.workspaceId !== query.workspaceId
       ) {
         return false;
+      }
+      if (
+        query.sentryIssueId &&
+        (e.sentryIssueId ?? "").toLowerCase() !==
+          query.sentryIssueId.toLowerCase()
+      ) {
+        return false;
+      }
+      if (tagNeedles.length > 0) {
+        const hay = e.tags.map((t) => t.toLowerCase());
+        if (!tagNeedles.some((t) => hay.includes(t))) return false;
       }
       if (query.q) {
         const hay = `${e.title} ${e.summary} ${e.tags.join(" ")}`.toLowerCase();
@@ -252,7 +279,7 @@ export async function recallAgentMemory(
           fragment: { startsWith: FRAGMENT_PREFIX },
         },
         orderBy: { createdAt: "desc" },
-        take: limit * 2,
+        take: limit * 3,
       });
 
       dbEntries = rows
@@ -267,9 +294,25 @@ export async function recallAgentMemory(
         )
         .filter((e): e is AgentMemoryEntry => e != null)
         .filter((e) => {
-          if (query.kind && e.kind !== query.kind) return false;
+          if (!matchesKindFilter(e, query)) return false;
           if (query.sessionId && e.sessionId !== query.sessionId) return false;
           if (query.agentId && e.agentId !== query.agentId) return false;
+          if (
+            query.sentryIssueId &&
+            (e.sentryIssueId ?? "").toLowerCase() !==
+              query.sentryIssueId.toLowerCase()
+          ) {
+            return false;
+          }
+          if (tagNeedles.length > 0) {
+            const hay = e.tags.map((t) => t.toLowerCase());
+            if (!tagNeedles.some((t) => hay.includes(t))) return false;
+          }
+          if (query.q) {
+            const hay =
+              `${e.title} ${e.summary} ${e.tags.join(" ")}`.toLowerCase();
+            if (!hay.includes(query.q.toLowerCase())) return false;
+          }
           return true;
         })
         .slice(0, limit);
@@ -303,6 +346,11 @@ export async function recallAgentMemory(
   return {
     entries,
     recalledContext,
-    source: dbEntries.length && ringHits.length ? "mixed" : dbEntries.length ? "db" : "ring",
+    source:
+      dbEntries.length && ringHits.length
+        ? "mixed"
+        : dbEntries.length
+          ? "db"
+          : "ring",
   };
 }

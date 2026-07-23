@@ -6,6 +6,7 @@ import TopAuthHeader from "@/components/navigation/TopAuthHeader";
 import { NavDrawerProvider } from "@/components/navigation/NavDrawerContext";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WorkspaceModeProvider } from "@/components/dashboard/ModeWrapper";
+import { StreamEngineProvider } from "@/components/spatial/StreamEngineContext";
 import LaunchBanner from "@/components/public/LaunchBanner";
 import DevToolsMount from "@/components/dev/DevToolsMount";
 import BioMetallicThemeServer from "@/components/theme/BioMetallicThemeServer";
@@ -141,17 +142,19 @@ export default function RootLayout({
         <AuthProvider>
           <NavDrawerProvider>
             <WorkspaceModeProvider>
-              <div className="bio-vignette flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-gradient-to-b from-[var(--theme-base-void)] via-[var(--theme-surface-grain)] to-[var(--theme-bio-sheen)] text-[var(--bio-text)]">
-                <Sidebar />
-                <div className="flex min-w-0 w-full flex-1 flex-col">
-                  <LaunchBanner />
-                  <TopAuthHeader />
-                  <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 md:p-6 lg:p-8">
-                    {children}
-                  </main>
+              <StreamEngineProvider>
+                <div className="bio-vignette flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-gradient-to-b from-[var(--theme-base-void)] via-[var(--theme-surface-grain)] to-[var(--theme-bio-sheen)] text-[var(--bio-text)]">
+                  <Sidebar />
+                  <div className="flex min-w-0 w-full flex-1 flex-col">
+                    <LaunchBanner />
+                    <TopAuthHeader />
+                    <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto px-3 py-4 sm:px-4 md:p-6 lg:p-8">
+                      {children}
+                    </main>
+                  </div>
                 </div>
-              </div>
-              <DevToolsMount />
+                <DevToolsMount />
+              </StreamEngineProvider>
             </WorkspaceModeProvider>
           </NavDrawerProvider>
         </AuthProvider>

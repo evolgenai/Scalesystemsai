@@ -81,6 +81,25 @@ export {
 } from "@/lib/spatial/torMask";
 
 export {
+  buildSpatialMemoryFeed,
+  getSpatialMemoryFeed,
+  DEFAULT_FEED_LIMIT,
+  FEED_KINDS,
+  SpatialNodeTypeSchema,
+  type SpatialMemoryFeed,
+  type SpatialNodeType,
+} from "@/lib/spatial/memoryFeed";
+
+export {
+  buildStreamSignalingConfig,
+  enqueueSignalingMessage,
+  drainSignalingMessages,
+  type StreamSignalingConfig,
+  type SignalingMessage,
+  type IceServer,
+} from "@/lib/spatial/streamSignaling";
+
+export {
   fetchSanitizedSentryErrors,
   sanitizeTelemetryText,
   resolveSentryApiConfig,
@@ -118,3 +137,5 @@ export {
   type SpatialInteractionTags,
   type SpatialTelemetryContext,
 } from "@/lib/spatial/spatialTelemetry";
+
+export { playSpatialCue } from "@/lib/spatial/spatialAudio";
