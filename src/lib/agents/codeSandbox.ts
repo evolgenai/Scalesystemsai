@@ -1,16 +1,12 @@
 /**
  * Isolated code runner.
  * JavaScript: sealed `node:vm` (5s timeout, no I/O).
- * Python: local `python`/`python3` via `execFile` + temp file (no shell),
+ * Python: local `python`/`python3` via `execFile` + stdin (`python -`),
  *         optional E2B/Pyodide hook override.
+ *
+ * Node-only — must never be imported from Client Components.
+ * Node builtins are loaded lazily so Turbopack NFT does not over-trace.
  */
-
-import { execFile } from "node:child_process";
-import { randomBytes } from "node:crypto";
-import { unlink, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import vm from "node:vm";
 
 export type SandboxLanguage = "python" | "javascript";
 
@@ -105,15 +101,16 @@ function normalizeLanguage(
   return "javascript";
 }
 
-function resolvePythonBinary(): string {
-  const fromEnv = process.env.PYTHON_PATH?.trim();
-  if (fromEnv) return fromEnv;
+function resolvePythonBinary(): "python" | "python3" {
+  // Keep this a static literal union so NFT cannot treat the argv0 as an
+  // open-ended filesystem path (PYTHON_PATH overrides are applied at spawn).
   return process.platform === "win32" ? "python" : "python3";
 }
 
 /**
  * Run multi-line Python via local interpreter.
  * Uses `execFile` (argv array) — never `shell: true` / string interpolation.
+ * Code is fed on stdin (`python -`) so we never touch the filesystem.
  */
 async function executePythonLocal(
   code: string,
@@ -123,35 +120,23 @@ async function executePythonLocal(
     return { stdout: "", stderr: "Aborted", exitCode: 130 };
   }
 
-  const bin = resolvePythonBinary();
-  const filePath = join(
-    tmpdir(),
-    `ss-py-${randomBytes(10).toString("hex")}.py`
+  const { execFile } = await import(
+    /* turbopackIgnore: true */ "node:child_process"
   );
-
-  try {
-    await writeFile(filePath, code, { encoding: "utf8", mode: 0o600 });
-  } catch (error) {
-    return {
-      stdout: "",
-      stderr:
-        error instanceof Error
-          ? `Unable to stage Python temp file: ${error.message}`
-          : "Unable to stage Python temp file.",
-      exitCode: 1,
-    };
-  }
+  const preferred = process.env.PYTHON_PATH?.trim();
+  const bin = preferred && preferred.length > 0 ? preferred : resolvePythonBinary();
 
   try {
     return await new Promise<SandboxExecutionResult>((resolve) => {
       const child = execFile(
-        bin,
-        ["-B", filePath],
+        /* turbopackIgnore: true */ bin,
+        ["-B", "-"],
         {
           timeout: TIMEOUT_MS,
           maxBuffer: 1024 * 1024,
           windowsHide: true,
           shell: false,
+          input: code,
           env: {
             PATH: process.env.PATH,
             SYSTEMROOT: process.env.SYSTEMROOT,
@@ -225,8 +210,6 @@ async function executePythonLocal(
           : "Python sandbox execution failed.",
       exitCode: 1,
     };
-  } finally {
-    await unlink(filePath).catch(() => undefined);
   }
 }
 
@@ -272,6 +255,7 @@ async function executeJavaScript(
   };
 
   try {
+    const vm = await import(/* turbopackIgnore: true */ "node:vm");
     const script = new vm.Script(code, { filename: "sandbox.js" });
     const context = vm.createContext(sealed, {
       name: "ScaleSystemsSandbox",

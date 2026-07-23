@@ -7,12 +7,18 @@ const BLOCKED_SEGMENTS = new Set([
   "credentials.json",
 ]);
 
+function projectCwd(): string {
+  // Bare process.cwd() makes Turbopack NFT trace the whole repo into every
+  // shared server chunk that imports this module.
+  return path.resolve(/* turbopackIgnore: true */ process.cwd());
+}
+
 /**
  * Heal sandbox root — always under process.cwd().
  * Override with HEAL_SANDBOX_DIR (repo-relative), default: project root.
  */
 export function getHealSandboxRoot(): string {
-  const cwd = path.resolve(process.cwd());
+  const cwd = projectCwd();
   const configured = process.env.HEAL_SANDBOX_DIR?.trim();
   if (!configured) return cwd;
 
@@ -42,7 +48,7 @@ export function resolveSafeProjectPath(inputPath: string): string {
   }
 
   // Also ensure we never leave the real project cwd even if sandbox misconfigured.
-  const cwd = path.resolve(process.cwd());
+  const cwd = projectCwd();
   const fromCwd = path.relative(cwd, resolved);
   if (fromCwd.startsWith("..") || path.isAbsolute(fromCwd)) {
     throw new Error("Path escapes project root — write blocked.");
@@ -57,7 +63,7 @@ export function resolveSafeProjectPath(inputPath: string): string {
 }
 
 export function toProjectRelative(absPath: string): string {
-  const root = path.resolve(process.cwd());
+  const root = projectCwd();
   return path.relative(root, absPath).split(path.sep).join("/");
 }
 

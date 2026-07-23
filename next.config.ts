@@ -16,6 +16,27 @@ const nextConfig: NextConfig = {
     "@prisma/adapter-pg",
     "pg",
   ],
+  // Prevent Turbopack NFT from packaging repo-root noise when a server module
+  // over-approximates process.cwd() (known Next 16 + Sentry config false positive).
+  outputFileTracingExcludes: {
+    "*": [
+      "./AGENTS.md",
+      "./ARCHITECTURE.md",
+      "./Python/**/*",
+      "./scripts/**/*",
+      "./.agents/**/*",
+      "./skills-lock.json",
+      "./build-out.txt",
+      "./eslint.config.mjs",
+      "./postcss.config.mjs",
+      "./prisma.config.ts",
+      "./prisma/seed.ts",
+      "./sentry.edge.config.ts",
+      "./sentry.server.config.ts",
+      "./next.config.ts",
+      "./package-lock.json",
+    ],
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

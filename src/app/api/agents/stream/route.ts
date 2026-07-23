@@ -50,11 +50,11 @@ import {
   captureStructuredError,
   telemetryContextFromRequest,
 } from "@/lib/sentry";
+import { isSseAbortError } from "@/lib/sse/resiliency";
 import {
-  isSseAbortError,
   reportSseConnectionDrop,
   safeSseEnqueue,
-} from "@/lib/sse/resiliency";
+} from "@/lib/sse/resiliencyServer";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";

@@ -16,7 +16,7 @@ import {
 import {
   reportSseConnectionDrop,
   safeSseEnqueue,
-} from "@/lib/sse/resiliency";
+} from "@/lib/sse/resiliencyServer";
 import {
   getRecentTelemetryEvents,
   publishTelemetryEvent,

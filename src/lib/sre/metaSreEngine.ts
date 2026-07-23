@@ -191,9 +191,10 @@ function extractSymbolsFromAst(sourceText: string, filePath: string): {
 
 async function readRepoFile(relPath: string): Promise<string | null> {
   try {
-    const abs = path.join(process.cwd(), relPath);
-    if (!abs.startsWith(process.cwd())) return null;
-    return await readFile(abs, "utf8");
+    const cwd = /* turbopackIgnore: true */ process.cwd();
+    const abs = path.join(/* turbopackIgnore: true */ cwd, relPath);
+    if (!abs.startsWith(cwd)) return null;
+    return await readFile(/* turbopackIgnore: true */ abs, "utf8");
   } catch {
     return null;
   }

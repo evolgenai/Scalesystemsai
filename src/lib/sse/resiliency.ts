@@ -1,13 +1,7 @@
 /**
- * SSE stream resiliency — detect connection drops, report to Sentry without
- * tearing down the shared connection pool, and support client reconnect.
+ * SSE stream resiliency — client-safe reconnect helpers and drop classification.
+ * Server-only Sentry reporting lives in `./resiliencyServer`.
  */
-
-import {
-  captureStructuredError,
-  resolveTelemetryIds,
-  type SentryTelemetryContext,
-} from "@/lib/sentry/telemetry";
 
 export const SSE_RECONNECT_DEFAULTS = {
   maxAttempts: 5,
@@ -49,67 +43,6 @@ export function classifySseDrop(error: unknown): SseDropReason {
   return "unknown";
 }
 
-/**
- * Report an SSE connection drop to Sentry without rethrowing.
- * Client aborts are silent (expected). Other drops are warnings.
- */
-export function reportSseConnectionDrop(
-  error: unknown,
-  ctx: SentryTelemetryContext & {
-    reason?: SseDropReason;
-    stream?: string;
-  } = {}
-): { reported: boolean; reason: SseDropReason; eventId: string | null } {
-  const reason = ctx.reason ?? classifySseDrop(error);
-  if (reason === "client_abort") {
-    return { reported: false, reason, eventId: null };
-  }
-
-  const ids = resolveTelemetryIds(ctx);
-  const eventId = captureStructuredError(error, {
-    tenantId: ids.tenantId,
-    traceId: ids.traceId,
-    agentExecutionId: ids.agentExecutionId,
-    route: ctx.route ?? ctx.stream ?? "sse",
-    source: "sse",
-    level: "warning",
-    extra: {
-      reason,
-      stream: ctx.stream ?? null,
-      ...ctx.extra,
-    },
-  });
-
-  return { reported: true, reason, eventId };
-}
-
-/**
- * Safe enqueue for SSE — swallows closed-controller errors and reports once.
- */
-export function safeSseEnqueue(
-  controller: ReadableStreamDefaultController<Uint8Array>,
-  chunk: Uint8Array,
-  opts: {
-    isClosed: () => boolean;
-    markClosed: () => void;
-    telemetry?: SentryTelemetryContext & { stream?: string };
-  }
-): boolean {
-  if (opts.isClosed()) return false;
-  try {
-    controller.enqueue(chunk);
-    return true;
-  } catch (error) {
-    opts.markClosed();
-    reportSseConnectionDrop(error, {
-      ...opts.telemetry,
-      reason: "enqueue_failed",
-      source: "sse",
-    });
-    return false;
-  }
-}
-
 /** Exponential backoff with jitter for client reconnect loops. */
 export function sseReconnectDelayMs(
   attempt: number,
@@ -133,5 +66,10 @@ export function shouldAttemptSseReconnect(
   if (attempt >= maxAttempts) return false;
   if (isSseAbortError(error)) return false;
   const reason = classifySseDrop(error);
-  return reason === "network" || reason === "timeout" || reason === "reader_error" || reason === "unknown";
+  return (
+    reason === "network" ||
+    reason === "timeout" ||
+    reason === "reader_error" ||
+    reason === "unknown"
+  );
 }

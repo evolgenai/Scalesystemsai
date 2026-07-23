@@ -49,8 +49,10 @@ export function createLocalHealFsTools(logger: HealToolLogger): Record<string, T
       execute: async ({ path: relPath, content }) => {
         logger.push(formatToolCallLog("write_file", { path: relPath }));
         const abs = resolveSafeProjectPath(relPath);
-        await mkdir(path.dirname(abs), { recursive: true });
-        await writeFile(abs, content, "utf8");
+        await mkdir(/* turbopackIgnore: true */ path.dirname(abs), {
+          recursive: true,
+        });
+        await writeFile(/* turbopackIgnore: true */ abs, content, "utf8");
         return {
           ok: true,
           path: toProjectRelative(abs),
@@ -74,13 +76,19 @@ export function createLocalHealFsTools(logger: HealToolLogger): Record<string, T
         const abs = resolveSafeProjectPath(relPath);
         let existing = "";
         try {
-          existing = await readFile(abs, "utf8");
+          existing = await readFile(/* turbopackIgnore: true */ abs, "utf8");
         } catch {
           if (!fallbackContent) {
             return { ok: false, error: "File not found and no fallbackContent." };
           }
-          await mkdir(path.dirname(abs), { recursive: true });
-          await writeFile(abs, fallbackContent, "utf8");
+          await mkdir(/* turbopackIgnore: true */ path.dirname(abs), {
+            recursive: true,
+          });
+          await writeFile(
+            /* turbopackIgnore: true */ abs,
+            fallbackContent,
+            "utf8"
+          );
           return {
             ok: true,
             path: toProjectRelative(abs),
@@ -91,7 +99,11 @@ export function createLocalHealFsTools(logger: HealToolLogger): Record<string, T
         const next = applySimpleUnifiedDiff(existing, patch);
         if (next === null) {
           if (fallbackContent) {
-            await writeFile(abs, fallbackContent, "utf8");
+            await writeFile(
+              /* turbopackIgnore: true */ abs,
+              fallbackContent,
+              "utf8"
+            );
             return {
               ok: true,
               path: toProjectRelative(abs),
@@ -101,7 +113,7 @@ export function createLocalHealFsTools(logger: HealToolLogger): Record<string, T
           return { ok: false, error: "Could not apply patch." };
         }
 
-        await writeFile(abs, next, "utf8");
+        await writeFile(/* turbopackIgnore: true */ abs, next, "utf8");
         return {
           ok: true,
           path: toProjectRelative(abs),
@@ -118,7 +130,7 @@ export function createLocalHealFsTools(logger: HealToolLogger): Record<string, T
         logger.push(formatToolCallLog("read_file", { path: relPath }));
         const abs = resolveSafeProjectPath(relPath);
         try {
-          const content = await readFile(abs, "utf8");
+          const content = await readFile(/* turbopackIgnore: true */ abs, "utf8");
           return {
             ok: true,
             path: toProjectRelative(abs),
