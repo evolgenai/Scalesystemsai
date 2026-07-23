@@ -91,8 +91,9 @@ function unauthorized(reason: string, code = "AGENT_UNAUTHORIZED") {
       headers: {
         "x-agent-gate": "blocked",
         "cache-control": "no-store",
-        "x-scale-theme": "#121212",
-        "x-scale-accent": "#1DB954",
+        "x-scale-theme": "bio-metallic",
+        "x-scale-accent": "#00ffaa",
+        "x-scale-void": "#050807",
       },
     }
   );
@@ -139,6 +140,15 @@ function isTelemetryPath(pathname: string): boolean {
     return true;
   }
   return false;
+}
+
+/** Hashed Next static assets may stay immutable; HTML/API must not. */
+function pathnameIsImmutableAsset(pathname: string): boolean {
+  return (
+    pathname.startsWith("/_next/static/") ||
+    pathname.startsWith("/_next/image") ||
+    /\.(?:png|jpg|jpeg|gif|webp|svg|ico|woff2?|ttf|otf)$/i.test(pathname)
+  );
 }
 
 function applyGeoHeaders(
@@ -199,9 +209,10 @@ async function attachWorkspaceEdgeStateFromKv(
 function rateLimitedResponse(verdict: ReturnType<typeof checkRateLimit>) {
   const headers = new Headers({
     "content-type": "application/json",
-    "cache-control": "no-store",
-    "x-scale-theme": "#121212",
-    "x-scale-accent": "#1DB954",
+    "cache-control": "no-store, no-cache, must-revalidate",
+    "x-scale-theme": "bio-metallic",
+    "x-scale-accent": "#00ffaa",
+    "x-scale-void": "#050807",
   });
   applyRateLimitHeaders(headers, verdict);
   return NextResponse.json(
@@ -232,6 +243,17 @@ async function passThrough(
   response.headers.set("x-scale-geo-country", geo.country);
   response.headers.set("x-scale-preferred-region", geo.region);
   response.headers.set("x-scale-edge-runtime", "1");
+  response.headers.set("x-scale-theme", "bio-metallic");
+  response.headers.set("x-scale-accent", "#00ffaa");
+  response.headers.set("x-scale-void", "#050807");
+  response.headers.set("x-scale-theme-version", "49");
+  // Prevent CDN/HTML from retaining stale blue-theme CSS shells on dynamic pages.
+  if (!pathnameIsImmutableAsset(request.nextUrl.pathname)) {
+    response.headers.set(
+      "cache-control",
+      "private, no-cache, no-store, max-age=0, must-revalidate"
+    );
+  }
   responseHeaders.forEach((value, key) => {
     response.headers.set(key, value);
   });

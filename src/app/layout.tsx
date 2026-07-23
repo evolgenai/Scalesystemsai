@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+﻿import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/navigation/Sidebar";
@@ -8,6 +8,8 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { WorkspaceModeProvider } from "@/components/dashboard/ModeWrapper";
 import LaunchBanner from "@/components/public/LaunchBanner";
 import DevToolsMount from "@/components/dev/DevToolsMount";
+import BioMetallicThemeServer from "@/components/theme/BioMetallicThemeServer";
+import { TEXTURE_COLORS } from "@/lib/theme/textureMatrix";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,10 +30,11 @@ const siteDescription =
   "ScaleSystems delivers cloud-hosted agentic workflows and multi-agent orchestration. Deploy AI swarm employees for lead generation, autonomous system operations, and 24/7 technical support.";
 
 export const viewport: Viewport = {
-  themeColor: "#080b0c",
+  themeColor: TEXTURE_COLORS.baseVoid,
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  colorScheme: "dark",
 };
 
 export const metadata: Metadata = {
@@ -60,6 +63,11 @@ export const metadata: Metadata = {
   category: "technology",
   alternates: {
     canonical: siteUrl,
+  },
+  other: {
+    "x-scale-theme": "bio-metallic",
+    "x-scale-void": TEXTURE_COLORS.baseVoid,
+    "x-scale-accent": TEXTURE_COLORS.accentGlow,
   },
   openGraph: {
     type: "website",
@@ -117,8 +125,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body className="min-h-screen font-sans">
+    <html
+      lang="en"
+      className={`${inter.variable} ${spaceGrotesk.variable}`}
+      data-theme="bio-metallic"
+    >
+      <body className="bio-grain-surface min-h-screen font-sans">
+        <BioMetallicThemeServer />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -128,7 +141,7 @@ export default function RootLayout({
         <AuthProvider>
           <NavDrawerProvider>
             <WorkspaceModeProvider>
-              <div className="bio-vignette flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-gradient-to-b from-slate-950 via-zinc-900 to-emerald-950/30 text-white">
+              <div className="bio-vignette flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-gradient-to-b from-[var(--theme-base-void)] via-[var(--theme-surface-grain)] to-[var(--theme-bio-sheen)] text-[var(--bio-text)]">
                 <Sidebar />
                 <div className="flex min-w-0 w-full flex-1 flex-col">
                   <LaunchBanner />

@@ -52,16 +52,33 @@ export {
   WorldObjectAccessSchema,
   WorldObjectSchema,
   WorldObjectsMatrixSchema,
+  SpatialRegistryNodeSchema,
+  InteractivePayloadSchema,
+  REQUIRED_INTERACTIVE_TYPES,
+  UNIQUE_INTERACTIVE_CATALOG,
+  INTERACTIVE_RATIO,
+  DECORATOR_RATIO,
+  PIN_RATIO_OF_INTERACTIVE,
   generateWorldObjectsMatrix,
   findWorldObject,
+  findWorldObjectByType,
   type WorldObjectClass,
   type WorldObjectAccess,
   type WorldObject,
   type WorldObjectsMatrix,
+  type SpatialRegistryNode,
+  type InteractivePayload,
   type GenerateWorldObjectsOptions,
+  type RequiredInteractiveType,
 } from "@/lib/spatial/worldObjects";
 
 export { BIO_METALLIC_TOKENS, type BioMetallicTokens } from "@/lib/spatial/bioMetallicTokens";
+
+export {
+  generateTorMask,
+  getTorMaskSession,
+  type TorMaskResult,
+} from "@/lib/spatial/torMask";
 
 export {
   fetchSanitizedSentryErrors,

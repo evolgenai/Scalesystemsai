@@ -86,6 +86,17 @@ async function respond(
       return apiSuccess({
         matrix,
         designTokens: BIO_METALLIC_TOKENS,
+        keyboardBindings: matrix.objects
+          .filter((n) => n.interactive && n.payload?.keyboard)
+          .map((n) => ({
+            nodeId: n.id,
+            type: n.type,
+            title: n.title,
+            requires_pin: n.requires_pin,
+            code: n.payload!.keyboard.code,
+            label: n.payload!.keyboard.label,
+            endpoint: n.payload!.endpoint,
+          })),
         auth: {
           state: authState,
           userId: profile.id,

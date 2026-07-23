@@ -16,6 +16,7 @@ import {
   verifySuperadminPin,
 } from "@/lib/spatial/workstationPin";
 import { fetchSanitizedSentryErrors } from "@/lib/spatial/sentryLiveLogs";
+import { buildNodeSpecificLogs } from "@/lib/spatial/nodeSecureLogs";
 import {
   allowSecuritySentryLog,
   checkPinFailureRateLimit,
@@ -37,6 +38,7 @@ const BodySchema = z
     pin: z.string().trim().min(4).max(8).regex(/^\d{4,8}$/),
     sessionId: z.string().trim().min(1).max(128),
     objectId: z.string().trim().min(1).max(128).optional(),
+    nodeType: z.string().trim().min(1).max(64).optional(),
     coordinates: z
       .object({
         x: z.number(),
@@ -200,7 +202,7 @@ export async function POST(request: Request) {
 
         const unlock = grantPinUnlock({
           sessionId: parsed.data.sessionId,
-          nodeId: parsed.data.objectId ?? "sentry_terminal",
+          nodeId: parsed.data.objectId ?? parsed.data.nodeType ?? "sentry_terminal",
           lane: "superadmin",
           accessGranted: "Superadmin",
           userId: profile.id,
@@ -210,10 +212,14 @@ export async function POST(request: Request) {
           limit: parsed.data.limit ?? 10,
         });
 
+        const nodeType = parsed.data.nodeType ?? "sentry_terminal";
+
+        const decryptedLogs = buildNodeSpecificLogs(nodeType, sentryTelemetry);
+
         captureSpatialInteraction(
           "spatial.verify_pin.ok",
           {
-            objectType: "sentry_terminal",
+            objectType: nodeType,
             nodeId: parsed.data.objectId ?? null,
             authState,
             accessLevel: "Superadmin",
@@ -239,6 +245,7 @@ export async function POST(request: Request) {
             sessionToken: unlock.sessionToken,
           },
           sentryTelemetry,
+          decryptedLogs,
           auth: {
             state: authState,
             userId: profile.id,

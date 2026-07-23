@@ -49,9 +49,10 @@ export default function UniverseDeck() {
           Spatial Runtime Deck
         </h1>
         <p className="max-w-2xl text-sm text-slate-muted">
-          Pilot the alien through 160 GPU-instanced hardware nodes. Approach the
-        Sentry Log (PIN) or IP diagnostic with [E], mount the CyberRover with
-        [F] for 2× drive speed.
+          Pilot the alien through 160 GPU-instanced hardware nodes (80%+
+        interactive). [E] opens unique tool overlays, [Z] unlocks PIN-gated
+        nodes via /api/spatial/verify-pin, [F] mounts CyberRover, Tor Node
+        cloaks your proxy IP.
         </p>
       </div>
 

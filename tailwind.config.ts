@@ -14,20 +14,20 @@ const config: Config = {
       colors: {
         // Bio-metallic base
         bio: {
-          void: "#080b0c",
-          gunmetal: "#13191c",
-          moss: "#152e24",
-          panel: "#0c1214",
-          edge: "#1a2428",
+          void: "#050807",
+          gunmetal: "#0b120f",
+          moss: "#121e18",
+          panel: "#0a100d",
+          edge: "#1a2a22",
         },
-        obsidian: "#080b0c",
+        obsidian: "#050807",
         midnight: {
-          glass: "#0c1214",
+          glass: "#0a100d",
         },
         alien: {
-          deep: "#0a1f18",
-          mid: "#152e24",
-          glass: "#0c1412",
+          deep: "#121e18",
+          mid: "#1a2a22",
+          glass: "#0b120f",
         },
         cyber: {
           emerald: "#00ffaa",
@@ -40,8 +40,8 @@ const config: Config = {
           accent: "#34d399",
         },
         slate: {
-          muted: "#94a3b8",
-          dim: "#64748b",
+          muted: "#6f8a7c",
+          dim: "#4d6358",
         },
       },
       fontFamily: {
@@ -50,21 +50,21 @@ const config: Config = {
       },
       backgroundImage: {
         "bio-metallic":
-          "linear-gradient(to bottom, #020617, #18181b, rgba(6, 78, 59, 0.3))",
+          "linear-gradient(165deg, #050807 0%, #0b120f 48%, #121e18 100%)",
         "bio-panel":
-          "linear-gradient(160deg, #1a2428 0%, #13191c 45%, #0a1f18 100%)",
+          "linear-gradient(160deg, #121e18 0%, #0b120f 45%, #050807 100%)",
         "bio-vignette":
-          "radial-gradient(ellipse at center, transparent 40%, rgba(8, 11, 12, 0.85) 100%)",
+          "radial-gradient(ellipse at center, transparent 40%, rgba(5, 8, 7, 0.88) 100%)",
       },
       boxShadow: {
         glow: "0 8px 32px 0 rgba(0, 255, 170, 0.12)",
         "glow-sm": "0 0 20px rgba(0, 255, 170, 0.22)",
         "glow-amber": "0 0 24px rgba(245, 158, 11, 0.2)",
         alien:
-          "inset 0 1px 0 0 rgba(0, 255, 170, 0.08), 0 8px 32px 0 rgba(8, 11, 12, 0.55)",
+          "inset 0 1px 0 0 rgba(0, 255, 170, 0.08), 0 8px 32px 0 rgba(5, 8, 7, 0.6)",
         "bio-inset":
           "inset 0 1px 0 0 rgba(0, 255, 170, 0.1), inset 0 -1px 0 0 rgba(0, 0, 0, 0.45)",
-        vignette: "inset 0 0 120px rgba(8, 11, 12, 0.75)",
+        vignette: "inset 0 0 120px rgba(5, 8, 7, 0.8)",
       },
       animation: {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",

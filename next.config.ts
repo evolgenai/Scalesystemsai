@@ -40,6 +40,41 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  async headers() {
+    return [
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, no-cache, must-revalidate",
+          },
+          { key: "CDN-Cache-Control", value: "no-store" },
+          { key: "X-Scale-Theme", value: "bio-metallic" },
+          { key: "X-Scale-Accent", value: "#00ffaa" },
+          { key: "X-Scale-Void", value: "#050807" },
+        ],
+      },
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Scale-Theme", value: "bio-metallic" },
+          { key: "X-Scale-Theme-Version", value: "49" },
+          { key: "X-Scale-Accent", value: "#00ffaa" },
+          { key: "X-Scale-Void", value: "#050807" },
+        ],
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {

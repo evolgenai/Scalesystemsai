@@ -3,28 +3,41 @@
 @tailwind utilities;
 
 :root {
-  /* Bio-metallic palette */
-  --bio-void: #080b0c;
-  --bio-gunmetal: #13191c;
-  --bio-moss: #152e24;
-  --bio-panel: #0c1214;
-  --bio-edge: #1a2428;
+  /* Bio-metallic palette — Image 3 organic granular slate */
+  --bio-void: #050807;
+  --bio-gunmetal: #0b120f;
+  --bio-moss: #121e18;
+  --bio-panel: #0a100d;
+  --bio-edge: #1a2a22;
   --bio-glow: #00ffaa;
   --bio-glow-dim: #10b981;
+  --bio-sheen: #121e18;
+  --bio-grain: #0b120f;
+  --bio-text: #e6f7ef;
+  --bio-text-muted: #6f8a7c;
+  --bio-glow-soft: rgba(0, 255, 170, 0.22);
+  --bio-glow-hard: rgba(0, 255, 170, 0.4);
+  --bio-border: rgba(18, 30, 24, 0.85);
 
-  --obsidian: #080b0c;
-  --midnight-glass: #0c1214;
-  --alien-deep: #0a1f18;
-  --alien-mid: #152e24;
-  --glass-smoke: rgba(12, 18, 20, 0.82);
-  --glass-border: rgba(21, 46, 36, 0.55);
+  --theme-base-void: #050807;
+  --theme-surface-grain: #0b120f;
+  --theme-bio-sheen: #121e18;
+  --theme-accent-glow: #00ffaa;
+  --theme-accent-emerald: #10b981;
+
+  --obsidian: #050807;
+  --midnight-glass: #0a100d;
+  --alien-deep: #121e18;
+  --alien-mid: #1a2a22;
+  --glass-smoke: rgba(11, 18, 15, 0.88);
+  --glass-border: rgba(18, 30, 24, 0.65);
   --cyber-emerald: #00ffaa;
   --electric-emerald: #10b981;
   --cyber-sapphire: #00ffaa;
   --electric-sapphire: #10b981;
   --warning-amber: #f59e0b;
   --glass-glow-emerald: 0 8px 32px 0 rgba(0, 255, 170, 0.1);
-  --glass-glow-sapphire: 0 8px 32px 0 rgba(8, 11, 12, 0.45);
+  --glass-glow-sapphire: 0 8px 32px 0 rgba(5, 8, 7, 0.55);
   --glass-glow-amber: 0 0 24px rgba(245, 158, 11, 0.1);
   --glass-inset-emerald: inset 0 1px 0 0 rgba(0, 255, 170, 0.1);
 }
@@ -36,29 +49,29 @@
 
   body {
     @apply text-slate-100 antialiased;
-    color: #e2e8f0;
-    background-color: var(--bio-void);
+    color: var(--bio-text);
+    background-color: var(--theme-base-void);
     background-image:
       radial-gradient(
         ellipse 85% 55% at 50% -15%,
-        rgba(21, 46, 36, 0.55),
+        rgba(18, 30, 24, 0.55),
         transparent 55%
       ),
       radial-gradient(
         ellipse 50% 40% at 100% 0%,
-        rgba(0, 255, 170, 0.06),
+        rgba(0, 255, 170, 0.05),
         transparent 50%
       ),
       linear-gradient(
-        to bottom,
-        #020617 0%,
-        #18181b 52%,
-        rgba(6, 78, 59, 0.28) 100%
+        165deg,
+        #050807 0%,
+        #0b120f 52%,
+        #121e18 100%
       ),
       radial-gradient(
         ellipse at center,
         transparent 42%,
-        rgba(8, 11, 12, 0.72) 100%
+        rgba(5, 8, 7, 0.78) 100%
       );
     background-attachment: fixed;
     min-height: 100vh;
@@ -117,14 +130,36 @@
   }
 
   .bio-metallic-surface {
-    @apply border border-bio-moss/60 bg-gradient-to-b from-slate-950 via-zinc-900 to-emerald-950/30;
+    border: 1px solid var(--bio-border);
+    background: linear-gradient(
+      160deg,
+      var(--theme-bio-sheen) 0%,
+      var(--theme-surface-grain) 55%,
+      var(--theme-base-void) 100%
+    );
     box-shadow:
       inset 0 1px 0 rgba(0, 255, 170, 0.08),
-      0 12px 40px rgba(8, 11, 12, 0.55);
+      0 12px 40px rgba(5, 8, 7, 0.65);
+  }
+
+  .bio-grain-surface {
+    position: relative;
+  }
+
+  .bio-grain-surface::before {
+    content: "";
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    opacity: 0.07;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
   }
 
   .bio-vignette {
-    box-shadow: inset 0 0 120px rgba(8, 11, 12, 0.75);
+    box-shadow: inset 0 0 120px rgba(5, 8, 7, 0.82);
   }
 
   .btn-alien {

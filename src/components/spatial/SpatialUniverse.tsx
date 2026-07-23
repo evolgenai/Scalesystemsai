@@ -41,6 +41,12 @@ import InstancedHardwareGrid, {
 import AutomobileUnit, {
   DRIVE_SPEED_MULT,
 } from "@/components/spatial/AutomobileUnit";
+import TorNode from "@/components/spatial/TorNode";
+import PinKeypadModal, {
+  type PinVerifySuccess,
+  type SentryTelemetryPayload,
+} from "@/components/spatial/PinKeypadModal";
+import NodeToolOverlay from "@/components/spatial/NodeToolOverlay";
 import ObjectMorpher, {
   type CompositeSuite,
   type MorphNode,
@@ -1442,6 +1448,7 @@ function Scene({
   speedRef,
   blurIntensityRef,
   mountSnapRef,
+  torActiveRef,
   onNearestTower,
   onNearbyIds,
   onRobotPos,
@@ -1450,6 +1457,8 @@ function Scene({
   onInteract,
   onMorph,
   onHardwareInteract,
+  onPinRequest,
+  onTorActivate,
   onMountChange,
 }: {
   locked: boolean;
@@ -1465,6 +1474,7 @@ function Scene({
   speedRef: MutableRefObject<number>;
   blurIntensityRef: MutableRefObject<number>;
   mountSnapRef: MutableRefObject<THREE.Vector3 | null>;
+  torActiveRef: MutableRefObject<boolean>;
   onNearestTower: (tower: TowerDef | null) => void;
   onNearbyIds: (ids: string[]) => void;
   onRobotPos: (pos: [number, number, number]) => void;
@@ -1473,6 +1483,8 @@ function Scene({
   onInteract: (towerId: string) => void;
   onMorph: (suite: CompositeSuite, consumed: string[]) => void;
   onHardwareInteract: (node: HardwareInteractable) => void;
+  onPinRequest: (node: HardwareInteractable) => void;
+  onTorActivate: (maskedIp: string) => void;
   onMountChange: (mounted: boolean) => void;
 }) {
   const targets = useMemo(
@@ -1554,6 +1566,13 @@ function Scene({
         avatarPosRef={avatarPosRef}
         locked={locked}
         onInteract={onHardwareInteract}
+        onPinRequest={onPinRequest}
+      />
+      <TorNode
+        locked={locked}
+        avatarPosRef={avatarPosRef}
+        activeRef={torActiveRef}
+        onActivate={onTorActivate}
       />
       <AutomobileUnit
         locked={locked}
@@ -1744,175 +1763,6 @@ function ProximityChip({
   );
 }
 
-function PinKeypadOverlay({
-  node,
-  onUnlock,
-  onClose,
-}: {
-  node: HardwareInteractable;
-  onUnlock: () => void;
-  onClose: () => void;
-}) {
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const EXPECTED = "0480";
-
-  const press = (digit: string) => {
-    setError(null);
-    setPin((p) => (p.length >= 4 ? p : p + digit));
-  };
-
-  const submit = () => {
-    if (pin === EXPECTED) {
-      onUnlock();
-      return;
-    }
-    setError("ACCESS DENIED · invalid PIN");
-    setPin("");
-  };
-
-  return (
-    <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div
-        role="dialog"
-        aria-modal
-        aria-labelledby="pin-keypad-title"
-        className="w-full max-w-xs overflow-hidden rounded-2xl border border-[#00ffaa]/25 bg-[#0a0e12]/95 shadow-[0_0_48px_rgba(0,255,170,0.18)] backdrop-blur-xl"
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-white/5 px-4 py-3">
-          <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-wider text-[#00ffaa]/80">
-              superadmin · pin gate
-            </p>
-            <h3
-              id="pin-keypad-title"
-              className="truncate text-sm font-semibold text-white"
-            >
-              {node.label}
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1 text-slate-500 transition hover:bg-white/5 hover:text-white"
-            aria-label="Close PIN keypad"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="px-4 py-3">
-          <div className="mb-3 flex justify-center gap-2 font-mono text-lg tracking-[0.35em] text-[#00ffaa]">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <span
-                key={i}
-                className="inline-flex h-9 w-8 items-center justify-center rounded border border-[#00ffaa]/25 bg-black/40"
-              >
-                {pin[i] ? "●" : ""}
-              </span>
-            ))}
-          </div>
-          {error ? (
-            <p className="mb-2 text-center font-mono text-[10px] text-red-400">
-              {error}
-            </p>
-          ) : (
-            <p className="mb-2 text-center font-mono text-[10px] text-slate-500">
-              Enter 4-digit workstation PIN
-            </p>
-          )}
-          <div className="grid grid-cols-3 gap-1.5">
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "↵"].map(
-              (k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => {
-                    if (k === "C") {
-                      setPin("");
-                      setError(null);
-                    } else if (k === "↵") submit();
-                    else press(k);
-                  }}
-                  className="rounded-lg border border-white/10 bg-gradient-to-b from-[#1a1f2a] to-[#0c1016] py-2.5 font-mono text-sm font-semibold text-emerald-200 shadow-inner transition hover:border-[#00ffaa]/35 hover:text-[#00ffaa]"
-                >
-                  {k}
-                </button>
-              )
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function NetworkDiagOverlay({
-  node,
-  onClose,
-}: {
-  node: HardwareInteractable;
-  onClose: () => void;
-}) {
-  const isSentry =
-    node.id === "sentry-log-ws" || node.label.toLowerCase().includes("sentry");
-
-  const lines = isSentry
-    ? [
-        "[sentry] live error stream · project scalesystems",
-        "[!] TypeError: Cannot read props of undefined · DashboardClient",
-        "    at renderFleet (DashboardClient.tsx:412)",
-        "[!] SSE stall · /api/agents/stream · reconnecting…",
-        "[*] issue SS-4821 · fingerprint agent.stream.timeout",
-        "[*] issue SS-4790 · fingerprint webgl.context.lost",
-        "[ok] Seer suggestion · wrap Canvas in WebGLErrorBoundary",
-        "[*] events/min 14 · p95 ingest 38ms · quota green",
-      ]
-    : [
-        "[net] virtual IP · 10.48.12.77 /24",
-        "[*] uplink eth0 · 1.0 Gbps · duplex full",
-        "[*] latency p50 4.2ms · p95 11.8ms · p99 19.1ms",
-        "[*] hop1 10.48.12.1 · 0.4ms · gw-core-a",
-        "[*] hop2 10.0.0.1 · 1.2ms · edge-relay",
-        "[*] packet loss 0.0% · jitter 0.3ms · ACL green",
-        "[ok] path healthy · telemetry nominal",
-      ];
-
-  return (
-    <div className="pointer-events-auto absolute inset-0 z-30 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div
-        role="dialog"
-        aria-modal
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-[#00ffaa]/25 bg-gradient-to-b from-slate-950 via-zinc-900 to-emerald-950/40 shadow-[0_0_48px_rgba(0,255,170,0.16)] backdrop-blur-xl"
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-bio-moss/40 px-4 py-3">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-wider text-[#00ffaa]/80">
-              {isSentry ? "superadmin · sentry live" : "admin · ip diagnostic"}
-            </p>
-            <h3 className="text-sm font-semibold text-white">{node.label}</h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md p-1 text-slate-500 transition hover:bg-white/5 hover:text-white"
-            aria-label="Close diagnostic"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <pre className="terminal-scroll max-h-56 overflow-y-auto px-4 py-3 font-mono text-[11px] leading-relaxed text-[#00ffaa]/90">
-          {lines.map((line, i) => (
-            <div key={i} className="whitespace-pre-wrap">
-              {line}
-            </div>
-          ))}
-        </pre>
-      </div>
-    </div>
-  );
-}
-
-/** Speedometer HUD — DOM updates via rAF reading speedRef (no React re-renders). */
 function SpeedometerHud({
   speedRef,
   visible,
@@ -1988,8 +1838,14 @@ export default function SpatialUniverse({
   const [consumedIds, setConsumedIds] = useState<Set<string>>(() => new Set());
   const [driving, setDriving] = useState(false);
   const [pinNode, setPinNode] = useState<HardwareInteractable | null>(null);
-  const [diagNode, setDiagNode] = useState<HardwareInteractable | null>(null);
-  const [unlockedSentry, setUnlockedSentry] = useState(false);
+  const [toolNode, setToolNode] = useState<HardwareInteractable | null>(null);
+  const [sentryTelemetry, setSentryTelemetry] = useState<
+    SentryTelemetryPayload | Record<string, unknown> | null
+  >(null);
+  const [torProxyIp, setTorProxyIp] = useState<string | null>(null);
+  const [unlockedPins, setUnlockedPins] = useState<Set<string>>(
+    () => new Set()
+  );
   const nearestRef = useRef<string | null>(null);
 
   const avatarPosRef = useRef(new THREE.Vector3(0, 0, 8));
@@ -1999,6 +1855,10 @@ export default function SpatialUniverse({
   const speedRef = useRef(0);
   const blurIntensityRef = useRef(0);
   const mountSnapRef = useRef<THREE.Vector3 | null>(null);
+  const torActiveRef = useRef(false);
+  const sessionIdRef = useRef(
+    `spatial-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())}`
+  );
 
   useEffect(() => {
     setWebgl(supportsWebGL());
@@ -2011,8 +1871,9 @@ export default function SpatialUniverse({
           setPinNode(null);
           return;
         }
-        if (diagNode) {
-          setDiagNode(null);
+        if (toolNode) {
+          setToolNode(null);
+          setSentryTelemetry(null);
           return;
         }
         if (inspect) {
@@ -2029,7 +1890,7 @@ export default function SpatialUniverse({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [inspect, fullscreen, pinNode, diagNode]);
+  }, [inspect, fullscreen, pinNode, toolNode]);
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -2073,27 +1934,53 @@ export default function SpatialUniverse({
   const handleHardwareInteract = useCallback(
     (node: HardwareInteractable) => {
       if (mountedRef.current) return;
-      if (node.requiresPin && !unlockedSentry) {
+      if (node.requiresPin && !unlockedPins.has(node.id)) {
         setPinNode(node);
         setLocked(false);
         return;
       }
-      if (node.id === "ip-network-diag") {
-        setDiagNode(node);
+      setToolNode(node);
+      setLocked(false);
+      onOpenTerminal?.(node.id);
+    },
+    [unlockedPins, onOpenTerminal]
+  );
+
+  const handlePinRequest = useCallback(
+    (node: HardwareInteractable) => {
+      if (mountedRef.current) return;
+      if (unlockedPins.has(node.id)) {
+        setToolNode(node);
         setLocked(false);
         return;
       }
-      if (node.id === "sentry-log-ws") {
-        onOpenTerminal?.(node.id);
-        setDiagNode({
-          ...node,
-          label: "Sentry Log · unlocked stream",
-        });
-        setLocked(false);
-      }
+      setPinNode(node);
+      setLocked(false);
     },
-    [unlockedSentry, onOpenTerminal]
+    [unlockedPins]
   );
+
+  const handlePinSuccess = useCallback(
+    (result: PinVerifySuccess) => {
+      if (!pinNode) return;
+      setUnlockedPins((prev) => {
+        const next = new Set(prev);
+        next.add(pinNode.id);
+        return next;
+      });
+      setSentryTelemetry(
+        (result.sentryTelemetry as SentryTelemetryPayload) ?? null
+      );
+      setPinNode(null);
+      setToolNode(pinNode);
+      onOpenTerminal?.(pinNode.id);
+    },
+    [pinNode, onOpenTerminal]
+  );
+
+  const handleTorActivate = useCallback((maskedIp: string) => {
+    setTorProxyIp(maskedIp);
+  }, []);
 
   const handleMorph = useCallback(
     (_suite: CompositeSuite, consumed: string[]) => {
@@ -2110,7 +1997,7 @@ export default function SpatialUniverse({
     setFullscreen((v) => !v);
   }, []);
 
-  const overlayOpen = !!(inspect || pinNode || diagNode);
+  const overlayOpen = !!(inspect || pinNode || toolNode);
 
   const showChip =
     nearest &&
@@ -2140,7 +2027,7 @@ export default function SpatialUniverse({
               Spatial Universe
             </h2>
             <p className="font-mono text-[10px] text-slate-dim">
-              160 hardware · CyberRover · WASD ·{" "}
+              160 hardware · Tor · CyberRover · WASD ·{" "}
               {fullscreen ? "fullscreen" : "embedded"}
             </p>
           </div>
@@ -2150,7 +2037,7 @@ export default function SpatialUniverse({
             WASD / arrows
           </span>
           <span className="hidden rounded border border-white/10 bg-white/[0.03] px-2 py-1 md:inline">
-            E interact · F CyberRover · M morph
+            E interact · Z PIN · F CyberRover · M morph
           </span>
           <button
             type="button"
@@ -2224,6 +2111,7 @@ export default function SpatialUniverse({
                   speedRef={speedRef}
                   blurIntensityRef={blurIntensityRef}
                   mountSnapRef={mountSnapRef}
+                  torActiveRef={torActiveRef}
                   onNearestTower={handleNearest}
                   onNearbyIds={setNearbyIds}
                   onRobotPos={() => {}}
@@ -2232,6 +2120,8 @@ export default function SpatialUniverse({
                   onInteract={handleInteract}
                   onMorph={handleMorph}
                   onHardwareInteract={handleHardwareInteract}
+                  onPinRequest={handlePinRequest}
+                  onTorActivate={handleTorActivate}
                   onMountChange={setDriving}
                 />
               </Canvas>
@@ -2247,13 +2137,22 @@ export default function SpatialUniverse({
                 Click to pilot alien avatar
               </p>
               <p className="mt-1 text-[11px] text-slate-muted">
-                E terminals · F CyberRover · M morph
+                E interact · Z PIN · F CyberRover · Tor onion
               </p>
             </div>
           </div>
         ) : null}
 
         <SpeedometerHud speedRef={speedRef} visible={driving && locked} />
+
+        {torProxyIp ? (
+          <div className="pointer-events-none absolute right-4 top-4 z-20 rounded-lg border border-[#00ffaa]/30 bg-[#080b0c]/9 px-3 py-2 font-mono text-[11px] text-[#00ffaa] shadow-[0_0_24px_rgba(0,255,170,0.2)] backdrop-blur-md">
+            <p className="text-[9px] uppercase tracking-wider text-[#00ffaa]/70">
+              tor proxy · masked
+            </p>
+            <p className="mt-0.5 font-semibold">{torProxyIp}</p>
+          </div>
+        ) : null}
 
         {showChip ? (
           <ProximityChip
@@ -2268,25 +2167,27 @@ export default function SpatialUniverse({
         ) : null}
 
         {pinNode ? (
-          <PinKeypadOverlay
+          <PinKeypadModal
             node={pinNode}
-            onClose={() => setPinNode(null)}
-            onUnlock={() => {
-              setUnlockedSentry(true);
-              setPinNode(null);
-              onOpenTerminal?.(pinNode.id);
-              setDiagNode({
-                ...pinNode,
-                label: "Sentry Log · stream unlocked",
-              });
+            sessionId={sessionIdRef.current}
+            coordinates={{
+              x: avatarPosRef.current.x,
+              y: avatarPosRef.current.y,
+              z: avatarPosRef.current.z,
             }}
+            onClose={() => setPinNode(null)}
+            onSuccess={handlePinSuccess}
           />
         ) : null}
 
-        {diagNode && !pinNode ? (
-          <NetworkDiagOverlay
-            node={diagNode}
-            onClose={() => setDiagNode(null)}
+        {toolNode && !pinNode ? (
+          <NodeToolOverlay
+            node={toolNode}
+            sentryTelemetry={sentryTelemetry}
+            onClose={() => {
+              setToolNode(null);
+              setSentryTelemetry(null);
+            }}
           />
         ) : null}
       </div>
