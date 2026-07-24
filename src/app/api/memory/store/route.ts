@@ -1,6 +1,6 @@
 /**
  * POST /api/memory/store — persist Meta-SRE execution / patch / Sentry memories
- * GET  /api/memory/store — recall across sessions (query filters)
+ * GET  /api/memory/store — recall with strict workspaceId + sessionId isolation
  */
 
 import { z } from "zod";
@@ -27,8 +27,8 @@ const StoreBodySchema = z
   .object({
     kind: MemoryKindSchema,
     sessionId: z.string().trim().min(1).max(128),
+    workspaceId: z.string().trim().min(1).max(128),
     agentId: z.string().trim().min(1).max(128).optional(),
-    workspaceId: z.string().trim().min(1).max(128).optional().nullable(),
     title: z.string().trim().min(1).max(240),
     summary: z.string().trim().min(1).max(4000),
     payload: z.record(z.string(), z.unknown()).optional(),
@@ -40,29 +40,45 @@ const StoreBodySchema = z
   .strict();
 
 const RecallQuerySchema = z.object({
-  sessionId: z.string().trim().min(1).max(128).optional(),
+  sessionId: z.string().trim().min(1).max(128),
+  workspaceId: z.string().trim().min(1).max(128),
   agentId: z.string().trim().min(1).max(128).optional(),
   kind: MemoryKindSchema.optional(),
-  workspaceId: z.string().trim().min(1).max(128).optional(),
   q: z.string().trim().min(1).max(240).optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 });
 
+function resolveWorkspaceId(
+  request: Request,
+  bodyOrQuery?: string | null
+): string | null {
+  return (
+    bodyOrQuery?.trim() ||
+    request.headers.get("x-workspace-id")?.trim() ||
+    null
+  );
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const workspaceId = resolveWorkspaceId(
+    request,
+    url.searchParams.get("workspaceId")
+  );
   const parsed = RecallQuerySchema.safeParse({
     sessionId: url.searchParams.get("sessionId") ?? undefined,
+    workspaceId: workspaceId ?? undefined,
     agentId: url.searchParams.get("agentId") ?? undefined,
     kind: url.searchParams.get("kind") ?? undefined,
-    workspaceId: url.searchParams.get("workspaceId") ?? undefined,
     q: url.searchParams.get("q") ?? undefined,
     limit: url.searchParams.get("limit") ?? undefined,
   });
 
   if (!parsed.success) {
     return apiError(
-      parsed.error.issues[0]?.message ?? "Invalid recall query.",
-      "INVALID_QUERY",
+      parsed.error.issues[0]?.message ??
+        "sessionId and workspaceId are required for multi-tenant recall.",
+      "TENANT_SCOPE_REQUIRED",
       400,
       textureCacheHeaders()
     );
@@ -72,6 +88,7 @@ export async function GET(request: Request) {
   const telemetry = telemetryContextFromRequest(request, {
     route: "/api/memory/store",
     source: "api",
+    tenantId: parsed.data.workspaceId,
   });
 
   try {
@@ -79,6 +96,7 @@ export async function GET(request: Request) {
       const result = await recallAgentMemory({
         ...parsed.data,
         userId: profile.id,
+        strictTenant: true,
       });
 
       return apiSuccess(
@@ -87,10 +105,19 @@ export async function GET(request: Request) {
           recalledContext: result.recalledContext,
           source: result.source,
           count: result.entries.length,
+          scope: {
+            workspaceId: parsed.data.workspaceId,
+            sessionId: parsed.data.sessionId,
+            strictTenant: true,
+          },
           auth: { userId: profile.id },
         },
         200,
-        textureCacheHeaders()
+        {
+          ...textureCacheHeaders(),
+          "x-workspace-bound": parsed.data.workspaceId,
+          "x-session-bound": parsed.data.sessionId,
+        }
       );
     });
   } catch (error) {
@@ -109,14 +136,30 @@ export async function POST(request: Request) {
   try {
     raw = await parseJsonBody(request);
   } catch {
-    return apiError("Invalid JSON body.", "INVALID_JSON", 400, textureCacheHeaders());
+    return apiError(
+      "Invalid JSON body.",
+      "INVALID_JSON",
+      400,
+      textureCacheHeaders()
+    );
   }
 
-  const parsed = StoreBodySchema.safeParse(raw);
+  const headerWorkspace = request.headers.get("x-workspace-id")?.trim();
+  const merged =
+    raw && typeof raw === "object"
+      ? {
+          ...(raw as Record<string, unknown>),
+          workspaceId:
+            (raw as { workspaceId?: string }).workspaceId ?? headerWorkspace,
+        }
+      : raw;
+
+  const parsed = StoreBodySchema.safeParse(merged);
   if (!parsed.success) {
     return apiError(
-      parsed.error.issues[0]?.message ?? "Invalid memory payload.",
-      "INVALID_BODY",
+      parsed.error.issues[0]?.message ??
+        "sessionId and workspaceId are required for multi-tenant store.",
+      "TENANT_SCOPE_REQUIRED",
       400,
       textureCacheHeaders()
     );
@@ -126,6 +169,7 @@ export async function POST(request: Request) {
   const telemetry = telemetryContextFromRequest(request, {
     route: "/api/memory/store",
     source: "api",
+    tenantId: parsed.data.workspaceId,
     extra: { kind: parsed.data.kind },
   });
 
@@ -134,17 +178,26 @@ export async function POST(request: Request) {
       const entry = await storeAgentMemory({
         ...parsed.data,
         userId: profile.id,
-        workspaceId: parsed.data.workspaceId ?? null,
+        workspaceId: parsed.data.workspaceId,
       });
 
       return apiSuccess(
         {
           stored: true,
           memory: entry,
+          scope: {
+            workspaceId: parsed.data.workspaceId,
+            sessionId: parsed.data.sessionId,
+            strictTenant: true,
+          },
           auth: { userId: profile.id },
         },
         201,
-        textureCacheHeaders()
+        {
+          ...textureCacheHeaders(),
+          "x-workspace-bound": parsed.data.workspaceId,
+          "x-session-bound": parsed.data.sessionId,
+        }
       );
     });
   } catch (error) {

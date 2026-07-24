@@ -216,19 +216,88 @@ export async function runAgentHandOff(
         : "No prior patterns — synthesizing review scaffold.",
   });
 
-  const autoPatch = synthesizePatchFromPatterns(
-    input.sentryErrorId,
-    priorPatterns,
-    input.issueTitle
-  );
+  let autoPatch: AutoPatchPayload | null = null;
+  let skillReuse = false;
 
-  steps.push({
-    step: 3,
-    name: "return_auto_patch",
-    status: autoPatch.status === "no_pattern" ? "fallback" : "ok",
-    detail: `Patch ${autoPatch.patchId} · ${autoPatch.status} · confidence ${autoPatch.confidence}`,
-  });
+  if (input.workspaceId) {
+    try {
+      const { querySkillsForPatch } = await import(
+        "@/lib/agents/skillSynthesis"
+      );
+      const skillHit = querySkillsForPatch({
+        workspaceId: input.workspaceId,
+        sessionId: input.sessionId,
+        q: input.issueTitle || input.sentryErrorId,
+        sentryIssueId: input.sentryErrorId,
+        tags: ["auto_patch", "meta-sre"],
+        minConfidence: 0.7,
+        limit: 3,
+        markUsed: true,
+      });
+      if (skillHit.skipLlm && skillHit.best?.patchTemplate) {
+        const skill = skillHit.best;
+        autoPatch = {
+          patchId: `patch-skill-${skill.slug.slice(0, 48)}`,
+          status: "ready_for_virtual_deploy",
+          confidence: Math.max(0.75, skill.confidence),
+          targetFile:
+            skill.targetFilePatterns[0] ?? "src/lib/prisma.ts",
+          patch: skill.patchTemplate,
+          explanation: `Reused Skill Document ${skill.slug}: ${skill.summary}`,
+          risk: "low",
+          sentryErrorId: input.sentryErrorId,
+          basedOnMemoryIds: skill.sourceMemoryIds,
+          deploy: {
+            mode: "virtual",
+            dryRun: true,
+            estimatedSteps: skill.steps.map((s) => s.name),
+          },
+        };
+        skillReuse = true;
+        steps.push({
+          step: 3,
+          name: "reuse_skill_document",
+          status: "ok",
+          detail: skillHit.reason,
+        });
+      } else {
+        steps.push({
+          step: 3,
+          name: "query_skill_documents",
+          status: skillHit.matched ? "ok" : "empty",
+          detail: skillHit.reason,
+        });
+      }
+    } catch {
+      steps.push({
+        step: 3,
+        name: "query_skill_documents",
+        status: "fallback",
+        detail: "Skill query unavailable — continuing with memory patterns.",
+      });
+    }
+  }
 
+  if (!autoPatch) {
+    autoPatch = synthesizePatchFromPatterns(
+      input.sentryErrorId,
+      priorPatterns,
+      input.issueTitle
+    );
+    steps.push({
+      step: skillReuse ? 4 : steps.length + 1,
+      name: "return_auto_patch",
+      status: autoPatch.status === "no_pattern" ? "fallback" : "ok",
+      detail: `Patch ${autoPatch.patchId} · ${autoPatch.status} · confidence ${autoPatch.confidence}`,
+    });
+  } else {
+    steps.push({
+      step: steps.length + 1,
+      name: "return_auto_patch",
+      status: "ok",
+      detail: `Patch ${autoPatch.patchId} · skill-reuse · confidence ${autoPatch.confidence}`,
+    });
+  }
   let memoryLogged = false;
   try {
     await storeAgentMemory({
@@ -279,6 +348,37 @@ export async function runAgentHandOff(
     memoryLogged = true;
   } catch {
     memoryLogged = false;
+  }
+
+  try {
+    const { recordHandOffTrace, resolveSwarmAgentId, recordSwarmAgentStatus } =
+      await import("@/lib/telemetry/swarmTelemetry");
+    const tokensUsed = Math.max(
+      80,
+      Math.ceil((autoPatch.patch?.length ?? 0) / 4) + priorPatterns.length * 40
+    );
+    recordHandOffTrace({
+      fromAgentId: input.fromAgentId,
+      toAgentId: input.toAgentId,
+      sentryErrorId: input.sentryErrorId,
+      summary: `Hand-off ${input.sentryErrorId} → ${autoPatch.patchId} (${autoPatch.status})`,
+      status: "completed",
+      latencyMs: 40 + priorPatterns.length * 12,
+      tokensUsed,
+      workspaceId: input.workspaceId,
+      sessionId: input.sessionId,
+      traceId,
+    });
+    const meta = resolveSwarmAgentId(input.toAgentId) ?? "meta-sre-engine";
+    recordSwarmAgentStatus({
+      agentId: meta,
+      status: "idle",
+      currentTask: null,
+      latencyMs: 40 + priorPatterns.length * 12,
+      success: autoPatch.status !== "no_pattern",
+    });
+  } catch {
+    // Telemetry is best-effort — never block hand-off.
   }
 
   return {

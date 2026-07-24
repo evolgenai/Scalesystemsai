@@ -14,10 +14,14 @@ import {
   DEFAULT_NODE_COUNT,
   MIN_NODE_COUNT,
   MAX_NODE_COUNT,
-  DEFAULT_WORLD_SEED,
+  DEFAULT_WORLD_SEED as PROCEDURAL_DEFAULT_WORLD_SEED,
   hashSeed,
   mulberry32,
 } from "@/lib/spatial/proceduralWorld";
+
+/** Re-export for registry + command-parser consumers. */
+export const DEFAULT_WORLD_SEED =
+  PROCEDURAL_DEFAULT_WORLD_SEED || "scale-systems-seed-v1";
 
 export const INTERACTIVE_RATIO = 0.8 as const;
 export const DECORATOR_RATIO = 0.2 as const;

@@ -114,3 +114,50 @@ export async function agentHandOffAction(input: {
       })
   );
 }
+
+export async function executePatchAction(input: {
+  sentryErrorId: string;
+  sessionId: string;
+  workspaceId: string;
+  autoPatch: import("@/lib/agents/handOff").AutoPatchPayload;
+  agentId?: string;
+  userId?: string | null;
+}): Promise<
+  ServerActionResult<import("@/lib/agents/executePatch").ExecutePatchResult>
+> {
+  const { executeAutoPatch } = await import("@/lib/agents/executePatch");
+  return withServerActionTelemetry(
+    {
+      actionName: "agents.executePatch",
+      source: "server_action",
+      route: "actions/agents",
+      tenantId: input.workspaceId,
+      extra: { sentryErrorId: input.sentryErrorId },
+    },
+    async () =>
+      executeAutoPatch({
+        ...input,
+        mode: "virtual",
+      })
+  );
+}
+
+export async function parseSpatialCommandAction(input: {
+  command: string;
+  seed?: string;
+  sessionId?: string;
+}): Promise<
+  ServerActionResult<
+    import("@/lib/spatial/commandParser").ParsedSpatialCommand
+  >
+> {
+  const { parseSpatialCommand } = await import("@/lib/spatial/commandParser");
+  return withServerActionTelemetry(
+    {
+      actionName: "spatial.commandParser",
+      source: "server_action",
+      route: "actions/spatial",
+    },
+    async () => parseSpatialCommand(input)
+  );
+}

@@ -210,6 +210,11 @@ export type RecallAgentMemoryQuery = {
   tags?: string[];
   sentryIssueId?: string | null;
   limit?: number;
+  /**
+   * When true (default for API routes), workspaceId + sessionId filters are
+   * strict — null/mismatched tenant scopes never leak across enterprises.
+   */
+  strictTenant?: boolean;
 };
 
 function matchesKindFilter(
@@ -220,6 +225,28 @@ function matchesKindFilter(
     return query.kinds.includes(entry.kind);
   }
   if (query.kind) return entry.kind === query.kind;
+  return true;
+}
+
+/** Multi-tenant gate for workspace + session isolation. */
+function matchesTenantScope(
+  entry: AgentMemoryEntry,
+  query: RecallAgentMemoryQuery
+): boolean {
+  const strict = query.strictTenant === true;
+
+  if (strict) {
+    if (!query.sessionId || entry.sessionId !== query.sessionId) return false;
+    const wantWs = query.workspaceId?.trim() || null;
+    if (!wantWs || entry.workspaceId !== wantWs) return false;
+    return true;
+  }
+
+  // Soft mode: when filters are provided, match exactly (no null→tenant leaks).
+  if (query.sessionId && entry.sessionId !== query.sessionId) return false;
+  if (query.workspaceId) {
+    if (entry.workspaceId !== query.workspaceId) return false;
+  }
   return true;
 }
 
@@ -234,17 +261,10 @@ export async function recallAgentMemory(
   const tagNeedles = (query.tags ?? []).map((t) => t.toLowerCase());
   const ringHits = ring()
     .filter((e) => {
-      if (query.sessionId && e.sessionId !== query.sessionId) return false;
+      if (!matchesTenantScope(e, query)) return false;
       if (query.agentId && e.agentId !== query.agentId) return false;
       if (!matchesKindFilter(e, query)) return false;
       if (query.userId && e.userId && e.userId !== query.userId) return false;
-      if (
-        query.workspaceId &&
-        e.workspaceId &&
-        e.workspaceId !== query.workspaceId
-      ) {
-        return false;
-      }
       if (
         query.sentryIssueId &&
         (e.sentryIssueId ?? "").toLowerCase() !==
@@ -294,8 +314,8 @@ export async function recallAgentMemory(
         )
         .filter((e): e is AgentMemoryEntry => e != null)
         .filter((e) => {
+          if (!matchesTenantScope(e, query)) return false;
           if (!matchesKindFilter(e, query)) return false;
-          if (query.sessionId && e.sessionId !== query.sessionId) return false;
           if (query.agentId && e.agentId !== query.agentId) return false;
           if (
             query.sentryIssueId &&

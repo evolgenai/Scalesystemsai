@@ -51,6 +51,13 @@ export type RobotAvatarProps = {
   camBoostRef?: MutableRefObject<number>;
   /** One-shot world snap on vehicle mount (cleared after apply). */
   mountSnapRef?: MutableRefObject<THREE.Vector3 | null>;
+  /**
+   * Pathfinding queue — world waypoints. Avatar auto-navigates while
+   * non-empty; manual WASD clears the queue. Mutated in place each frame.
+   */
+  pathQueueRef?: MutableRefObject<THREE.Vector3[]>;
+  /** Fired once when the path queue drains (arrival). */
+  onPathComplete?: () => void;
 };
 
 /** Sprint 48 bio-metallic alien pilot mesh */
@@ -243,6 +250,8 @@ export default function RobotAvatar({
   speedMultRef,
   camBoostRef,
   mountSnapRef,
+  pathQueueRef,
+  onPathComplete,
 }: RobotAvatarProps) {
   const { camera, gl } = useThree();
   const root = useRef<Group>(null);
@@ -266,6 +275,10 @@ export default function RobotAvatar({
   const facing = useRef(0);
   const anim = useRef({ moving: false, hovering: false });
   const posTick = useRef(0);
+  const pathCompleteFired = useRef(false);
+  const pathLenRef = useRef(0);
+  const onPathCompleteRef = useRef(onPathComplete);
+  onPathCompleteRef.current = onPathComplete;
 
   useEffect(() => {
     if (!enabled) return;
@@ -275,9 +288,7 @@ export default function RobotAvatar({
   useEffect(() => {
     if (!enabled) return;
     const down = (e: KeyboardEvent) => {
-      keys.current[e.code] = true;
       if (
-        (e.code === "Space" || e.code === "KeyE") &&
         e.target instanceof HTMLElement &&
         (e.target.tagName === "INPUT" ||
           e.target.tagName === "TEXTAREA" ||
@@ -285,6 +296,7 @@ export default function RobotAvatar({
       ) {
         return;
       }
+      keys.current[e.code] = true;
       if (e.code === "Space" && locked) e.preventDefault();
       if (e.code === "KeyE" && locked && nearestId.current && onInteract) {
         if (mountedRef?.current) return;
@@ -393,8 +405,41 @@ export default function RobotAvatar({
     if (keys.current.KeyA || keys.current.ArrowLeft)
       wish.current.sub(right.current);
 
+    // Manual input cancels automated pathfinding
+    const manualWish = wish.current.lengthSq() > 1e-6;
+    if (manualWish && pathQueueRef?.current.length) {
+      pathQueueRef.current.length = 0;
+      pathCompleteFired.current = false;
+    }
+
+    let autoPathing = false;
+    const queue = pathQueueRef?.current;
+    const qLen = queue?.length ?? 0;
+    if (qLen > pathLenRef.current) {
+      pathCompleteFired.current = false;
+    }
+    pathLenRef.current = qLen;
+    if (!manualWish && queue && queue.length > 0 && !driving) {
+      autoPathing = true;
+      const waypoint = queue[0]!;
+      const dx = waypoint.x - root.current.position.x;
+      const dz = waypoint.z - root.current.position.z;
+      const dist = Math.hypot(dx, dz);
+      if (dist < 0.35) {
+        queue.shift();
+        if (queue.length === 0 && !pathCompleteFired.current) {
+          pathCompleteFired.current = true;
+          onPathCompleteRef.current?.();
+        }
+      } else {
+        wish.current.set(dx / dist, 0, dz / dist).multiplyScalar(7.2);
+      }
+    }
+
     const hasWish = wish.current.lengthSq() > 1e-6;
-    if (hasWish) wish.current.normalize().multiplyScalar(speed);
+    if (hasWish && !autoPathing) {
+      wish.current.normalize().multiplyScalar(speed);
+    }
 
     const accel = driving ? 8 : 12;
     vel.current.x +=

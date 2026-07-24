@@ -12,6 +12,11 @@ import TeamPresenceBar from "@/components/org/TeamPresenceBar";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
 import { SwarmBridgeCube, SkillChip } from "@/components/ui/Ecosystem3DIcons";
 import StreamEngineToggle from "@/components/spatial/StreamEngineToggle";
+import {
+  SwarmTelemetryDrawer,
+  SwarmTelemetryTrigger,
+} from "@/components/spatial/SwarmTelemetryDrawer";
+import SkillLibraryModal from "@/components/spatial/SkillLibraryModal";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
   OPEN_AUTH_EVENT,
@@ -144,9 +149,12 @@ export default function TopAuthHeader() {
         </div>
         <div className="ml-auto flex min-w-0 items-center gap-2">
           {onDashboard ? (
-            <div className="hidden sm:block">
-              <StreamEngineToggle />
-            </div>
+            <>
+              <SwarmTelemetryTrigger />
+              <div className="hidden sm:block">
+                <StreamEngineToggle />
+              </div>
+            </>
           ) : null}
           <WorkspaceSwitcher enabled={ready} />
           {!ready ? (
@@ -216,6 +224,12 @@ export default function TopAuthHeader() {
         onClose={() => setAuthOpen(false)}
         onSuccess={goToPendingCheckout}
       />
+      {onDashboard ? (
+        <>
+          <SwarmTelemetryDrawer />
+          <SkillLibraryModal />
+        </>
+      ) : null}
     </>
   );
 }

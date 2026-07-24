@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Activity,
   Bug,
   Loader2,
+  Rocket,
   ShieldCheck,
   Sparkles,
   X,
 } from "lucide-react";
 import type { AgentMemoryEntry } from "@/lib/agents/agentMemoryStore";
 import type { HardwareInteractable } from "@/components/spatial/InstancedHardwareGrid";
+import { playSpatialCue } from "@/lib/spatial/spatialAudio";
+import { emitSwarmLaser } from "@/lib/spatial/swarmEvents";
 
 type MemoryFeedResponse = {
   success?: boolean;
@@ -20,6 +23,27 @@ type MemoryFeedResponse = {
     traces: AgentMemoryEntry[];
     counts: Record<string, number>;
   };
+  error?: string;
+};
+
+type DeployStep = {
+  step: number;
+  name: string;
+  status: "pending" | "running" | "ok" | "error";
+  detail: string;
+};
+
+type ExecutePatchResponse = {
+  success?: boolean;
+  deploy?: {
+    deployId: string;
+    status: string;
+    steps: DeployStep[];
+    targetFile: string;
+    sentryIssueId: string | null;
+  };
+  memories?: AgentMemoryEntry[];
+  steps?: DeployStep[];
   error?: string;
 };
 
@@ -69,9 +93,35 @@ function highlightSummary(text: string): ReactNode[] {
   });
 }
 
+const DEPLOY_ANIM: DeployStep[] = [
+  {
+    step: 1,
+    name: "validate_patch",
+    status: "pending",
+    detail: "Validating autofix payload…",
+  },
+  {
+    step: 2,
+    name: "sandbox_verify",
+    status: "pending",
+    detail: "Running sandbox smoke checks…",
+  },
+  {
+    step: 3,
+    name: "apply_virtual_deploy",
+    status: "pending",
+    detail: "Applying virtual deploy marker…",
+  },
+  {
+    step: 4,
+    name: "record_memory",
+    status: "pending",
+    detail: "Appending live memory stream…",
+  },
+];
+
 /**
- * Bio-metallic Meta-SRE / Sentry memory HUD — live traces from
- * /api/spatial/memory-feed after PIN unlock.
+ * Bio-metallic Meta-SRE / Sentry memory HUD — live traces + Deploy Auto-Fix.
  */
 export default function MetaSreTerminalModal({
   node,
@@ -84,6 +134,32 @@ export default function MetaSreTerminalModal({
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | AgentMemoryEntry["kind"]>("all");
+  const [deployingId, setDeployingId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<DeployStep[] | null>(null);
+  const [deployLog, setDeployLog] = useState<string[]>([]);
+
+  const refreshFeed = useCallback(async () => {
+    const qs = new URLSearchParams({
+      sessionId,
+      node_type:
+        node.dialogKind === "meta_sre"
+          ? "meta_sre_autofix"
+          : node.dialogKind === "sentry_terminal"
+            ? "sentry_terminal"
+            : "generic",
+      limit: "24",
+    });
+    const res = await fetch(`/api/spatial/memory-feed?${qs}`, {
+      cache: "no-store",
+    });
+    const json = (await res.json()) as MemoryFeedResponse;
+    if (!res.ok || !json.feed) {
+      throw new Error(json.error ?? "Memory feed unavailable");
+    }
+    setTraces(json.feed.traces);
+    setSource(json.feed.source);
+    setCounts(json.feed.counts);
+  }, [node.dialogKind, sessionId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,27 +167,7 @@ export default function MetaSreTerminalModal({
       setBusy(true);
       setError(null);
       try {
-        const qs = new URLSearchParams({
-          sessionId,
-          node_type:
-            node.dialogKind === "meta_sre"
-              ? "meta_sre_autofix"
-              : node.dialogKind === "sentry_terminal"
-                ? "sentry_terminal"
-                : "generic",
-          limit: "24",
-        });
-        const res = await fetch(`/api/spatial/memory-feed?${qs}`, {
-          cache: "no-store",
-        });
-        const json = (await res.json()) as MemoryFeedResponse;
-        if (!res.ok || !json.feed) {
-          throw new Error(json.error ?? "Memory feed unavailable");
-        }
-        if (cancelled) return;
-        setTraces(json.feed.traces);
-        setSource(json.feed.source);
-        setCounts(json.feed.counts);
+        await refreshFeed();
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Feed failed");
@@ -126,12 +182,155 @@ export default function MetaSreTerminalModal({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [node.id, node.dialogKind, sessionId]);
+  }, [refreshFeed]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return traces;
     return traces.filter((t) => t.kind === filter);
   }, [traces, filter]);
+
+  const deployFix = useCallback(
+    async (trace: AgentMemoryEntry) => {
+      if (deployingId) return;
+      setDeployingId(trace.id);
+      setProgress(DEPLOY_ANIM.map((s) => ({ ...s })));
+      setDeployLog([`> deploy autofix · ${trace.sentryIssueId ?? trace.id}`]);
+      playSpatialCue("deploy");
+      emitSwarmLaser({
+        fromCluster: "meta_sre",
+        toCluster: "sandbox",
+        label: "auto-patch deploy",
+        durationMs: 1800,
+      });
+      window.setTimeout(() => {
+        emitSwarmLaser({
+          fromCluster: "sandbox",
+          toCluster: "sentry",
+          label: "resolution hand-off",
+          durationMs: 1600,
+        });
+      }, 900);
+
+      // Animate progress terminal while request runs
+      let stepIdx = 0;
+      const animId = window.setInterval(() => {
+        stepIdx = Math.min(stepIdx + 1, DEPLOY_ANIM.length);
+        setProgress((prev) =>
+          (prev ?? DEPLOY_ANIM).map((s, i) => {
+            if (i < stepIdx - 1) return { ...s, status: "ok" };
+            if (i === stepIdx - 1)
+              return {
+                ...s,
+                status: "running",
+                detail: DEPLOY_ANIM[i]?.detail ?? s.detail,
+              };
+            return s;
+          })
+        );
+        setDeployLog((log) => [
+          ...log,
+          `[*] ${DEPLOY_ANIM[Math.max(0, stepIdx - 1)]?.name ?? "step"}…`,
+        ]);
+      }, 420);
+
+      try {
+        const payloadTarget =
+          typeof trace.payload?.targetFile === "string"
+            ? trace.payload.targetFile
+            : undefined;
+        const payloadPatch =
+          typeof trace.payload?.patch === "string"
+            ? trace.payload.patch
+            : undefined;
+
+        const res = await fetch("/api/agents/execute-patch", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            sessionId,
+            memoryId: trace.id,
+            sentryIssueId: trace.sentryIssueId ?? undefined,
+            title: `Deploy · ${trace.title}`,
+            summary: trace.summary,
+            targetFile: payloadTarget,
+            patch: payloadPatch,
+            nodeId: node.id,
+            agentId: "meta-sre",
+            dryRun: false,
+          }),
+        });
+        const json = (await res.json()) as ExecutePatchResponse;
+        window.clearInterval(animId);
+
+        if (!res.ok || !json.deploy) {
+          throw new Error(json.error ?? "Deploy failed");
+        }
+
+        setProgress(
+          (json.steps ?? json.deploy.steps).map((s) => ({
+            ...s,
+            status: s.status === "pending" ? "ok" : s.status,
+          }))
+        );
+        setDeployLog((log) => [
+          ...log,
+          `[ok] ${json.deploy!.deployId} · ${json.deploy!.status}`,
+          `[ok] target ${json.deploy!.targetFile}`,
+          "[*] refreshing memory stream…",
+        ]);
+
+        if (json.memories?.length) {
+          setTraces((prev) => {
+            const merged = [...json.memories!, ...prev];
+            const seen = new Set<string>();
+            return merged.filter((m) => {
+              if (seen.has(m.id)) return false;
+              seen.add(m.id);
+              return true;
+            });
+          });
+          setCounts((c) => ({
+            ...c,
+            auto_patch:
+              (c.auto_patch ?? 0) +
+              json.memories!.filter((m) => m.kind === "auto_patch").length,
+            sentry_resolution:
+              (c.sentry_resolution ?? 0) +
+              json.memories!.filter((m) => m.kind === "sentry_resolution")
+                .length,
+            execution_step:
+              (c.execution_step ?? 0) +
+              json.memories!.filter((m) => m.kind === "execution_step").length,
+          }));
+        } else {
+          await refreshFeed();
+        }
+        setFilter("all");
+      } catch (err) {
+        window.clearInterval(animId);
+        setProgress((prev) =>
+          (prev ?? DEPLOY_ANIM).map((s) =>
+            s.status === "running" || s.status === "pending"
+              ? { ...s, status: "error" as const }
+              : s
+          )
+        );
+        setDeployLog((log) => [
+          ...log,
+          `[err] ${err instanceof Error ? err.message : "Deploy failed"}`,
+        ]);
+        playSpatialCue("error");
+      } finally {
+        setDeployingId(null);
+      }
+    },
+    [deployingId, node.id, refreshFeed, sessionId]
+  );
+
+  const canDeploy = (trace: AgentMemoryEntry) =>
+    trace.kind === "sentry_resolution" ||
+    trace.kind === "auto_patch" ||
+    !!trace.sentryIssueId;
 
   return (
     <div className="pointer-events-auto absolute inset-0 z-40 flex items-center justify-center bg-black/65 p-4 backdrop-blur-sm">
@@ -193,6 +392,53 @@ export default function MetaSreTerminalModal({
           ))}
         </div>
 
+        {(progress || deployLog.length > 0) && (
+          <div className="border-b border-white/5 bg-[#050807]/70 px-4 py-2.5">
+            <p className="mb-1.5 font-mono text-[9px] uppercase tracking-wider text-[#00ffaa]/75">
+              deploy terminal
+            </p>
+            {progress ? (
+              <ul className="mb-2 space-y-1">
+                {progress.map((s) => (
+                  <li
+                    key={s.name}
+                    className="flex items-center gap-2 font-mono text-[10px]"
+                  >
+                    <span
+                      className={
+                        s.status === "ok"
+                          ? "text-[#00ffaa]"
+                          : s.status === "running"
+                            ? "text-amber-300"
+                            : s.status === "error"
+                              ? "text-red-400"
+                              : "text-slate-dim"
+                      }
+                    >
+                      {s.status === "ok"
+                        ? "✓"
+                        : s.status === "running"
+                          ? "›"
+                          : s.status === "error"
+                            ? "✕"
+                            : "·"}
+                    </span>
+                    <span className="text-slate-300">
+                      {s.name.replace(/_/g, " ")}
+                    </span>
+                    <span className="truncate text-slate-dim">{s.detail}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="max-h-20 overflow-y-auto font-mono text-[10px] leading-relaxed text-slate-muted">
+              {deployLog.slice(-8).map((line, i) => (
+                <p key={`${line}-${i}`}>{line}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="terminal-scroll min-h-0 flex-1 overflow-y-auto px-4 py-3">
           {busy && traces.length === 0 ? (
             <div className="flex items-center justify-center gap-2 py-12 font-mono text-xs text-slate-muted">
@@ -206,6 +452,7 @@ export default function MetaSreTerminalModal({
           <ul className="space-y-2.5">
             {filtered.map((trace) => {
               const Icon = kindIcon(trace.kind);
+              const showDeploy = canDeploy(trace);
               return (
                 <li
                   key={trace.id}
@@ -228,13 +475,33 @@ export default function MetaSreTerminalModal({
                       <p className="mt-1 font-mono text-[11px] leading-relaxed text-slate-300">
                         {highlightSummary(trace.summary)}
                       </p>
-                      <p className="mt-1.5 font-mono text-[9px] text-slate-dim">
-                        {new Date(trace.createdAt).toLocaleString()} ·{" "}
-                        {trace.agentId}
-                        {trace.sentryIssueId
-                          ? ` · ${trace.sentryIssueId}`
-                          : ""}
-                      </p>
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-mono text-[9px] text-slate-dim">
+                          {new Date(trace.createdAt).toLocaleString()} ·{" "}
+                          {trace.agentId}
+                          {trace.sentryIssueId
+                            ? ` · ${trace.sentryIssueId}`
+                            : ""}
+                        </p>
+                        {showDeploy ? (
+                          <button
+                            type="button"
+                            disabled={!!deployingId}
+                            onClick={() => void deployFix(trace)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#00ffaa]/40 bg-[#00ffaa]/15 px-2.5 py-1 font-mono text-[10px] font-semibold text-[#00ffaa] shadow-[0_0_18px_rgba(0,255,170,0.12)] transition hover:bg-[#00ffaa]/25 disabled:opacity-45"
+                          >
+                            {deployingId === trace.id ? (
+                              <Loader2
+                                className="h-3 w-3 animate-spin"
+                                aria-hidden
+                              />
+                            ) : (
+                              <Rocket className="h-3 w-3" aria-hidden />
+                            )}
+                            Deploy Auto-Fix
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </li>

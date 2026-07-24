@@ -100,6 +100,13 @@ export {
 } from "@/lib/spatial/streamSignaling";
 
 export {
+  parseSpatialCommand,
+  CommandParserRequestSchema,
+  type ParsedSpatialCommand,
+  type CommandParserRequest,
+} from "@/lib/spatial/commandParser";
+
+export {
   fetchSanitizedSentryErrors,
   sanitizeTelemetryText,
   resolveSentryApiConfig,
@@ -139,3 +146,21 @@ export {
 } from "@/lib/spatial/spatialTelemetry";
 
 export { playSpatialCue } from "@/lib/spatial/spatialAudio";
+
+export {
+  parseSpatialCommand,
+  buildGridPath,
+  KNOWN_SPATIAL_NODES,
+  type ParsedSpatialCommand,
+  type SpatialWaypoint,
+} from "@/lib/spatial/commandParser";
+
+export {
+  SWARM_LASER_EVENT,
+  SWARM_TELEMETRY_TOGGLE_EVENT,
+  SKILL_LIBRARY_OPEN_EVENT,
+  emitSwarmLaser,
+  emitSwarmTelemetryToggle,
+  emitSkillLibraryOpen,
+  type SwarmLaserDetail,
+} from "@/lib/spatial/swarmEvents";

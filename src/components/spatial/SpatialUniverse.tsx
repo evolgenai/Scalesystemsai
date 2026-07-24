@@ -48,8 +48,11 @@ import PinKeypadModal, {
 } from "@/components/spatial/PinKeypadModal";
 import NodeToolOverlay from "@/components/spatial/NodeToolOverlay";
 import MetaSreTerminalModal from "@/components/spatial/MetaSreTerminalModal";
+import SpatialCommandBar from "@/components/spatial/SpatialCommandBar";
+import SwarmAgentTopology from "@/components/spatial/SwarmAgentTopology";
 import { useStreamEngine } from "@/components/spatial/StreamEngineContext";
 import { playSpatialCue } from "@/lib/spatial/spatialAudio";
+import type { ParsedSpatialCommand } from "@/lib/spatial/commandParser";
 import ObjectMorpher, {
   type CompositeSuite,
   type MorphNode,
@@ -1461,6 +1464,7 @@ function Scene({
   speedRef,
   blurIntensityRef,
   mountSnapRef,
+  pathQueueRef,
   torActiveRef,
   onNearestTower,
   onNearbyIds,
@@ -1473,6 +1477,7 @@ function Scene({
   onPinRequest,
   onTorActivate,
   onMountChange,
+  onPathComplete,
 }: {
   locked: boolean;
   activeId: string | null;
@@ -1487,6 +1492,7 @@ function Scene({
   speedRef: MutableRefObject<number>;
   blurIntensityRef: MutableRefObject<number>;
   mountSnapRef: MutableRefObject<THREE.Vector3 | null>;
+  pathQueueRef: MutableRefObject<THREE.Vector3[]>;
   torActiveRef: MutableRefObject<boolean>;
   onNearestTower: (tower: TowerDef | null) => void;
   onNearbyIds: (ids: string[]) => void;
@@ -1499,6 +1505,7 @@ function Scene({
   onPinRequest: (node: HardwareInteractable) => void;
   onTorActivate: (maskedIp: string) => void;
   onMountChange: (mounted: boolean) => void;
+  onPathComplete: () => void;
 }) {
   const targets = useMemo(
     () =>
@@ -1581,6 +1588,7 @@ function Scene({
         onInteract={onHardwareInteract}
         onPinRequest={onPinRequest}
       />
+      <SwarmAgentTopology enabled />
       <TorNode
         locked={locked}
         avatarPosRef={avatarPosRef}
@@ -1618,6 +1626,8 @@ function Scene({
         speedMultRef={speedMultRef}
         camBoostRef={camBoostRef}
         mountSnapRef={mountSnapRef}
+        pathQueueRef={pathQueueRef}
+        onPathComplete={onPathComplete}
       />
       <ObjectMorpher
         nearbyNodes={nearbyNodes}
@@ -1872,10 +1882,12 @@ export default function SpatialUniverse({
   const speedRef = useRef(0);
   const blurIntensityRef = useRef(0);
   const mountSnapRef = useRef<THREE.Vector3 | null>(null);
+  const pathQueueRef = useRef<THREE.Vector3[]>([]);
   const torActiveRef = useRef(false);
   const sessionIdRef = useRef(
     `spatial-${typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())}`
   );
+  const [navStatus, setNavStatus] = useState<string | null>(null);
 
   useEffect(() => {
     setWebgl(supportsWebGL());
@@ -2015,6 +2027,30 @@ export default function SpatialUniverse({
     setTorProxyIp(maskedIp);
   }, []);
 
+  const handlePathComplete = useCallback(() => {
+    playSpatialCue("arrive");
+    setNavStatus("Arrived");
+    window.setTimeout(() => setNavStatus(null), 2200);
+  }, []);
+
+  const handleCommandNavigate = useCallback((cmd: ParsedSpatialCommand) => {
+    const pts = cmd.path.map(
+      (p) => new THREE.Vector3(p.x, p.y ?? 0, p.z)
+    );
+    pathQueueRef.current = pts;
+    setNavStatus(cmd.utterance);
+    setLocked(true);
+  }, []);
+
+  const commandFrom = useCallback(
+    () => ({
+      x: avatarPosRef.current.x,
+      y: avatarPosRef.current.y,
+      z: avatarPosRef.current.z,
+    }),
+    []
+  );
+
   const handleMorph = useCallback(
     (_suite: CompositeSuite, consumed: string[]) => {
       setConsumedIds((prev) => {
@@ -2060,7 +2096,7 @@ export default function SpatialUniverse({
               Spatial Universe
             </h2>
             <p className="font-mono text-[10px] text-slate-dim">
-              Meta-SRE memory · Tor · CyberRover · UE5 hybrid ·{" "}
+              Swarm lasers · telemetry [T] · pathfinder ·{" "}
               {fullscreen ? "fullscreen" : "embedded"}
             </p>
           </div>
@@ -2149,6 +2185,7 @@ export default function SpatialUniverse({
                   speedRef={speedRef}
                   blurIntensityRef={blurIntensityRef}
                   mountSnapRef={mountSnapRef}
+                  pathQueueRef={pathQueueRef}
                   torActiveRef={torActiveRef}
                   onNearestTower={handleNearest}
                   onNearbyIds={setNearbyIds}
@@ -2161,6 +2198,7 @@ export default function SpatialUniverse({
                   onPinRequest={handlePinRequest}
                   onTorActivate={handleTorActivate}
                   onMountChange={setDriving}
+                  onPathComplete={handlePathComplete}
                 />
               </Canvas>
             </Suspense>
@@ -2190,6 +2228,24 @@ export default function SpatialUniverse({
             </p>
             <p className="mt-0.5 font-semibold">{torProxyIp}</p>
           </div>
+        ) : null}
+
+        {navStatus ? (
+          <div className="pointer-events-none absolute left-4 top-4 z-20 rounded-lg border border-[#00ffaa]/25 bg-[#0b120f]/9 px-3 py-2 font-mono text-[11px] text-[#00ffaa] shadow-[0_0_20px_rgba(0,255,170,0.15)] backdrop-blur-md">
+            <p className="text-[9px] uppercase tracking-wider text-[#00ffaa]/65">
+              pathfinder
+            </p>
+            <p className="mt-0.5 text-slate-200">{navStatus}</p>
+          </div>
+        ) : null}
+
+        {!overlayOpen ? (
+          <SpatialCommandBar
+            sessionId={sessionIdRef.current}
+            from={commandFrom}
+            onNavigate={handleCommandNavigate}
+            disabled={driving}
+          />
         ) : null}
 
         {showChip ? (

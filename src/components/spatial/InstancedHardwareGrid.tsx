@@ -327,6 +327,20 @@ export function generateHardwareScatter(seed = 48_001): ScatterSlot[] {
     metrics: buildMetrics("meta_sre", 0, rand),
   });
   pushUnique({
+    id: "sandbox-executor-hub",
+    kind: "cyber_console",
+    dialogKind: "sandbox_executor",
+    label: "Sandbox Executor Hub",
+    position: [8.5, 0, -8.2],
+    yaw: -0.4,
+    scale: [1.1, 2.2, 0.85],
+    interactive: true,
+    access: "admin",
+    requiresPin: false,
+    height: 2.3,
+    metrics: buildMetrics("sandbox_executor", 0, rand),
+  });
+  pushUnique({
     id: "ip-network-diag",
     kind: "diagnostic_router",
     dialogKind: "ip_diagnostic",
@@ -346,6 +360,7 @@ export function generateHardwareScatter(seed = 48_001): ScatterSlot[] {
     [-13.5, 11.5],
     [18.5, -4.2],
     [-10.2, 9.8],
+    [8.5, -8.2],
     [-19.2, 5.4],
     [6.5, 10.5],
     [-8, -6],
@@ -356,7 +371,7 @@ export function generateHardwareScatter(seed = 48_001): ScatterSlot[] {
   ] as const;
 
   let i = 0;
-  let interactiveCount = 3;
+  let interactiveCount = 4;
   while (slots.length < TOTAL_INSTANCES && i < 9000) {
     i++;
     const x = (rand() - 0.5) * WORLD_EXTENT * 0.72;

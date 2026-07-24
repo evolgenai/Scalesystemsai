@@ -3,7 +3,15 @@
  * No assets required — oscillators only, fails soft when AudioContext blocked.
  */
 
-type CueKind = "unlock" | "engine_webgl" | "engine_ue5" | "fallback" | "error";
+type CueKind =
+  | "unlock"
+  | "engine_webgl"
+  | "engine_ue5"
+  | "fallback"
+  | "error"
+  | "navigate"
+  | "arrive"
+  | "deploy";
 
 let ctx: AudioContext | null = null;
 
@@ -69,6 +77,19 @@ export function playSpatialCue(kind: CueKind): void {
         break;
       case "error":
         tone(180, 0.2, "sawtooth", 0.045);
+        break;
+      case "navigate":
+        tone(349.23, 0.08, "sine", 0.05);
+        tone(440, 0.1, "triangle", 0.045, 0.07);
+        break;
+      case "arrive":
+        tone(659.25, 0.1, "sine", 0.06);
+        tone(880, 0.14, "triangle", 0.04, 0.09);
+        break;
+      case "deploy":
+        tone(196, 0.1, "sawtooth", 0.035);
+        tone(392, 0.12, "sine", 0.06, 0.08);
+        tone(523.25, 0.16, "triangle", 0.05, 0.18);
         break;
       default:
         break;
