@@ -242,7 +242,7 @@ export async function runAgentHandOff(
           confidence: Math.max(0.75, skill.confidence),
           targetFile:
             skill.targetFilePatterns[0] ?? "src/lib/prisma.ts",
-          patch: skill.patchTemplate,
+          patch: skill.patchTemplate ?? "",
           explanation: `Reused Skill Document ${skill.slug}: ${skill.summary}`,
           risk: "low",
           sentryErrorId: input.sentryErrorId,

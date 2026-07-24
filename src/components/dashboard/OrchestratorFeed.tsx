@@ -101,10 +101,8 @@ export default function OrchestratorFeed({
       setSteps((prev) =>
         prev.map((s, i) =>
           s.status === "active" || (s.status === "pending" && i === 0)
-            ? { ...s, status: "error" }
-            : s.status === "active"
-              ? { ...s, status: "error" }
-              : s
+            ? { ...s, status: "error" as const }
+            : s
         )
       );
       return;

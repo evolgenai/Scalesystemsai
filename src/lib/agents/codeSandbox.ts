@@ -136,17 +136,19 @@ async function executePythonLocal(
           maxBuffer: 1024 * 1024,
           windowsHide: true,
           shell: false,
-          input: code,
           env: {
-            PATH: process.env.PATH,
-            SYSTEMROOT: process.env.SYSTEMROOT,
+            ...process.env,
             PYTHONIOENCODING: "utf-8",
             PYTHONDONTWRITEBYTECODE: "1",
             PYTHONWARNINGS: "ignore",
             PYTHONNOUSERSITE: "1",
           },
         },
-        (error, stdout, stderr) => {
+        (
+          error: Error | null,
+          stdout: string | Buffer,
+          stderr: string | Buffer
+        ) => {
           const out = String(stdout ?? "").replace(/\r\n/g, "\n").trimEnd();
           const err = String(stderr ?? "").replace(/\r\n/g, "\n").trimEnd();
 
@@ -188,6 +190,13 @@ async function executePythonLocal(
           });
         }
       );
+
+      try {
+        child.stdin?.write(code);
+        child.stdin?.end();
+      } catch {
+        // ignore stdin write races if process already exited
+      }
 
       const onAbort = () => {
         try {

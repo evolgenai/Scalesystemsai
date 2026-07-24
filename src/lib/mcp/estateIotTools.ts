@@ -122,11 +122,20 @@ async function lanFetch(
       }
     }
 
+    if (res.ok) {
+      return {
+        mode: "live" as const,
+        ok: true as const,
+        status: res.status,
+        body,
+        url: safe.toString(),
+        protocol: "HTTP",
+      };
+    }
     return {
-      mode: "live",
-      ok: res.ok,
-      status: res.status,
-      body,
+      mode: "live" as const,
+      ok: false as const,
+      error: `HTTP ${res.status}`,
       url: safe.toString(),
       protocol: "HTTP",
     };

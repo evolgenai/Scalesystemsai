@@ -98,7 +98,7 @@ function ResizeBinder({
       if (width < 1 || height < 1) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       gl.setPixelRatio(dpr);
-      setSize(width, height, false);
+      setSize(width, height);
       const canvas = gl.domElement;
       const bw = Math.floor(width * dpr);
       const bh = Math.floor(height * dpr);

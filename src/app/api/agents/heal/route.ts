@@ -75,7 +75,9 @@ function jsonError(error: string, code: string, status: number) {
   });
 }
 
-async function requireHealAuth(request: Request): Promise<NextResponse | null> {
+async function requireHealAuth(
+  request: Request
+): Promise<NextResponse<ErrorBody> | null> {
   const gate = request.headers.get("x-agent-auth")?.trim();
   if (gate === "verified") return null;
 

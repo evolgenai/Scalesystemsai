@@ -14,7 +14,6 @@ import { enforcePermission } from "@/lib/auth/rbacMiddleware";
 import { apiError, apiSuccess } from "@/lib/http/apiResponse";
 import { parseJsonBody } from "@/lib/http/parseJsonBody";
 import { isE2bConfigured } from "@/lib/sandbox/e2bExecutor";
-import * as Sentry from "@sentry/nextjs";
 import {
   createPersistentSandbox,
   execPersistentSandbox,
@@ -29,9 +28,6 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
-//SENTRY SMOKE TEST
-Sentry.captureMessage("SS SMOKE TEST");
-return NextResponse.json({ message: "SENTRY SCALING SMOKE TEST" }, { status: 200 });
   let raw: unknown;
   try {
     raw = await parseJsonBody(request);
@@ -41,12 +37,10 @@ return NextResponse.json({ message: "SENTRY SCALING SMOKE TEST" }, { status: 200
 
   const parsed = PersistentSandboxBodySchema.safeParse(raw);
   if (!parsed.success) {
-    return apiError(
-      parsed.error.issues[0]?.message ??
-        "Invalid body. Use action create | exec | kill.",
-      "INVALID_BODY",
-      400
-    );
+    const message =
+      parsed.error?.issues?.[0]?.message ??
+      "Invalid body. Use action create | exec | kill.";
+    return apiError(message, "INVALID_BODY", 400);
   }
 
   const body = parsed.data;

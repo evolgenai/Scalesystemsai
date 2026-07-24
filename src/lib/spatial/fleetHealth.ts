@@ -96,6 +96,7 @@ export async function getFleetHealth(
       limit: input.limit,
       autoPatch: input.autoPatch,
       riskThreshold: 0.8,
+      agentId: "meta-sre-engine",
     }),
     getSwarmTelemetry({
       workspaceId: input.workspaceId,

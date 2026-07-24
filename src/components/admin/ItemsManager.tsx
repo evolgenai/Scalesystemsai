@@ -134,7 +134,14 @@ const INITIAL_ITEMS: ManagedItem[] = [
   },
 ];
 
-const CATEGORY_META: Record<Category, { label: string; icon: React.ElementType; color: string }> = {
+const CATEGORY_META: Record<
+  Category,
+  {
+    label: string;
+    icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+    color: string;
+  }
+> = {
   wines: { label: "Wines", icon: Wine, color: "text-rose-400 bg-rose-500/10 border-rose-500/20" },
   tastings: { label: "Tastings", icon: Sparkles, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
   merch: { label: "Merch", icon: Shirt, color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20" },

@@ -314,6 +314,7 @@ export async function buildSpatialMemoryFeed(
   const counts = {
     execution_step: byKind.execution_step.length,
     auto_patch: byKind.auto_patch.length,
+    preemptive_tune: entries.filter((e) => e.kind === "preemptive_tune").length,
     sentry_resolution: byKind.sentry_resolution.length,
     general: entries.filter((e) => e.kind === "general").length,
   } satisfies Record<MemoryKind, number>;

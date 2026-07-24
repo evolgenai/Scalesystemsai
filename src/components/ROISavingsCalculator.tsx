@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type ElementType } from "react";
+import { useMemo, useState, type ComponentType, type SVGProps } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -24,11 +24,13 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
+type IconComponent = ComponentType<SVGProps<SVGSVGElement>>;
+
 type MetricCardProps = {
   label: string;
   value: string;
   sublabel: string;
-  icon: ElementType;
+  icon: IconComponent;
   accent: string;
   delay?: number;
 };

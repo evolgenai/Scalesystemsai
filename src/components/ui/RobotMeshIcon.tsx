@@ -304,9 +304,7 @@ export function RobotMesh({
         <bufferGeometry>
           <bufferAttribute
             attach="attributes-position"
-            count={24}
-            array={trailPos.current}
-            itemSize={3}
+            args={[trailPos.current, 3]}
           />
         </bufferGeometry>
         <pointsMaterial

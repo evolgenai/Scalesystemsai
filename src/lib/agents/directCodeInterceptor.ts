@@ -93,7 +93,7 @@ export function detectDirectCodeExecution(
   if (inlinePrint) {
     // Prefer a fuller snippet when assignment + print appear in the same prompt.
     const assign = trimmed.match(
-      /([A-Za-z_][\w]*)\s*=\s*([^,\n]+).*?\bprint\s*\(\s*\1\s*\)/is
+      /([A-Za-z_][\w]*)\s*=\s*([^,\n]+)[\s\S]*?\bprint\s*\(\s*\1\s*\)/i
     );
     if (assign) {
       return {

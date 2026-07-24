@@ -10,7 +10,10 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import type { SwarmTelemetrySnapshot } from "@/lib/telemetry/swarmTelemetry";
+import type {
+  SwarmTelemetrySnapshot,
+  TokenUsageEvent,
+} from "@/lib/telemetry/swarmTelemetry";
 import {
   SKILL_LIBRARY_OPEN_EVENT,
   SWARM_TELEMETRY_TOGGLE_EVENT,
@@ -26,30 +29,43 @@ type SwarmResponse = {
   error?: string;
 };
 
+type LatencyPoint = { p50: number; p95: number };
+
 function statusColor(status: string) {
-  if (status === "healthy") return "text-[#00ffaa]";
-  if (status === "busy") return "text-amber-300";
-  if (status === "degraded") return "text-orange-300";
+  if (status === "running" || status === "healthy") return "text-[#00ffaa]";
+  if (status === "waiting" || status === "busy" || status === "handing_off")
+    return "text-amber-300";
+  if (status === "error" || status === "degraded") return "text-orange-300";
   return "text-slate-dim";
 }
 
-function LatencySpark({
-  series,
-}: {
-  series: SwarmTelemetrySnapshot["latencySeries"];
-}) {
-  const max = Math.max(1, ...series.map((p) => p.p95));
+function latencySeriesFromEvents(events: TokenUsageEvent[]): LatencyPoint[] {
+  if (!events.length) return [];
+  const chunk = Math.max(1, Math.ceil(events.length / 12));
+  const points: LatencyPoint[] = [];
+  for (let i = 0; i < events.length; i += chunk) {
+    const slice = events.slice(i, i + chunk);
+    const vals = slice.map((e) => e.latencyMs).sort((a, b) => a - b);
+    const p50 = vals[Math.floor((vals.length - 1) * 0.5)] ?? 0;
+    const p95 = vals[Math.floor((vals.length - 1) * 0.95)] ?? p50;
+    points.push({ p50, p95 });
+  }
+  return points;
+}
+
+function LatencySpark({ series }: { series: LatencyPoint[] }) {
+  const max = Math.max(1, ...series.map((p: LatencyPoint) => p.p95));
   const w = 220;
   const h = 48;
   const p50 = series
-    .map((p, i) => {
+    .map((p: LatencyPoint, i: number) => {
       const x = (i / Math.max(1, series.length - 1)) * w;
       const y = h - (p.p50 / max) * (h - 4);
       return `${x},${y}`;
     })
     .join(" ");
   const p95 = series
-    .map((p, i) => {
+    .map((p: LatencyPoint, i: number) => {
       const x = (i / Math.max(1, series.length - 1)) * w;
       const y = h - (p.p95 / max) * (h - 4);
       return `${x},${y}`;
@@ -167,7 +183,12 @@ export function SwarmTelemetryDrawer() {
   const totals = swarm?.totals;
 
   const handOffs = useMemo(
-    () => swarm?.handOffLogs.slice(0, 12) ?? [],
+    () => swarm?.handOffTraces.slice(0, 12) ?? [],
+    [swarm]
+  );
+
+  const latencySeries = useMemo(
+    () => latencySeriesFromEvents(swarm?.recentTokenEvents ?? []),
     [swarm]
   );
 
@@ -233,15 +254,15 @@ export function SwarmTelemetryDrawer() {
                 ["agents", Math.max(totals.activeAgents, counters.agentsOnline)],
                 [
                   "tok in",
-                  totals.tokensIn.toLocaleString(),
+                  totals.promptTokens.toLocaleString(),
                 ],
                 [
                   "tok out",
-                  totals.tokensOut.toLocaleString(),
+                  totals.completionTokens.toLocaleString(),
                 ],
                 [
                   "avg lat",
-                  `${totals.avgLatencyMs}ms`,
+                  `${totals.currentLatencyMs}ms`,
                 ],
                 [
                   "sse gas",
@@ -285,13 +306,13 @@ export function SwarmTelemetryDrawer() {
             </div>
           ) : null}
 
-          {swarm?.latencySeries ? (
+          {latencySeries.length > 0 ? (
             <div className="rounded-xl border border-white/5 bg-[#050807]/55 p-3">
               <p className="mb-1 inline-flex items-center gap-1.5 font-mono text-[10px] text-slate-muted">
                 <Activity className="h-3 w-3 text-[#00ffaa]" />
                 latency · p50 / p95
               </p>
-              <LatencySpark series={swarm.latencySeries} />
+              <LatencySpark series={latencySeries} />
             </div>
           ) : null}
 
@@ -316,11 +337,12 @@ export function SwarmTelemetryDrawer() {
                     </span>
                   </div>
                   <p className="mt-0.5 font-mono text-[9px] text-slate-dim">
-                    {a.cluster} · {a.role} · {a.latencyMs}ms · cpu {a.cpuPct}%
+                    {a.id} · {a.role} · {a.latencyMs}ms · ok{" "}
+                    {Math.round(a.successRate * 100)}%
                   </p>
                   <p className="font-mono text-[9px] text-slate-dim">
-                    tokens {a.tokensIn.toLocaleString()}→
-                    {a.tokensOut.toLocaleString()}
+                    tokens {a.tokensConsumed.toLocaleString()}
+                    {a.currentTask ? ` · ${a.currentTask.slice(0, 48)}` : ""}
                   </p>
                 </li>
               ))}
@@ -342,8 +364,8 @@ export function SwarmTelemetryDrawer() {
                   </p>
                   <p className="mt-0.5 text-[11px] text-slate-300">{h.summary}</p>
                   <p className="mt-1 font-mono text-[9px] text-slate-dim">
-                    {h.kind} · {new Date(h.at).toLocaleTimeString()}
-                    {h.sentryIssueId ? ` · ${h.sentryIssueId}` : ""}
+                    {h.status} · {new Date(h.createdAt).toLocaleTimeString()}
+                    {h.sentryErrorId ? ` · ${h.sentryErrorId}` : ""}
                   </p>
                 </li>
               ))}

@@ -196,9 +196,7 @@ export default function SandboxConsole({
                   ? "bg-emerald-400 shadow-[0_0_8px_rgba(16, 185, 129,0.8)]"
                   : status === "error"
                     ? "bg-rose-400"
-                    : status === "running"
-                      ? "animate-pulse bg-cyan-accent"
-                      : "bg-slate-500"
+                    : "bg-slate-500"
               }`}
               aria-hidden
             />

@@ -5,9 +5,9 @@ import {
   VISUALIZER_AGENTS,
   type AgentCardState,
   type AgentStreamEvent,
-  type DebateRole,
   type VisualizerStatus,
 } from "@/lib/agents/streamProtocol";
+import type { DebateRole } from "@/lib/agents/debateEngine";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 import {
