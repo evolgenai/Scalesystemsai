@@ -50,6 +50,7 @@ import NodeToolOverlay from "@/components/spatial/NodeToolOverlay";
 import MetaSreTerminalModal from "@/components/spatial/MetaSreTerminalModal";
 import SpatialCommandBar from "@/components/spatial/SpatialCommandBar";
 import SwarmAgentTopology from "@/components/spatial/SwarmAgentTopology";
+import NodeAnomalyHalos from "@/components/spatial/NodeAnomalyHalos";
 import { useStreamEngine } from "@/components/spatial/StreamEngineContext";
 import { playSpatialCue } from "@/lib/spatial/spatialAudio";
 import type { ParsedSpatialCommand } from "@/lib/spatial/commandParser";
@@ -415,16 +416,233 @@ const TOWERS: TowerDef[] = [
   },
 ];
 
-function supportsWebGL(): boolean {
-  if (typeof window === "undefined") return false;
+const WEBGL_FORCE_KEY = "scalesystems.spatial.forceWebgl";
+
+type WebGLProbeResult = {
+  ok: boolean;
+  backend: "webgl2" | "webgl" | "experimental-webgl" | null;
+};
+
+/**
+ * Soft WebGL probe — tries WebGL2 → WebGL → experimental with
+ * failIfMajorPerformanceCaveat: false so software rasterizers can pass.
+ */
+function probeWebGL(): WebGLProbeResult {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return { ok: false, backend: null };
+  }
   try {
     const canvas = document.createElement("canvas");
-    return Boolean(
-      canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
-    );
+    canvas.width = 8;
+    canvas.height = 8;
+    const attrs: WebGLContextAttributes = {
+      alpha: false,
+      antialias: false,
+      depth: true,
+      stencil: false,
+      failIfMajorPerformanceCaveat: false,
+      powerPreference: "default",
+      preserveDrawingBuffer: false,
+    };
+    const candidates: Array<"webgl2" | "webgl" | "experimental-webgl"> = [
+      "webgl2",
+      "webgl",
+      "experimental-webgl",
+    ];
+    for (const id of candidates) {
+      const gl =
+        canvas.getContext(id, attrs) ||
+        canvas.getContext(id, {
+          ...attrs,
+          failIfMajorPerformanceCaveat: false,
+        });
+      if (gl && typeof (gl as WebGLRenderingContext).getParameter === "function") {
+        const ext = (gl as WebGLRenderingContext).getExtension?.(
+          "WEBGL_lose_context"
+        );
+        ext?.loseContext();
+        return { ok: true, backend: id };
+      }
+    }
+    return { ok: false, backend: null };
+  } catch {
+    return { ok: false, backend: null };
+  }
+}
+
+function supportsWebGL(): boolean {
+  return probeWebGL().ok;
+}
+
+function readForceWebglFlag(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(WEBGL_FORCE_KEY) === "1";
   } catch {
     return false;
   }
+}
+
+function writeForceWebglFlag(on: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    if (on) window.sessionStorage.setItem(WEBGL_FORCE_KEY, "1");
+    else window.sessionStorage.removeItem(WEBGL_FORCE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 2D bio-metallic grid when WebGL is truly unavailable. */
+function Spatial2DGridFallback({
+  onForceLoad,
+}: {
+  onForceLoad: () => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let raf = 0;
+    let running = true;
+
+    const resize = () => {
+      const parent = canvas.parentElement;
+      const w = parent?.clientWidth ?? 640;
+      const h = parent?.clientHeight ?? 420;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    resize();
+    window.addEventListener("resize", resize);
+
+    const draw = (t: number) => {
+      if (!running) return;
+      const parent = canvas.parentElement;
+      const w = parent?.clientWidth ?? 640;
+      const h = parent?.clientHeight ?? 420;
+      const pulse = 0.45 + Math.sin(t * 0.0018) * 0.2;
+
+      const g = ctx.createLinearGradient(0, 0, w, h);
+      g.addColorStop(0, "#050807");
+      g.addColorStop(0.45, "#0b120f");
+      g.addColorStop(1, "#121e18");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+
+      // vignette
+      const vg = ctx.createRadialGradient(
+        w * 0.5,
+        h * 0.45,
+        h * 0.1,
+        w * 0.5,
+        h * 0.5,
+        h * 0.75
+      );
+      vg.addColorStop(0, "rgba(0,255,170,0.06)");
+      vg.addColorStop(1, "rgba(5,8,7,0.85)");
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, w, h);
+
+      const spacing = 28;
+      const offset = (t * 0.02) % spacing;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = `rgba(0,255,170,${0.08 + pulse * 0.1})`;
+      ctx.beginPath();
+      for (let x = -spacing + offset; x < w + spacing; x += spacing) {
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+      }
+      for (let y = -spacing + offset * 0.6; y < h + spacing; y += spacing) {
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+      }
+      ctx.stroke();
+
+      // perspective floor lines
+      ctx.strokeStyle = `rgba(0,255,170,${0.18 + pulse * 0.15})`;
+      ctx.beginPath();
+      const horizon = h * 0.38;
+      const vanishingX = w * 0.5;
+      for (let i = -8; i <= 8; i++) {
+        ctx.moveTo(vanishingX, horizon);
+        ctx.lineTo(vanishingX + i * w * 0.12, h);
+      }
+      for (let i = 0; i < 10; i++) {
+        const y = horizon + ((h - horizon) * i) / 9;
+        const spread = ((y - horizon) / (h - horizon)) * w * 0.55;
+        ctx.moveTo(vanishingX - spread, y);
+        ctx.lineTo(vanishingX + spread, y);
+      }
+      ctx.stroke();
+
+      // biolum nodes
+      const nodes = [
+        [0.22, 0.55],
+        [0.5, 0.48],
+        [0.78, 0.58],
+        [0.35, 0.72],
+        [0.65, 0.7],
+      ] as const;
+      for (const [nx, ny] of nodes) {
+        const x = w * nx;
+        const y = h * ny;
+        const r = 4 + Math.sin(t * 0.004 + nx * 8) * 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, r * 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(0,255,170,${0.06 + pulse * 0.05})`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = "#00ffaa";
+        ctx.fill();
+      }
+
+      raf = window.requestAnimationFrame(draw);
+    };
+
+    raf = window.requestAnimationFrame(draw);
+    return () => {
+      running = false;
+      window.cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  return (
+    <div className="relative h-full min-h-[360px] w-full overflow-hidden bg-[#050807]">
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(5,8,7,0.55)_100%)]" />
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="max-w-md font-mono text-[11px] uppercase tracking-wider text-[#00ffaa]/80">
+          2d bio-metallic fallback
+        </p>
+        <p className="max-w-sm text-sm text-slate-muted">
+          WebGL probe failed on this device. Spatial viewport is showing a 2D
+          grid until a GPU context is available.
+        </p>
+        <button
+          type="button"
+          onClick={onForceLoad}
+          className="pointer-events-auto inline-flex items-center gap-2 rounded-xl border border-[#00ffaa]/40 bg-[#00ffaa]/15 px-4 py-2.5 font-mono text-[11px] font-semibold text-[#00ffaa] shadow-[0_0_24px_rgba(0,255,170,0.15)] transition hover:bg-[#00ffaa]/25"
+        >
+          Force Load Canvas
+        </button>
+        <p className="font-mono text-[9px] text-slate-dim">
+          Bypass WebGL check · may use software rendering
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function CyberGrid() {
@@ -1589,6 +1807,7 @@ function Scene({
         onPinRequest={onPinRequest}
       />
       <SwarmAgentTopology enabled />
+      <NodeAnomalyHalos enabled />
       <TorNode
         locked={locked}
         avatarPosRef={avatarPosRef}
@@ -1852,6 +2071,7 @@ export default function SpatialUniverse({
 }: SpatialUniverseProps = {}) {
   const { mode: streamMode } = useStreamEngine();
   const [webgl, setWebgl] = useState(true);
+  const [forceWebgl, setForceWebgl] = useState(false);
   const [locked, setLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [nearest, setNearest] = useState<TowerDef | null>(null);
@@ -1890,8 +2110,18 @@ export default function SpatialUniverse({
   const [navStatus, setNavStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    setWebgl(supportsWebGL());
+    const forced = readForceWebglFlag();
+    setForceWebgl(forced);
+    setWebgl(forced || supportsWebGL());
   }, []);
+
+  const forceLoadCanvas = useCallback(() => {
+    writeForceWebglFlag(true);
+    setForceWebgl(true);
+    setWebgl(true);
+  }, []);
+
+  const showCanvas = webgl || forceWebgl;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -2096,7 +2326,7 @@ export default function SpatialUniverse({
               Spatial Universe
             </h2>
             <p className="font-mono text-[10px] text-slate-dim">
-              Swarm lasers · telemetry [T] · pathfinder ·{" "}
+              Anomaly halos · SSE swarm · workspace scope ·{" "}
               {fullscreen ? "fullscreen" : "embedded"}
             </p>
           </div>
@@ -2137,21 +2367,21 @@ export default function SpatialUniverse({
             : undefined
         }
       >
-        {!webgl ? (
-          <div className="flex h-full min-h-[360px] items-center justify-center p-6 text-center">
-            <p className="text-sm text-slate-muted">
-              WebGL unavailable — spatial viewport disabled on this device.
-            </p>
-          </div>
+        {!showCanvas ? (
+          <Spatial2DGridFallback onForceLoad={forceLoadCanvas} />
         ) : (
           <WebGLErrorBoundary
             label="spatial-universe"
-            onError={() => setWebgl(false)}
+            onError={() => {
+              writeForceWebglFlag(false);
+              setForceWebgl(false);
+              setWebgl(false);
+            }}
           >
             <Suspense fallback={null}>
               <Canvas
-                shadows
-                dpr={[1, 1.5]}
+                shadows={!forceWebgl}
+                dpr={forceWebgl ? [1, 1] : [1, 1.5]}
                 frameloop="always"
                 camera={{
                   fov: 55,
@@ -2160,10 +2390,16 @@ export default function SpatialUniverse({
                   position: [0, 3.2, 14],
                 }}
                 gl={{
-                  antialias: true,
+                  antialias: !forceWebgl,
                   alpha: false,
-                  powerPreference: "high-performance",
+                  powerPreference: "default",
                   failIfMajorPerformanceCaveat: false,
+                }}
+                onCreated={({ gl }) => {
+                  // Soften context if browser exposed a caveat after force-load
+                  gl.setPixelRatio(
+                    Math.min(window.devicePixelRatio || 1, forceWebgl ? 1 : 1.5)
+                  );
                 }}
                 onPointerDown={() => {
                   if (!overlayOpen) setLocked(true);
@@ -2205,7 +2441,7 @@ export default function SpatialUniverse({
           </WebGLErrorBoundary>
         )}
 
-        {!locked && webgl && !overlayOpen ? (
+        {!locked && showCanvas && !overlayOpen ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
             <div className="rounded-lg border border-[#00ffaa]/25 bg-gradient-to-b from-slate-950/95 via-zinc-900/90 to-emerald-950/50 px-4 py-3 text-center backdrop-blur-xl">
               <Terminal className="mx-auto mb-2 h-5 w-5 text-[#00ffaa]" />

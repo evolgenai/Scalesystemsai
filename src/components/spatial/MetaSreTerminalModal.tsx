@@ -14,6 +14,8 @@ import type { AgentMemoryEntry } from "@/lib/agents/agentMemoryStore";
 import type { HardwareInteractable } from "@/components/spatial/InstancedHardwareGrid";
 import { playSpatialCue } from "@/lib/spatial/spatialAudio";
 import { emitSwarmLaser } from "@/lib/spatial/swarmEvents";
+import { useWorkspaceScope } from "@/components/navigation/WorkspaceScopeContext";
+import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 
 type MemoryFeedResponse = {
   success?: boolean;
@@ -128,6 +130,7 @@ export default function MetaSreTerminalModal({
   sessionId,
   onClose,
 }: MetaSreTerminalModalProps) {
+  const { workspaceId } = useWorkspaceScope();
   const [traces, setTraces] = useState<AgentMemoryEntry[]>([]);
   const [source, setSource] = useState<string>("…");
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -141,6 +144,7 @@ export default function MetaSreTerminalModal({
   const refreshFeed = useCallback(async () => {
     const qs = new URLSearchParams({
       sessionId,
+      workspaceId,
       node_type:
         node.dialogKind === "meta_sre"
           ? "meta_sre_autofix"
@@ -150,6 +154,7 @@ export default function MetaSreTerminalModal({
       limit: "24",
     });
     const res = await fetch(`/api/spatial/memory-feed?${qs}`, {
+      headers: getClientAuthHeaders(),
       cache: "no-store",
     });
     const json = (await res.json()) as MemoryFeedResponse;
@@ -159,7 +164,7 @@ export default function MetaSreTerminalModal({
     setTraces(json.feed.traces);
     setSource(json.feed.source);
     setCounts(json.feed.counts);
-  }, [node.dialogKind, sessionId]);
+  }, [node.dialogKind, sessionId, workspaceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -254,6 +259,7 @@ export default function MetaSreTerminalModal({
             summary: trace.summary,
             targetFile: payloadTarget,
             patch: payloadPatch,
+            workspaceId,
             nodeId: node.id,
             agentId: "meta-sre",
             dryRun: false,
@@ -324,7 +330,7 @@ export default function MetaSreTerminalModal({
         setDeployingId(null);
       }
     },
-    [deployingId, node.id, refreshFeed, sessionId]
+    [deployingId, node.id, refreshFeed, sessionId, workspaceId]
   );
 
   const canDeploy = (trace: AgentMemoryEntry) =>

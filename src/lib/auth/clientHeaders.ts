@@ -30,6 +30,12 @@ export function getClientAuthHeaders(
 
     headers["x-workspace-key"] = getActiveWorkspaceKey();
 
+    const workspaceId =
+      orgId ||
+      window.localStorage.getItem("scalesystems.workspace.id")?.trim() ||
+      `ws_${getActiveWorkspaceKey()}`;
+    headers["x-workspace-id"] = workspaceId;
+
     return headers;
   } catch {
     return { ...(customHeaders ?? {}) };

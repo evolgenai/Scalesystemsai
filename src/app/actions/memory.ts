@@ -2,6 +2,7 @@
 
 /**
  * Server Actions — agent memory, spatial HUD feed, and swarm hand-off.
+ * All tenant-scoped actions require workspaceId (Sprint 53 multi-tenant).
  */
 
 import {
@@ -25,33 +26,59 @@ import {
 } from "@/lib/sentry";
 import { getTextureMatrix, type TextureMatrix } from "@/lib/theme/textureMatrix";
 
+function requireWorkspaceId(
+  workspaceId: string | null | undefined,
+  actionName: string
+): string {
+  const id = workspaceId?.trim();
+  if (!id) {
+    throw new Error(
+      `${actionName} requires workspaceId for multi-tenant isolation.`
+    );
+  }
+  return id;
+}
+
 export async function storeAgentMemoryAction(
-  input: StoreAgentMemoryInput
+  input: StoreAgentMemoryInput & { workspaceId: string }
 ): Promise<ServerActionResult<AgentMemoryEntry>> {
+  const workspaceId = requireWorkspaceId(input.workspaceId, "memory.store");
   return withServerActionTelemetry(
     {
       actionName: "memory.store",
       source: "server_action",
       route: "actions/memory",
+      tenantId: workspaceId,
       extra: { kind: input.kind },
     },
     async () =>
-      storeAgentMemory({ ...input, source: input.source ?? "server_action" })
+      storeAgentMemory({
+        ...input,
+        workspaceId,
+        source: input.source ?? "server_action",
+      })
   );
 }
 
 export async function recallAgentMemoryAction(
-  query: RecallAgentMemoryQuery
+  query: RecallAgentMemoryQuery & { workspaceId: string }
 ): Promise<
   ServerActionResult<Awaited<ReturnType<typeof recallAgentMemory>>>
 > {
+  const workspaceId = requireWorkspaceId(query.workspaceId, "memory.recall");
   return withServerActionTelemetry(
     {
       actionName: "memory.recall",
       source: "server_action",
       route: "actions/memory",
+      tenantId: workspaceId,
     },
-    async () => recallAgentMemory(query)
+    async () =>
+      recallAgentMemory({
+        ...query,
+        workspaceId,
+        strictTenant: query.strictTenant ?? Boolean(query.sessionId),
+      })
   );
 }
 
@@ -71,18 +98,23 @@ export async function getTextureMatrixAction(): Promise<
 export async function spatialMemoryFeedAction(input: {
   nodeType?: string | null;
   userId?: string | null;
-  workspaceId?: string | null;
+  workspaceId: string;
   sessionId?: string | null;
   limit?: number;
 }): Promise<ServerActionResult<SpatialMemoryFeed>> {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    "spatial.memoryFeed"
+  );
   return withServerActionTelemetry(
     {
       actionName: "spatial.memoryFeed",
       source: "server_action",
       route: "actions/memory",
+      tenantId: workspaceId,
       extra: { nodeType: input.nodeType ?? null },
     },
-    async () => buildSpatialMemoryFeed(input)
+    async () => buildSpatialMemoryFeed({ ...input, workspaceId })
   );
 }
 
@@ -91,15 +123,17 @@ export async function agentHandOffAction(input: {
   sessionId: string;
   fromAgentId?: string;
   toAgentId?: string;
-  workspaceId?: string | null;
+  workspaceId: string;
   issueTitle?: string;
   userId?: string | null;
 }): Promise<ServerActionResult<HandOffResult>> {
+  const workspaceId = requireWorkspaceId(input.workspaceId, "agents.handOff");
   return withServerActionTelemetry(
     {
       actionName: "agents.handOff",
       source: "server_action",
       route: "actions/agents",
+      tenantId: workspaceId,
       extra: { sentryErrorId: input.sentryErrorId },
     },
     async () =>
@@ -108,7 +142,7 @@ export async function agentHandOffAction(input: {
         sessionId: input.sessionId,
         fromAgentId: input.fromAgentId ?? "agent-a",
         toAgentId: input.toAgentId ?? "meta-sre",
-        workspaceId: input.workspaceId,
+        workspaceId,
         issueTitle: input.issueTitle,
         userId: input.userId,
       })
@@ -125,18 +159,23 @@ export async function executePatchAction(input: {
 }): Promise<
   ServerActionResult<import("@/lib/agents/executePatch").ExecutePatchResult>
 > {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    "agents.executePatch"
+  );
   const { executeAutoPatch } = await import("@/lib/agents/executePatch");
   return withServerActionTelemetry(
     {
       actionName: "agents.executePatch",
       source: "server_action",
       route: "actions/agents",
-      tenantId: input.workspaceId,
+      tenantId: workspaceId,
       extra: { sentryErrorId: input.sentryErrorId },
     },
     async () =>
       executeAutoPatch({
         ...input,
+        workspaceId,
         mode: "virtual",
       })
   );
@@ -146,6 +185,7 @@ export async function parseSpatialCommandAction(input: {
   command: string;
   seed?: string;
   sessionId?: string;
+  workspaceId?: string;
 }): Promise<
   ServerActionResult<
     import("@/lib/spatial/commandParser").ParsedSpatialCommand
@@ -157,6 +197,7 @@ export async function parseSpatialCommandAction(input: {
       actionName: "spatial.commandParser",
       source: "server_action",
       route: "actions/spatial",
+      tenantId: input.workspaceId?.trim() || undefined,
     },
     async () => parseSpatialCommand(input)
   );

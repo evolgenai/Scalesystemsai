@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Menu, Settings, UserRound, X } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import AuthModal from "@/components/auth/AuthModal";
-import WorkspaceSwitcher from "@/components/navigation/WorkspaceSwitcher";
+import WorkspaceSelector from "@/components/navigation/WorkspaceSelector";
 import { useNavDrawer } from "@/components/navigation/NavDrawerContext";
 import TeamPresenceBar from "@/components/org/TeamPresenceBar";
 import Hover3DIcon from "@/components/ui/Hover3DIcon";
@@ -17,6 +17,8 @@ import {
   SwarmTelemetryTrigger,
 } from "@/components/spatial/SwarmTelemetryDrawer";
 import SkillLibraryModal from "@/components/spatial/SkillLibraryModal";
+import { useSwarmStream, useSwarmStreamCounters } from "@/hooks/useSwarmStream";
+import { useWorkspaceScope } from "@/components/navigation/WorkspaceScopeContext";
 import { trackFunnelEvent } from "@/lib/analytics/funnel";
 import {
   OPEN_AUTH_EVENT,
@@ -42,9 +44,14 @@ export default function TopAuthHeader() {
   const pathname = usePathname();
   const router = useRouter();
   const { open: navOpen, toggle: toggleNav } = useNavDrawer();
+  const { workspaceId } = useWorkspaceScope();
   const onDashboard = pathname.startsWith("/dashboard");
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
+
+  // Keep a single SSE subscription alive on dashboard for header counters + drawer
+  useSwarmStream({ workspaceId, enabled: onDashboard && ready });
+  const streamCounters = useSwarmStreamCounters();
 
   const goToPendingCheckout = useCallback(() => {
     const plan = consumePendingCheckoutPlan();
@@ -150,13 +157,42 @@ export default function TopAuthHeader() {
         <div className="ml-auto flex min-w-0 items-center gap-2">
           {onDashboard ? (
             <>
+              <div
+                className="hidden items-center gap-1.5 rounded-xl border border-white/5 bg-[#050807]/6 px-2 py-1 font-mono text-[9px] text-slate-dim md:flex"
+                title="Live SSE swarm counters"
+                aria-live="polite"
+              >
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${streamCounters.connected ? "bg-[#00ffaa]" : "bg-amber-400"}`}
+                />
+                <span className="text-[#00ffaa]">
+                  {streamCounters.agentsOnline} ag
+                </span>
+                <span>·</span>
+                <span>
+                  gas{" "}
+                  {streamCounters.gasBalance != null
+                    ? streamCounters.gasBalance.toLocaleString()
+                    : "—"}
+                </span>
+                <span>·</span>
+                <span
+                  className={
+                    streamCounters.openIncidents > 0
+                      ? "text-amber-300"
+                      : undefined
+                  }
+                >
+                  {streamCounters.openIncidents} inc
+                </span>
+              </div>
               <SwarmTelemetryTrigger />
               <div className="hidden sm:block">
                 <StreamEngineToggle />
               </div>
             </>
           ) : null}
-          <WorkspaceSwitcher enabled={ready} />
+          <WorkspaceSelector enabled={ready} />
           {!ready ? (
             <div className="h-8 w-28 animate-pulse rounded-lg bg-white/5" />
           ) : user ? (

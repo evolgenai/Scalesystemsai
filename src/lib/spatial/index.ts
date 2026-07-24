@@ -164,3 +164,10 @@ export {
   emitSkillLibraryOpen,
   type SwarmLaserDetail,
 } from "@/lib/spatial/swarmEvents";
+
+export {
+  buildNodeHealthSnapshot,
+  type SpatialNodeHealth,
+  type NodeHealthSnapshot,
+  type NodeHealthStatus,
+} from "@/lib/spatial/nodeHealth";

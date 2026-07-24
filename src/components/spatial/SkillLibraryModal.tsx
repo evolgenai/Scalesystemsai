@@ -5,6 +5,8 @@ import { Check, Copy, Loader2, Search, Sparkles, X } from "lucide-react";
 import type { SynthesizedSkill } from "@/lib/memory/synthesizedSkills";
 import { SKILL_LIBRARY_OPEN_EVENT } from "@/lib/spatial/swarmEvents";
 import { playSpatialCue } from "@/lib/spatial/spatialAudio";
+import { useWorkspaceScope } from "@/components/navigation/WorkspaceScopeContext";
+import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 
 type SkillsResponse = {
   success?: boolean;
@@ -17,6 +19,7 @@ type SkillsResponse = {
  * Interactive viewer for auto-synthesized + builtin skills.
  */
 export default function SkillLibraryModal() {
+  const { workspaceId } = useWorkspaceScope();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,9 +36,10 @@ export default function SkillLibraryModal() {
     setBusy(true);
     setError(null);
     try {
-      const qs = new URLSearchParams({ limit: "40" });
+      const qs = new URLSearchParams({ limit: "40", workspaceId });
       if (query?.trim()) qs.set("q", query.trim());
       const res = await fetch(`/api/memory/skills?${qs}`, {
+        headers: getClientAuthHeaders(),
         cache: "no-store",
       });
       const json = (await res.json()) as SkillsResponse;
@@ -49,7 +53,7 @@ export default function SkillLibraryModal() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
     const onOpen = () => {
@@ -63,7 +67,7 @@ export default function SkillLibraryModal() {
   useEffect(() => {
     if (!open) return;
     void load(q);
-  }, [open, load]); // eslint-disable-line react-hooks/exhaustive-deps -- search via submit
+  }, [open, load, workspaceId]); // eslint-disable-line react-hooks/exhaustive-deps -- search via submit / workspace switch
 
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();

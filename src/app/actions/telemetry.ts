@@ -1,7 +1,8 @@
 "use server";
 
 /**
- * Server Actions — swarm telemetry stats + synthesized skill queries.
+ * Server Actions — swarm telemetry, skills, workspaces, node health.
+ * Tenant-scoped actions require workspaceId (Sprint 53).
  */
 
 import {
@@ -26,48 +27,84 @@ import {
   type SynthesizeSkillsResult,
 } from "@/lib/agents/skillSynthesis";
 import type { SkillDocument } from "@/lib/agents/skillDocumentStore";
+import {
+  listWorkspaces,
+  switchActiveWorkspace,
+  type WorkspaceSummary,
+  type SwitchWorkspaceInput,
+} from "@/lib/workspace/workspaceRegistry";
+import {
+  analyzeNodeHealth,
+  type NodeHealthQuery,
+  type NodeHealthSnapshot,
+} from "@/lib/spatial/nodeHealth";
 
-export async function getSwarmTelemetryAction(input?: {
-  workspaceId?: string | null;
+function requireWorkspaceId(
+  workspaceId: string | null | undefined,
+  actionName: string
+): string {
+  const id = workspaceId?.trim();
+  if (!id) {
+    throw new Error(
+      `${actionName} requires workspaceId for multi-tenant isolation.`
+    );
+  }
+  return id;
+}
+
+export async function getSwarmTelemetryAction(input: {
+  workspaceId: string;
   sessionId?: string | null;
   limit?: number;
 }): Promise<ServerActionResult<SwarmTelemetrySnapshot>> {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    "telemetry.swarm"
+  );
   return withServerActionTelemetry(
     {
       actionName: "telemetry.swarm",
       source: "server_action",
       route: "actions/telemetry",
-      tenantId: input?.workspaceId ?? undefined,
+      tenantId: workspaceId,
     },
-    async () => getSwarmTelemetry(input)
+    async () => getSwarmTelemetry({ ...input, workspaceId })
   );
 }
 
 export async function recordSwarmHandOffAction(
-  input: RecordHandOffTraceInput
+  input: RecordHandOffTraceInput & { workspaceId: string }
 ): Promise<ServerActionResult<SwarmHandOffTrace>> {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    "telemetry.swarm.handOff"
+  );
   return withServerActionTelemetry(
     {
       actionName: "telemetry.swarm.handOff",
       source: "server_action",
       route: "actions/telemetry",
-      tenantId: input.workspaceId ?? undefined,
+      tenantId: workspaceId,
     },
-    async () => recordHandOffTrace(input)
+    async () => recordHandOffTrace({ ...input, workspaceId })
   );
 }
 
 export async function recordSwarmTokensAction(
-  input: RecordTokenUsageInput
+  input: RecordTokenUsageInput & { workspaceId: string }
 ): Promise<ServerActionResult<TokenUsageEvent>> {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    "telemetry.swarm.tokens"
+  );
   return withServerActionTelemetry(
     {
       actionName: "telemetry.swarm.tokens",
       source: "server_action",
       route: "actions/telemetry",
-      tenantId: input.workspaceId ?? undefined,
+      tenantId: workspaceId,
     },
-    async () => recordTokenUsage(input)
+    async () => recordTokenUsage({ ...input, workspaceId })
   );
 }
 
@@ -82,27 +119,91 @@ export async function querySkillsAction(
     reason: string;
   }>
 > {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    "memory.skills.query"
+  );
   return withServerActionTelemetry(
     {
       actionName: "memory.skills.query",
       source: "server_action",
       route: "actions/telemetry",
-      tenantId: input.workspaceId,
+      tenantId: workspaceId,
     },
-    async () => querySkillsForPatch(input)
+    async () => querySkillsForPatch({ ...input, workspaceId })
   );
 }
 
 export async function synthesizeSkillsAction(
   input: SynthesizeSkillsRequest
 ): Promise<ServerActionResult<SynthesizeSkillsResult>> {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    "memory.skills.synthesize"
+  );
   return withServerActionTelemetry(
     {
       actionName: "memory.skills.synthesize",
       source: "server_action",
       route: "actions/telemetry",
-      tenantId: input.workspaceId,
+      tenantId: workspaceId,
     },
-    async () => synthesizeSkillsFromMemory(input)
+    async () => synthesizeSkillsFromMemory({ ...input, workspaceId })
+  );
+}
+
+export async function listWorkspacesAction(input?: {
+  includeDemo?: boolean;
+}): Promise<ServerActionResult<WorkspaceSummary[]>> {
+  return withServerActionTelemetry(
+    {
+      actionName: "workspaces.list",
+      source: "server_action",
+      route: "actions/telemetry",
+    },
+    async () => listWorkspaces(input)
+  );
+}
+
+export async function switchWorkspaceAction(
+  input: SwitchWorkspaceInput
+): Promise<
+  ServerActionResult<{
+    activeWorkspaceId: string;
+    workspace: WorkspaceSummary | null;
+    sessionKey: string;
+  }>
+> {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    "workspaces.switch"
+  );
+  return withServerActionTelemetry(
+    {
+      actionName: "workspaces.switch",
+      source: "server_action",
+      route: "actions/telemetry",
+      tenantId: workspaceId,
+    },
+    async () =>
+      switchActiveWorkspace({ ...input, action: "switch", workspaceId })
+  );
+}
+
+export async function getNodeHealthAction(
+  input: NodeHealthQuery & { workspaceId: string }
+): Promise<ServerActionResult<NodeHealthSnapshot>> {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    "spatial.nodeHealth"
+  );
+  return withServerActionTelemetry(
+    {
+      actionName: "spatial.nodeHealth",
+      source: "server_action",
+      route: "actions/telemetry",
+      tenantId: workspaceId,
+    },
+    async () => analyzeNodeHealth({ ...input, workspaceId })
   );
 }

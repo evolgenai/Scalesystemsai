@@ -1,9 +1,10 @@
 /**
  * GET /api/telemetry/stream
- * Server-Sent Events bus — live agent state, Gas consumption, system incidents.
+ * Server-Sent Events — agent ticks, token usage, Sentry resolution alerts,
+ * gas/incidents, with 15s heartbeats and automatic reconnect (retry + Last-Event-ID).
  *
  * Auth: x-workspace-key + RBAC `telemetry.read`
- * Query: pollMs (optional, 2000–15000, default 4000)
+ * Query: pollMs (2000–15000, default 4000), sessionId (optional)
  */
 
 import { enforcePermission } from "@/lib/auth/rbacMiddleware";
@@ -17,12 +18,14 @@ import {
   reportSseConnectionDrop,
   safeSseEnqueue,
 } from "@/lib/sse/resiliencyServer";
+import { SSE_RECONNECT_DEFAULTS } from "@/lib/sse/resiliency";
 import {
   getRecentTelemetryEvents,
   publishTelemetryEvent,
   subscribeTelemetry,
   type TelemetryEvent,
 } from "@/lib/telemetry/telemetryBus";
+import { collectSwarmStreamTicks } from "@/lib/telemetry/swarmStreamTicks";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,6 +39,8 @@ const SSE_HEADERS = {
 
 const HEARTBEAT_MS = 15_000;
 const DEFAULT_POLL_MS = 4_000;
+/** Advise EventSource clients to reconnect after this many ms. */
+const SSE_RETRY_MS = SSE_RECONNECT_DEFAULTS.baseDelayMs * 2;
 
 function encodeFrame(event: string, data: unknown, id?: string): string {
   const lines: string[] = [];
@@ -161,7 +166,14 @@ export async function GET(request: Request) {
   if (!rbac.ok) return rbac.response;
 
   const { workspaceId } = rbac.ctx;
-  const pollMs = clampPollMs(new URL(request.url).searchParams.get("pollMs"));
+  const url = new URL(request.url);
+  const pollMs = clampPollMs(url.searchParams.get("pollMs"));
+  const sessionId = url.searchParams.get("sessionId")?.trim() || null;
+  const lastEventId =
+    request.headers.get("last-event-id")?.trim() ||
+    url.searchParams.get("lastEventId")?.trim() ||
+    null;
+
   const telemetry = telemetryContextFromRequest(request, {
     tenantId: workspaceId,
     source: "sse",
@@ -176,6 +188,8 @@ export async function GET(request: Request) {
   let lastAgentFingerprint = "";
   let lastIncidentFingerprint = "";
   let lastGasBalance: number | null = null;
+  let lastSwarmFingerprint = "";
+  const seenIds = new Set<string>();
 
   const markClosed = () => {
     closed = true;
@@ -185,6 +199,14 @@ export async function GET(request: Request) {
     start(controller) {
       const push = (event: string, data: unknown, id?: string) => {
         if (closed) return;
+        if (id) {
+          if (seenIds.has(id)) return;
+          seenIds.add(id);
+          if (seenIds.size > 500) {
+            const drop = [...seenIds].slice(0, 200);
+            for (const d of drop) seenIds.delete(d);
+          }
+        }
         safeSseEnqueue(controller, encoder.encode(encodeFrame(event, data, id)), {
           isClosed: () => closed,
           markClosed,
@@ -210,10 +232,35 @@ export async function GET(request: Request) {
         );
       };
 
+      // Advise clients to auto-reconnect (EventSource honors `retry:`).
+      safeSseEnqueue(
+        controller,
+        encoder.encode(`retry: ${SSE_RETRY_MS}\n\n`),
+        {
+          isClosed: () => closed,
+          markClosed,
+          telemetry: {
+            ...telemetry,
+            stream: "telemetry.stream",
+            source: "sse",
+          },
+        }
+      );
+
+      let pastLast = !lastEventId;
       for (const event of getRecentTelemetryEvents({
         workspaceId,
         limit: 30,
       })) {
+        if (!pastLast) {
+          if (event.id === lastEventId) {
+            pastLast = true;
+            seenIds.add(event.id);
+            continue;
+          }
+          seenIds.add(event.id);
+          continue;
+        }
         pushTelemetry(event);
       }
 
@@ -223,6 +270,10 @@ export async function GET(request: Request) {
         payload: {
           message: "Telemetry SSE bus connected.",
           pollMs,
+          heartbeatMs: HEARTBEAT_MS,
+          retryMs: SSE_RETRY_MS,
+          resumedFrom: lastEventId,
+          sessionId,
         },
       });
       pushTelemetry(connected);
@@ -257,6 +308,18 @@ export async function GET(request: Request) {
             lastIncidentFingerprint = incFp;
             for (const e of snap.incidents) pushTelemetry(e);
           }
+
+          // Swarm ticks: agent activity, token increments, Sentry resolution alerts
+          const ticks = await collectSwarmStreamTicks({
+            workspaceId,
+            sessionId,
+          });
+          if (ticks.fingerprint !== lastSwarmFingerprint) {
+            lastSwarmFingerprint = ticks.fingerprint;
+            for (const e of ticks.agentTicks) pushTelemetry(e);
+            for (const e of ticks.tokenTicks) pushTelemetry(e);
+            for (const e of ticks.sentryAlerts) pushTelemetry(e);
+          }
         } catch (err) {
           captureStructuredError(err, {
             ...telemetry,
@@ -279,6 +342,7 @@ export async function GET(request: Request) {
         push("heartbeat", {
           at: new Date().toISOString(),
           workspaceId,
+          sessionId,
         });
       }, HEARTBEAT_MS);
 
@@ -319,6 +383,8 @@ export async function GET(request: Request) {
     headers: {
       ...SSE_HEADERS,
       "x-workspace-bound": workspaceId,
+      "x-sse-heartbeat-ms": String(HEARTBEAT_MS),
+      "x-sse-retry-ms": String(SSE_RETRY_MS),
     },
   });
 }

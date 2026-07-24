@@ -5,6 +5,9 @@
 
 export type TelemetryEventType =
   | "agent_state"
+  | "agent_tick"
+  | "token_usage"
+  | "sentry_resolution"
   | "gas"
   | "incident"
   | "terminal_log"

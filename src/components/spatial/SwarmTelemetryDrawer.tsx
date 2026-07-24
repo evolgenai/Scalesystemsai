@@ -16,6 +16,9 @@ import {
   SWARM_TELEMETRY_TOGGLE_EVENT,
 } from "@/lib/spatial/swarmEvents";
 import { playSpatialCue } from "@/lib/spatial/spatialAudio";
+import { useSwarmStream } from "@/hooks/useSwarmStream";
+import { useWorkspaceScope } from "@/components/navigation/WorkspaceScopeContext";
+import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 
 type SwarmResponse = {
   success?: boolean;
@@ -79,6 +82,8 @@ function LatencySpark({
  * Sliding bio-metallic swarm telemetry drawer — header button or [T].
  */
 export function SwarmTelemetryDrawer() {
+  const { workspaceId } = useWorkspaceScope();
+  const { counters, recent } = useSwarmStream({ workspaceId, enabled: true });
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +93,11 @@ export function SwarmTelemetryDrawer() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/telemetry/swarm", { cache: "no-store" });
+      const qs = new URLSearchParams({ workspaceId });
+      const res = await fetch(`/api/telemetry/swarm?${qs}`, {
+        headers: getClientAuthHeaders(),
+        cache: "no-store",
+      });
       const json = (await res.json()) as SwarmResponse;
       if (!res.ok || !json.swarm) {
         throw new Error(json.error ?? "Telemetry unavailable");
@@ -99,7 +108,7 @@ export function SwarmTelemetryDrawer() {
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
     const onToggle = (ev: Event) => {
@@ -169,7 +178,9 @@ export function SwarmTelemetryDrawer() {
               Live agent mesh
             </h2>
             <p className="font-mono text-[10px] text-slate-dim">
-              source · {swarm?.source ?? "…"} · press T to toggle
+              source · {swarm?.source ?? "…"} · sse{" "}
+              {counters.connected ? "live" : "…"} · ws {workspaceId.slice(0, 12)}
+              · press T
             </p>
           </div>
           <div className="flex items-center gap-1">
@@ -208,13 +219,29 @@ export function SwarmTelemetryDrawer() {
           {totals ? (
             <div className="grid grid-cols-2 gap-2">
               {[
-                ["agents", totals.activeAgents],
-                ["tok in", totals.tokensIn.toLocaleString()],
-                ["tok out", totals.tokensOut.toLocaleString()],
-                ["avg lat", `${totals.avgLatencyMs}ms`],
+                ["agents", Math.max(totals.activeAgents, counters.agentsOnline)],
+                [
+                  "tok in",
+                  totals.tokensIn.toLocaleString(),
+                ],
+                [
+                  "tok out",
+                  totals.tokensOut.toLocaleString(),
+                ],
+                [
+                  "avg lat",
+                  `${totals.avgLatencyMs}ms`,
+                ],
+                [
+                  "sse gas",
+                  counters.gasBalance != null
+                    ? counters.gasBalance.toLocaleString()
+                    : "—",
+                ],
+                ["sse inc", counters.openIncidents],
               ].map(([k, v]) => (
                 <div
-                  key={k}
+                  key={String(k)}
                   className="rounded-xl border border-white/5 bg-[#050807]/6 px-3 py-2"
                 >
                   <p className="font-mono text-[9px] uppercase tracking-wider text-slate-dim">
@@ -223,6 +250,27 @@ export function SwarmTelemetryDrawer() {
                   <p className="mt-0.5 font-mono text-sm text-[#00ffaa]">{v}</p>
                 </div>
               ))}
+            </div>
+          ) : null}
+
+          {recent.length > 0 ? (
+            <div className="rounded-xl border border-[#00ffaa]/15 bg-[#050807]/55 p-3">
+              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-[#00ffaa]/75">
+                live sse feed · {counters.eventCount} events
+              </p>
+              <ul className="max-h-28 space-y-1 overflow-y-auto font-mono text-[10px] text-slate-muted">
+                {recent.slice(0, 8).map((ev, i) => (
+                  <li key={`${ev.id ?? i}-${ev.at ?? i}`}>
+                    <span className="text-[#00ffaa]/80">{ev.type}</span>
+                    {ev.at ? ` · ${new Date(String(ev.at)).toLocaleTimeString()}` : ""}
+                    {typeof ev.message === "string"
+                      ? ` · ${ev.message.slice(0, 60)}`
+                      : typeof ev.agentName === "string"
+                        ? ` · ${ev.agentName}`
+                        : ""}
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : null}
 
