@@ -61,6 +61,21 @@ export const KNOWN_SPATIAL_NODES: KnownSpatialNode[] = [
     dialogKind: "sandbox_executor_node",
   },
   {
+    id: "db-shard-monitor",
+    label: "Database Shard Monitor",
+    aliases: [
+      "database",
+      "db",
+      "db shard",
+      "shard monitor",
+      "database auditor",
+      "pool",
+      "postgres",
+    ],
+    position: [-8.5, 0, -12.4],
+    dialogKind: "db_shard_monitor",
+  },
+  {
     id: "ip-network-diag",
     label: "IP Network Diagnostic Node",
     aliases: ["ip", "diagnostic", "network diag", "ip diagnostic", "network"],
@@ -183,13 +198,34 @@ export function buildGridPath(
   return chain;
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Loose case-insensitive alias match (word-ish / hyphen-tolerant). */
+function aliasMatches(haystack: string, alias: string): boolean {
+  const a = alias.toLowerCase().trim();
+  if (!a) return false;
+  const h = haystack.toLowerCase();
+  if (h.includes(a)) return true;
+  // Treat hyphens/spaces interchangeably: "meta sre" ↔ "meta-sre"
+  const flexible = escapeRegExp(a).replace(/[\s_-]+/g, "[\\s_-]*");
+  try {
+    return new RegExp(`(?:^|[^a-z0-9])${flexible}(?:[^a-z0-9]|$)`, "i").test(
+      h
+    );
+  } catch {
+    return false;
+  }
+}
+
 function matchKnownNode(q: string): KnownSpatialNode | null {
   const lower = q.toLowerCase();
   let best: KnownSpatialNode | null = null;
   let bestScore = 0;
   for (const node of KNOWN_SPATIAL_NODES) {
     for (const alias of [node.label.toLowerCase(), ...node.aliases, node.id]) {
-      if (lower.includes(alias.toLowerCase())) {
+      if (aliasMatches(lower, alias)) {
         const score = alias.length;
         if (score > bestScore) {
           bestScore = score;
@@ -264,6 +300,67 @@ function enrichFromWorldMatrix(
 export function parseSpatialCommand(
   input: CommandParserRequest | { command?: string; query?: string; seed?: string; from?: SpatialWaypoint }
 ): ParsedSpatialCommand {
+  try {
+    return parseSpatialCommandInner(input);
+  } catch {
+    const rawText = (input.command ?? input.query ?? "").trim();
+    const normalized = normalize(rawText);
+    // Graceful fallback: never throw — try loose node name match only.
+    const known = matchKnownNode(rawText) ?? matchKnownNode(normalized);
+    if (known) {
+      const approach: SpatialWaypoint = {
+        x: clampWorld(known.position[0]),
+        y: 0,
+        z: clampWorld(known.position[2]),
+      };
+      return {
+        intent: "navigate",
+        confidence: 0.55,
+        command: rawText,
+        query: rawText,
+        normalized,
+        coordinates: [approach.x, approach.y, approach.z],
+        targetNodeId: known.id,
+        targetNodeType: known.dialogKind ?? known.id,
+        targetTitle: known.label,
+        requiresPin: false,
+        actionHint: "navigate",
+        matchedKeywords: known.aliases.filter((a) =>
+          aliasMatches(normalized, a)
+        ),
+        target: approach,
+        node: known,
+        path: buildGridPath(input.from ?? { x: 0, y: 0, z: 8 }, approach),
+        utterance: `Pathfinding to ${known.label}`,
+        alternatives: [],
+      };
+    }
+    return {
+      intent: "unknown",
+      confidence: 0,
+      command: rawText,
+      query: rawText,
+      normalized,
+      coordinates: [0, 0, 0],
+      targetNodeId: null,
+      targetNodeType: null,
+      targetTitle: null,
+      requiresPin: false,
+      actionHint: null,
+      matchedKeywords: [],
+      target: null,
+      node: null,
+      path: [],
+      utterance:
+        'Try “go to sentry”, “meta-sre”, “sandbox”, or “database”.',
+      alternatives: [],
+    };
+  }
+}
+
+function parseSpatialCommandInner(
+  input: CommandParserRequest | { command?: string; query?: string; seed?: string; from?: SpatialWaypoint }
+): ParsedSpatialCommand {
   const rawText = (input.command ?? input.query ?? "").trim();
   const query = rawText;
   const normalized = normalize(query);
@@ -301,7 +398,7 @@ export function parseSpatialCommand(
     };
   }
 
-  const known = matchKnownNode(query);
+  const known = matchKnownNode(query) ?? matchKnownNode(normalized);
   if (known) {
     if (intent === "unknown") {
       intent =
@@ -311,6 +408,14 @@ export function parseSpatialCommand(
               known.dialogKind === "meta_sre_autofix"
             ? "inspect"
             : "navigate";
+    }
+    // Explicit go-to / navigate phrasing always pathfinds.
+    if (
+      /\b(go\s*to|goto|take\s+me|navigate|move\s+to|warp|path\s+to|bring\s+me)\b/i.test(
+        normalized
+      )
+    ) {
+      intent = "navigate";
     }
 
     const enriched = enrichFromWorldMatrix(
@@ -337,7 +442,7 @@ export function parseSpatialCommand(
       requiresPin: enriched.requiresPin,
       actionHint: intent,
       matchedKeywords: known.aliases.filter((a) =>
-        normalized.includes(a.toLowerCase())
+        aliasMatches(normalized, a)
       ),
       target: approach,
       node: known,
@@ -376,7 +481,7 @@ export function parseSpatialCommand(
     node: null,
     path: [],
     utterance:
-      'Try “Take me to Tor Node”, “Inspect Sentry errors”, or “Mount CyberRover”.',
+      'Try “go to sentry”, “meta-sre”, “sandbox”, or “database”.',
     alternatives: [],
   };
 }

@@ -4,6 +4,7 @@
  * Prefer Node.js runtime (not Edge) — adapter uses `pg`.
  */
 
+import "server-only";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool, type PoolConfig } from "pg";

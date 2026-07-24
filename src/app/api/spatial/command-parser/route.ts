@@ -87,6 +87,8 @@ export async function POST(request: Request) {
 
       return apiSuccess(
         {
+          /** Canonical parsed command (HUD + pathfinder). */
+          command: result,
           parsed: result,
           pathfinder: {
             destination: result.coordinates,
@@ -129,6 +131,7 @@ export async function GET(request: Request) {
     seed: url.searchParams.get("seed") ?? undefined,
   });
   return apiSuccess({
+    command: result,
     parsed: result,
     pathfinder: {
       destination: result.coordinates,

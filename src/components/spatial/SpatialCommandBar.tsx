@@ -8,6 +8,7 @@ import { playSpatialCue } from "@/lib/spatial/spatialAudio";
 type CommandParserResponse = {
   success?: boolean;
   command?: ParsedSpatialCommand;
+  parsed?: ParsedSpatialCommand;
   error?: string;
 };
 
@@ -73,17 +74,28 @@ export default function SpatialCommandBar({
           }),
         });
         const json = (await res.json()) as CommandParserResponse;
-        if (!res.ok || !json.command) {
+        const cmd = json.command ?? json.parsed;
+        if (!res.ok || !cmd) {
           throw new Error(json.error ?? "Command parse failed");
         }
-        const cmd = json.command;
         setStatus(cmd.utterance);
-        if (cmd.intent === "navigate" && cmd.path.length > 0) {
+        if (
+          cmd.path.length > 0 &&
+          (cmd.intent === "navigate" ||
+            cmd.intent === "inspect" ||
+            cmd.intent === "interact" ||
+            cmd.intent === "mount" ||
+            cmd.intent === "unlock")
+        ) {
           playSpatialCue("navigate");
           onNavigate(cmd);
           setQuery("");
-        } else {
+        } else if (cmd.intent === "unknown") {
           playSpatialCue("error");
+        } else {
+          playSpatialCue("navigate");
+          onNavigate(cmd);
+          setQuery("");
         }
       } catch (err) {
         setStatus(err instanceof Error ? err.message : "Command failed");

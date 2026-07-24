@@ -11,8 +11,11 @@ import {
 } from "@/lib/sentry";
 import {
   runPredictiveTune,
+  buildPredictiveTune,
   type PredictiveTuneRequest,
   type PredictiveTuneResult,
+  type PredictiveTuneQuery,
+  type PredictiveTuneSnapshot,
 } from "@/lib/spatial/predictiveTune";
 import {
   getFleetHealth,
@@ -80,6 +83,21 @@ export async function triggerPredictiveTuneAction(
         sessionId,
         autoPatch: input.autoPatch ?? true,
       })
+  );
+}
+
+export async function buildPredictiveTuneAction(
+  input: PredictiveTuneQuery = {}
+): Promise<ServerActionResult<PredictiveTuneSnapshot>> {
+  return withServerActionTelemetry(
+    {
+      actionName: "spatial.buildPredictiveTune",
+      source: "server_action",
+      route: "actions/predictive",
+      tenantId: input.workspaceId?.trim() || undefined,
+      extra: { sessionId: input.sessionId ?? null },
+    },
+    async () => buildPredictiveTune(input)
   );
 }
 
