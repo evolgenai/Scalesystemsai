@@ -309,16 +309,18 @@ export async function GET(request: Request) {
             for (const e of snap.incidents) pushTelemetry(e);
           }
 
-          // Swarm ticks: agent activity, token increments, Sentry resolution alerts
-          const ticks = await collectSwarmStreamTicks({
-            workspaceId,
-            sessionId,
-          });
-          if (ticks.fingerprint !== lastSwarmFingerprint) {
-            lastSwarmFingerprint = ticks.fingerprint;
-            for (const e of ticks.agentTicks) pushTelemetry(e);
-            for (const e of ticks.tokenTicks) pushTelemetry(e);
-            for (const e of ticks.sentryAlerts) pushTelemetry(e);
+          // Swarm ticks require sessionId for enterprise tenant isolation.
+          if (sessionId) {
+            const ticks = await collectSwarmStreamTicks({
+              workspaceId,
+              sessionId,
+            });
+            if (ticks.fingerprint !== lastSwarmFingerprint) {
+              lastSwarmFingerprint = ticks.fingerprint;
+              for (const e of ticks.agentTicks) pushTelemetry(e);
+              for (const e of ticks.tokenTicks) pushTelemetry(e);
+              for (const e of ticks.sentryAlerts) pushTelemetry(e);
+            }
           }
         } catch (err) {
           captureStructuredError(err, {

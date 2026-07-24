@@ -21,6 +21,7 @@ import {
 export const MemoryKindSchema = z.enum([
   "execution_step",
   "auto_patch",
+  "preemptive_tune",
   "sentry_resolution",
   "general",
 ]);

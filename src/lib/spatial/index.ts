@@ -166,8 +166,15 @@ export {
 } from "@/lib/spatial/swarmEvents";
 
 export {
-  buildNodeHealthSnapshot,
-  type SpatialNodeHealth,
+  analyzeNodeHealth,
   type NodeHealthSnapshot,
-  type NodeHealthStatus,
+  type NodeHealthReport,
+  type NodeHealthState,
 } from "@/lib/spatial/nodeHealth";
+
+export {
+  buildPredictiveTune,
+  formatPredictiveRisk,
+  type PredictiveTuneSnapshot,
+  type PredictiveDispatchTarget,
+} from "@/lib/spatial/predictiveTune";

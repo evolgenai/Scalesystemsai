@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import type { Mesh } from "three";
-import type { SpatialNodeHealth } from "@/lib/spatial/nodeHealth";
+import type { NodeHealthReport } from "@/lib/spatial/nodeHealth";
 import { useWorkspaceScope } from "@/components/navigation/WorkspaceScopeContext";
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 
@@ -14,27 +14,25 @@ const WARNING = "#f59e0b";
 
 type HealthResponse = {
   success?: boolean;
-  health?: { nodes: SpatialNodeHealth[] };
+  nodes?: NodeHealthReport[];
+  health?: { nodes: NodeHealthReport[] };
 };
 
-function AnomalyHalo({
-  node,
-}: {
-  node: SpatialNodeHealth & { position: [number, number, number] };
-}) {
+function AnomalyHalo({ node }: { node: NodeHealthReport }) {
   const ring = useRef<Mesh>(null);
   const glow = useRef<Mesh>(null);
-  const color = node.status === "critical" ? CRITICAL : WARNING;
-  const base = 1.1 + node.severity * 0.55;
+  const color = node.state === "critical" ? CRITICAL : WARNING;
+  const severity = (100 - node.score) / 100;
+  const base = 1.1 + severity * 0.55;
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
     const pulse =
-      node.status === "critical"
+      node.state === "critical"
         ? 0.75 + Math.sin(t * 7.5) * 0.45
         : 0.55 + Math.sin(t * 4.2) * 0.35;
     if (ring.current) {
-      ring.current.rotation.z = t * (node.status === "critical" ? 1.8 : 1.1);
+      ring.current.rotation.z = t * (node.state === "critical" ? 1.8 : 1.1);
       const mat = ring.current.material as THREE.MeshStandardMaterial;
       mat.emissiveIntensity = pulse;
       const s = base * (1 + Math.sin(t * 5) * 0.06);
@@ -48,10 +46,11 @@ function AnomalyHalo({
     }
   });
 
-  const y = (node.position[1] ?? 0) + 1.35;
+  const [x, , z] = node.coordinates;
+  const y = 1.35;
 
   return (
-    <group position={[node.position[0], y, node.position[2]]}>
+    <group position={[x, y, z]}>
       <mesh ref={ring} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[1.05, 0.055, 8, 48]} />
         <meshStandardMaterial
@@ -90,7 +89,7 @@ function AnomalyHalo({
             boxShadow: `0 0 18px ${color}44`,
           }}
         >
-          {node.status} · {node.metric}
+          {node.state} · score {node.score}
         </div>
       </Html>
     </group>
@@ -100,25 +99,30 @@ function AnomalyHalo({
 /**
  * Pulsating red/amber halos for critical/warning spatial nodes.
  */
-export default function NodeAnomalyHalos({ enabled = true }: { enabled?: boolean }) {
+export default function NodeAnomalyHalos({
+  enabled = true,
+}: {
+  enabled?: boolean;
+}) {
   const { workspaceId } = useWorkspaceScope();
-  const [nodes, setNodes] = useState<SpatialNodeHealth[]>([]);
+  const [nodes, setNodes] = useState<NodeHealthReport[]>([]);
 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
     const load = async () => {
       try {
-        const qs = new URLSearchParams({ workspaceId });
+        const qs = new URLSearchParams({ workspaceId, limit: "40" });
         const res = await fetch(`/api/spatial/node-health?${qs}`, {
           headers: getClientAuthHeaders(),
           cache: "no-store",
         });
         const json = (await res.json()) as HealthResponse;
-        if (!res.ok || !json.health || cancelled) return;
-        setNodes(json.health.nodes);
+        if (!res.ok || cancelled) return;
+        const list = json.nodes ?? json.health?.nodes ?? [];
+        setNodes(list);
       } catch {
-        /* soft-fail — keep prior halos */
+        /* soft-fail */
       }
     };
     void load();
@@ -131,12 +135,7 @@ export default function NodeAnomalyHalos({ enabled = true }: { enabled?: boolean
 
   const anomalous = useMemo(
     () =>
-      nodes.filter(
-        (n) =>
-          (n.status === "critical" || n.status === "warning") &&
-          Array.isArray(n.position) &&
-          n.position.length === 3
-      ) as Array<SpatialNodeHealth & { position: [number, number, number] }>,
+      nodes.filter((n) => n.state === "critical" || n.state === "warning"),
     [nodes]
   );
 

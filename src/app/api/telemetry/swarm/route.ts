@@ -26,8 +26,8 @@ export const runtime = "nodejs";
 export const revalidate = 0;
 
 const SwarmQuerySchema = z.object({
-  workspaceId: z.string().trim().min(1).max(128).optional(),
-  sessionId: z.string().trim().min(1).max(128).optional(),
+  workspaceId: z.string().trim().min(1).max(128),
+  sessionId: z.string().trim().min(1).max(128),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 });
 
@@ -52,7 +52,8 @@ export async function GET(request: Request) {
 
   if (!parsed.success) {
     return apiError(
-      parsed.error.issues[0]?.message ?? "Invalid swarm telemetry query.",
+      parsed.error.issues[0]?.message ??
+        "workspaceId and sessionId are required for swarm telemetry.",
       "INVALID_QUERY",
       400
     );
@@ -91,7 +92,7 @@ export async function GET(request: Request) {
   }
 }
 
-/** Ingest status / token / hand-off events for the live board. */
+/** Ingest status / token / hand-off events for the live board (tenant-scoped). */
 export async function POST(request: Request) {
   let raw: unknown;
   try {
@@ -100,7 +101,18 @@ export async function POST(request: Request) {
     return apiError("Invalid JSON body.", "INVALID_JSON", 400);
   }
 
-  const parsed = SwarmIngestSchema.safeParse(raw);
+  const headerWorkspace =
+    request.headers.get("x-workspace-id")?.trim() || undefined;
+  const merged =
+    raw && typeof raw === "object"
+      ? {
+          ...(raw as Record<string, unknown>),
+          workspaceId:
+            (raw as { workspaceId?: string }).workspaceId ?? headerWorkspace,
+        }
+      : raw;
+
+  const parsed = SwarmIngestSchema.safeParse(merged);
   if (!parsed.success) {
     return apiError(
       parsed.error.issues[0]?.message ?? "Invalid swarm ingest payload.",
@@ -109,14 +121,34 @@ export async function POST(request: Request) {
     );
   }
 
+  const body = parsed.data;
+  const workspaceId =
+    "workspaceId" in body
+      ? (body as { workspaceId?: string | null }).workspaceId
+      : undefined;
+  const sessionId =
+    "sessionId" in body
+      ? (body as { sessionId?: string | null }).sessionId
+      : undefined;
+
+  if (body.type === "status" || body.type === "tokens" || body.type === "hand_off") {
+    if (!workspaceId?.trim() || !sessionId?.trim()) {
+      return apiError(
+        "workspaceId and sessionId are required on swarm ingest.",
+        "TENANT_REQUIRED",
+        400
+      );
+    }
+  }
+
   const telemetry = telemetryContextFromRequest(request, {
     route: "/api/telemetry/swarm",
     source: "api",
+    tenantId: workspaceId ?? undefined,
   });
 
   try {
     return await withSentryTelemetryAsync(telemetry, async () => {
-      const body = parsed.data;
       if (body.type === "status") {
         const agent = recordSwarmAgentStatus(body);
         return apiSuccess({ recorded: "status", agent });

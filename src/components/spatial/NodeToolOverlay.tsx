@@ -6,11 +6,14 @@ import type {
   NodeDialogKind,
 } from "@/components/spatial/InstancedHardwareGrid";
 import type { SentryTelemetryPayload } from "@/components/spatial/PinKeypadModal";
+import PredictiveHealthChip from "@/components/spatial/PredictiveHealthChip";
 
 type NodeToolOverlayProps = {
   node: HardwareInteractable;
   onClose: () => void;
   sentryTelemetry?: SentryTelemetryPayload | Record<string, unknown> | null;
+  riskPct?: number;
+  onOpenEdgeTerminal?: () => void;
 };
 
 function linesFor(node: HardwareInteractable): string[] {
@@ -167,6 +170,8 @@ export default function NodeToolOverlay({
   node,
   onClose,
   sentryTelemetry,
+  riskPct = 18,
+  onOpenEdgeTerminal,
 }: NodeToolOverlayProps) {
   const live = sentryLines(sentryTelemetry);
   const lines =
@@ -192,6 +197,9 @@ export default function NodeToolOverlay({
             <h3 className="truncate text-sm font-semibold text-white">
               {node.label}
             </h3>
+            <div className="mt-2">
+              <PredictiveHealthChip riskPct={riskPct} />
+            </div>
           </div>
           <button
             type="button"
@@ -209,6 +217,17 @@ export default function NodeToolOverlay({
             </div>
           ))}
         </pre>
+        {onOpenEdgeTerminal ? (
+          <div className="border-t border-white/5 px-4 py-2.5">
+            <button
+              type="button"
+              onClick={onOpenEdgeTerminal}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#00ffaa]/35 bg-[#00ffaa]/12 px-3 py-2 font-mono text-[11px] font-semibold text-[#00ffaa] transition hover:bg-[#00ffaa]/20"
+            >
+              Open Edge Terminal
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

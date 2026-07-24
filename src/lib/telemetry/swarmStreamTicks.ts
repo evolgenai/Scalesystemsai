@@ -28,7 +28,7 @@ function event(
  */
 export async function collectSwarmStreamTicks(options: {
   workspaceId: string;
-  sessionId?: string | null;
+  sessionId: string;
 }): Promise<SwarmTickBundle> {
   const swarm = await getSwarmTelemetry({
     workspaceId: options.workspaceId,
@@ -87,11 +87,11 @@ export async function collectSwarmStreamTicks(options: {
   try {
     const recalled = await recallAgentMemory({
       workspaceId: options.workspaceId,
-      sessionId: options.sessionId ?? undefined,
-      kinds: ["sentry_resolution", "auto_patch"],
-      tags: ["sentry", "resolved", "execute-patch"],
+      sessionId: options.sessionId,
+      kinds: ["sentry_resolution", "auto_patch", "preemptive_tune"],
+      tags: ["sentry", "resolved", "execute-patch", "preemptive_tune"],
       limit: 8,
-      strictTenant: Boolean(options.sessionId),
+      strictTenant: true,
     });
 
     sentryAlerts = recalled.entries.map((entry) =>

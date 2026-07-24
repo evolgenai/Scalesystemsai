@@ -113,7 +113,10 @@ type LaserPulse = {
   color: string;
 };
 
-function clusterPos(id: SwarmClusterId, y = 2.0) {
+/** Hub visual height — celestial orbs float above desert floor hitboxes. */
+const HUB_Y = 3.4;
+
+function clusterPos(id: SwarmClusterId, y = HUB_Y) {
   const c = SWARM_CLUSTERS[id].center;
   return new THREE.Vector3(c[0], y, c[2]);
 }
@@ -128,7 +131,7 @@ function AgentOrb({ agent }: { agent: OrbitAgent }) {
     const c = SWARM_CLUSTERS[agent.cluster].center;
     root.current.position.set(
       c[0] + Math.cos(t) * agent.radius,
-      agent.height + Math.sin(t * 1.7) * 0.12,
+      HUB_Y - 0.6 + agent.height * 0.35 + Math.sin(t * 1.7) * 0.12,
       c[2] + Math.sin(t) * agent.radius
     );
   });
@@ -334,32 +337,44 @@ export default function SwarmAgentTopology({
         const c = SWARM_CLUSTERS[key];
         return (
           <group key={key} position={c.center}>
+            {/* Miniature glowing planet hub */}
             <mesh
               ref={(el) => {
                 hubRefs.current[key] = el;
               }}
-              position={[0, 2.55, 0]}
+              position={[0, HUB_Y, 0]}
             >
-              <octahedronGeometry args={[0.38, 0]} />
+              <icosahedronGeometry args={[0.48, 1]} />
               <meshStandardMaterial
                 color="#0b120f"
-                metalness={0.9}
-                roughness={0.18}
+                metalness={0.88}
+                roughness={0.2}
                 emissive={c.color}
                 emissiveIntensity={0.55}
               />
             </mesh>
-            <mesh position={[0, 2.55, 0]} scale={2.2}>
-              <sphereGeometry args={[0.38, 12, 12]} />
+            <mesh position={[0, HUB_Y, 0]}>
+              <octahedronGeometry args={[0.62, 0]} />
               <meshBasicMaterial
                 color={c.color}
+                wireframe
                 transparent
-                opacity={0.08}
+                opacity={0.28}
                 depthWrite={false}
               />
             </mesh>
+            <mesh position={[0, HUB_Y, 0]} scale={2.4}>
+              <sphereGeometry args={[0.48, 12, 12]} />
+              <meshBasicMaterial
+                color={c.color}
+                transparent
+                opacity={0.1}
+                depthWrite={false}
+                blending={THREE.AdditiveBlending}
+              />
+            </mesh>
             <Html
-              position={[0, 3.35, 0]}
+              position={[0, HUB_Y + 1.05, 0]}
               center
               distanceFactor={16}
               style={{ pointerEvents: "none" }}
@@ -375,12 +390,12 @@ export default function SwarmAgentTopology({
                 {c.label}
               </span>
             </Html>
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
               <ringGeometry args={[2.3, 2.38, 48]} />
               <meshBasicMaterial
                 color={c.color}
                 transparent
-                opacity={0.18}
+                opacity={0.22}
                 depthWrite={false}
                 side={THREE.DoubleSide}
               />

@@ -10,7 +10,7 @@ import {
   type MutableRefObject,
 } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { ContactShadows, Html, Stars } from "@react-three/drei";
+import { Html } from "@react-three/drei";
 import {
   EffectComposer,
   Bloom,
@@ -50,7 +50,14 @@ import NodeToolOverlay from "@/components/spatial/NodeToolOverlay";
 import MetaSreTerminalModal from "@/components/spatial/MetaSreTerminalModal";
 import SpatialCommandBar from "@/components/spatial/SpatialCommandBar";
 import SwarmAgentTopology from "@/components/spatial/SwarmAgentTopology";
+import CelestialAgentMesh from "@/components/spatial/CelestialAgentMesh";
+import DesertPlanetEnvironment from "@/components/spatial/DesertPlanetEnvironment";
 import NodeAnomalyHalos from "@/components/spatial/NodeAnomalyHalos";
+import RepairSubAgentDispatch from "@/components/spatial/RepairSubAgentDispatch";
+import EdgeTerminalModal, {
+  isEdgeWorkstation,
+} from "@/components/spatial/EdgeTerminalModal";
+import PredictiveHealthChip from "@/components/spatial/PredictiveHealthChip";
 import { useStreamEngine } from "@/components/spatial/StreamEngineContext";
 import { playSpatialCue } from "@/lib/spatial/spatialAudio";
 import type { ParsedSpatialCommand } from "@/lib/spatial/commandParser";
@@ -65,7 +72,6 @@ import ObjectMorpher, {
 import WebGLErrorBoundary from "@/components/ui/WebGLErrorBoundary";
 
 const YELLOW = "#facc15";
-const GRID_SIZE = 120;
 const PROXIMITY = 3;
 const MORPH_PROX = 5.5;
 
@@ -642,58 +648,6 @@ function Spatial2DGridFallback({
         </p>
       </div>
     </div>
-  );
-}
-
-function CyberGrid() {
-  const gridRef = useRef<THREE.GridHelper>(null);
-  useFrame(({ clock }) => {
-    if (!gridRef.current) return;
-    const mat = gridRef.current.material;
-    if (Array.isArray(mat)) return;
-    mat.opacity = 0.28 + Math.sin(clock.elapsedTime * 0.6) * 0.05;
-  });
-
-  return (
-    <>
-      {/* Cosmic skybox — deep void + star field */}
-      <color attach="background" args={["#05080a"]} />
-      <fog attach="fog" args={["#080b0c", 42, 160]} />
-      <Stars
-        radius={180}
-        depth={60}
-        count={4200}
-        factor={3.2}
-        saturation={0.35}
-        fade
-        speed={0.35}
-      />
-      <gridHelper
-        ref={gridRef}
-        args={[GRID_SIZE, 80, "#00ffaa", "#152e24"]}
-        position={[0, 0.015, 0]}
-      />
-      {/* Dark reflective bio-terrain */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[GRID_SIZE * 1.4, GRID_SIZE * 1.4]} />
-        <meshStandardMaterial
-          color="#0c1214"
-          metalness={0.92}
-          roughness={0.18}
-          envMapIntensity={1.35}
-          emissive="#152e24"
-          emissiveIntensity={0.12}
-        />
-      </mesh>
-      <ContactShadows
-        position={[0, 0.02, 0]}
-        opacity={0.55}
-        scale={55}
-        blur={2.4}
-        far={18}
-        color="#000000"
-      />
-    </>
   );
 }
 
@@ -1779,25 +1733,27 @@ function Scene({
 
   return (
     <>
-      <ambientLight intensity={0.22} />
+      <ambientLight intensity={0.28} />
       <directionalLight
-        position={[10, 18, 8]}
-        intensity={0.9}
-        color="#e2e8f0"
+        position={[14, 22, 10]}
+        intensity={1.15}
+        color="#f0e0c8"
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-        shadow-camera-far={60}
-        shadow-camera-left={-25}
-        shadow-camera-right={25}
-        shadow-camera-top={25}
-        shadow-camera-bottom={-25}
+        shadow-camera-far={70}
+        shadow-camera-left={-28}
+        shadow-camera-right={28}
+        shadow-camera-top={28}
+        shadow-camera-bottom={-28}
         shadow-bias={-0.0002}
       />
-      <pointLight position={[-10, 8, -6]} intensity={1.2} color="#00ffaa" />
-      <pointLight position={[8, 6, 5]} intensity={0.85} color={CYAN} />
-      <pointLight position={[0, 10, 0]} intensity={0.4} color={YELLOW} />
-      <CyberGrid />
+      <hemisphereLight args={["#6b8f71", "#8a6b4a", 0.35]} />
+      <pointLight position={[-10, 8, -6]} intensity={1.05} color="#00ffaa" />
+      <pointLight position={[8, 6, 5]} intensity={0.7} color={CYAN} />
+      <pointLight position={[0, 10, 0]} intensity={0.35} color={YELLOW} />
+      <DesertPlanetEnvironment />
+      <CelestialAgentMesh enabled />
       <AmbientDrift />
       <AlienArtifactField />
       <InstancedHardwareGrid
@@ -1808,6 +1764,7 @@ function Scene({
       />
       <SwarmAgentTopology enabled />
       <NodeAnomalyHalos enabled />
+      <RepairSubAgentDispatch enabled />
       <TorNode
         locked={locked}
         avatarPosRef={avatarPosRef}
@@ -1962,10 +1919,12 @@ function ProximityChip({
   tower,
   onInspect,
   onDismiss,
+  riskPct = 12,
 }: {
   tower: TowerDef;
   onInspect: () => void;
   onDismiss: () => void;
+  riskPct?: number;
 }) {
   return (
     <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-20 sm:left-auto sm:right-4 sm:w-[min(20rem,calc(100%-2rem))]">
@@ -1981,6 +1940,9 @@ function ProximityChip({
             <p className="mt-0.5 font-mono text-[11px] text-emerald-300/90">
               [E] Interact / Open Script
             </p>
+            <div className="mt-2">
+              <PredictiveHealthChip riskPct={riskPct} compact />
+            </div>
           </div>
           <button
             type="button"
@@ -2086,6 +2048,8 @@ export default function SpatialUniverse({
   const [memoryNode, setMemoryNode] = useState<HardwareInteractable | null>(
     null
   );
+  const [edgeNode, setEdgeNode] = useState<HardwareInteractable | null>(null);
+  const [nodeRiskMap, setNodeRiskMap] = useState<Record<string, number>>({});
   const [sentryTelemetry, setSentryTelemetry] = useState<
     SentryTelemetryPayload | Record<string, unknown> | null
   >(null);
@@ -2134,6 +2098,10 @@ export default function SpatialUniverse({
           setMemoryNode(null);
           return;
         }
+        if (edgeNode) {
+          setEdgeNode(null);
+          return;
+        }
         if (toolNode) {
           setToolNode(null);
           setSentryTelemetry(null);
@@ -2153,7 +2121,33 @@ export default function SpatialUniverse({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [inspect, fullscreen, pinNode, toolNode, memoryNode]);
+  }, [inspect, fullscreen, pinNode, toolNode, memoryNode, edgeNode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadRisk = async () => {
+      try {
+        const res = await fetch("/api/spatial/predictive-tune?limit=20", {
+          cache: "no-store",
+        });
+        const json = (await res.json()) as {
+          tune?: { targets?: Array<{ nodeId: string; riskPct: number }> };
+        };
+        if (!res.ok || cancelled || !json.tune?.targets) return;
+        const map: Record<string, number> = {};
+        for (const t of json.tune.targets) map[t.nodeId] = t.riskPct;
+        setNodeRiskMap(map);
+      } catch {
+        /* soft */
+      }
+    };
+    void loadRisk();
+    const id = window.setInterval(loadRisk, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
   useEffect(() => {
     if (!fullscreen) return;
@@ -2199,9 +2193,15 @@ export default function SpatialUniverse({
       if (isMemoryHudNode(node)) {
         setMemoryNode(node);
         setToolNode(null);
+        setEdgeNode(null);
+      } else if (isEdgeWorkstation(node)) {
+        setEdgeNode(node);
+        setToolNode(null);
+        setMemoryNode(null);
       } else {
         setToolNode(node);
         setMemoryNode(null);
+        setEdgeNode(null);
       }
       setLocked(false);
       onOpenTerminal?.(node.id);
@@ -2296,7 +2296,13 @@ export default function SpatialUniverse({
     setFullscreen((v) => !v);
   }, []);
 
-  const overlayOpen = !!(inspect || pinNode || toolNode || memoryNode);
+  const overlayOpen = !!(
+    inspect ||
+    pinNode ||
+    toolNode ||
+    memoryNode ||
+    edgeNode
+  );
 
   const showChip =
     nearest &&
@@ -2326,7 +2332,7 @@ export default function SpatialUniverse({
               Spatial Universe
             </h2>
             <p className="font-mono text-[10px] text-slate-dim">
-              Anomaly halos · SSE swarm · workspace scope ·{" "}
+              Repair drones · edge tty · predictive risk ·{" "}
               {fullscreen ? "fullscreen" : "embedded"}
             </p>
           </div>
@@ -2487,6 +2493,7 @@ export default function SpatialUniverse({
         {showChip ? (
           <ProximityChip
             tower={showChip}
+            riskPct={nodeRiskMap[showChip.id] ?? 12}
             onInspect={() => handleInspect(showChip)}
             onDismiss={() => setDismissed(showChip.id)}
           />
@@ -2518,10 +2525,28 @@ export default function SpatialUniverse({
           />
         ) : null}
 
-        {toolNode && !pinNode && !memoryNode ? (
+        {edgeNode && !pinNode && !memoryNode ? (
+          <EdgeTerminalModal
+            node={edgeNode}
+            sessionId={sessionIdRef.current}
+            riskPct={nodeRiskMap[edgeNode.id] ?? 22}
+            onClose={() => setEdgeNode(null)}
+          />
+        ) : null}
+
+        {toolNode && !pinNode && !memoryNode && !edgeNode ? (
           <NodeToolOverlay
             node={toolNode}
             sentryTelemetry={sentryTelemetry}
+            riskPct={nodeRiskMap[toolNode.id] ?? 18}
+            onOpenEdgeTerminal={
+              isEdgeWorkstation(toolNode)
+                ? () => {
+                    setEdgeNode(toolNode);
+                    setToolNode(null);
+                  }
+                : undefined
+            }
             onClose={() => {
               setToolNode(null);
               setSentryTelemetry(null);

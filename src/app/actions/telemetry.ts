@@ -54,21 +54,28 @@ function requireWorkspaceId(
 
 export async function getSwarmTelemetryAction(input: {
   workspaceId: string;
-  sessionId?: string | null;
+  sessionId: string;
   limit?: number;
 }): Promise<ServerActionResult<SwarmTelemetrySnapshot>> {
   const workspaceId = requireWorkspaceId(
     input.workspaceId,
     "telemetry.swarm"
   );
+  const sessionId = input.sessionId?.trim();
+  if (!sessionId) {
+    throw new Error(
+      "telemetry.swarm requires sessionId for multi-tenant isolation."
+    );
+  }
   return withServerActionTelemetry(
     {
       actionName: "telemetry.swarm",
       source: "server_action",
       route: "actions/telemetry",
       tenantId: workspaceId,
+      extra: { sessionId },
     },
-    async () => getSwarmTelemetry({ ...input, workspaceId })
+    async () => getSwarmTelemetry({ ...input, workspaceId, sessionId })
   );
 }
 

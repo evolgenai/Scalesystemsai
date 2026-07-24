@@ -116,38 +116,70 @@ const AGENT_CATALOG: ReadonlyArray<{
 ];
 
 type SwarmGlobals = {
+  /** Per-tenant agent boards keyed by workspaceId::sessionId */
+  __ssSwarmAgentStateByTenant?: Map<string, Map<SwarmAgentId, SwarmAgentSnapshot>>;
+  /** Legacy global board — only used when no tenant scope is provided (internal). */
   __ssSwarmAgentState?: Map<SwarmAgentId, SwarmAgentSnapshot>;
   __ssSwarmHandOffTraces?: SwarmHandOffTrace[];
   __ssSwarmTokenEvents?: TokenUsageEvent[];
 };
 
-const MAX_TRACES = 100;
-const MAX_TOKEN_EVENTS = 200;
+const MAX_TRACES = 200;
+const MAX_TOKEN_EVENTS = 400;
 
 function globals(): SwarmGlobals {
   return globalThis as unknown as SwarmGlobals;
 }
 
-function agentState(): Map<SwarmAgentId, SwarmAgentSnapshot> {
+function tenantKey(
+  workspaceId?: string | null,
+  sessionId?: string | null
+): string | null {
+  const ws = workspaceId?.trim();
+  const sid = sessionId?.trim();
+  if (!ws || !sid) return null;
+  return `${ws}::${sid}`;
+}
+
+function seedAgentBoard(): Map<SwarmAgentId, SwarmAgentSnapshot> {
+  const now = new Date().toISOString();
+  return new Map(
+    AGENT_CATALOG.map((a) => [
+      a.id,
+      {
+        id: a.id,
+        name: a.name,
+        role: a.role,
+        status: "idle" as const,
+        currentTask: null,
+        lastActiveAt: now,
+        tokensConsumed: 0,
+        latencyMs: 0,
+        successRate: 1,
+      },
+    ])
+  );
+}
+
+function agentState(
+  workspaceId?: string | null,
+  sessionId?: string | null
+): Map<SwarmAgentId, SwarmAgentSnapshot> {
   const g = globals();
+  const key = tenantKey(workspaceId, sessionId);
+  if (key) {
+    if (!g.__ssSwarmAgentStateByTenant) {
+      g.__ssSwarmAgentStateByTenant = new Map();
+    }
+    let board = g.__ssSwarmAgentStateByTenant.get(key);
+    if (!board) {
+      board = seedAgentBoard();
+      g.__ssSwarmAgentStateByTenant.set(key, board);
+    }
+    return board;
+  }
   if (!g.__ssSwarmAgentState) {
-    const now = new Date().toISOString();
-    g.__ssSwarmAgentState = new Map(
-      AGENT_CATALOG.map((a) => [
-        a.id,
-        {
-          id: a.id,
-          name: a.name,
-          role: a.role,
-          status: "idle" as const,
-          currentTask: null,
-          lastActiveAt: now,
-          tokensConsumed: 0,
-          latencyMs: 0,
-          successRate: 1,
-        },
-      ])
-    );
+    g.__ssSwarmAgentState = seedAgentBoard();
   }
   return g.__ssSwarmAgentState;
 }
@@ -170,6 +202,8 @@ export const RecordSwarmAgentStatusSchema = z.object({
   currentTask: z.string().max(500).nullable().optional(),
   latencyMs: z.number().nonnegative().optional(),
   success: z.boolean().optional(),
+  workspaceId: z.string().trim().min(1).max(128).nullable().optional(),
+  sessionId: z.string().trim().min(1).max(128).nullable().optional(),
 });
 export type RecordSwarmAgentStatusInput = z.infer<
   typeof RecordSwarmAgentStatusSchema
@@ -178,7 +212,7 @@ export type RecordSwarmAgentStatusInput = z.infer<
 export function recordSwarmAgentStatus(
   input: RecordSwarmAgentStatusInput
 ): SwarmAgentSnapshot {
-  const map = agentState();
+  const map = agentState(input.workspaceId, input.sessionId);
   const prev = map.get(input.agentId);
   if (!prev) {
     throw new Error(`Unknown swarm agent: ${input.agentId}`);
@@ -244,10 +278,10 @@ export function recordTokenUsage(
     ring.splice(0, ring.length - MAX_TOKEN_EVENTS);
   }
 
-  // Mirror into known catalog agents when id matches.
+  // Mirror into known catalog agents when id matches (tenant-scoped board).
   if (SwarmAgentIdSchema.safeParse(input.agentId).success) {
     const id = input.agentId as SwarmAgentId;
-    const map = agentState();
+    const map = agentState(input.workspaceId, input.sessionId);
     const prev = map.get(id);
     if (prev) {
       map.set(id, {
@@ -302,7 +336,7 @@ export function recordHandOffTrace(
     ring.splice(0, ring.length - MAX_TRACES);
   }
 
-  // Reflect hand-off on catalog agents when possible.
+  // Reflect hand-off on catalog agents when possible (tenant-scoped).
   for (const [id, status] of [
     [input.fromAgentId, "handing_off"],
     [input.toAgentId, input.status === "failed" ? "error" : "running"],
@@ -314,6 +348,8 @@ export function recordHandOffTrace(
         currentTask: input.summary.slice(0, 200),
         latencyMs: input.latencyMs,
         success: input.status !== "failed",
+        workspaceId: input.workspaceId,
+        sessionId: input.sessionId,
       });
     }
   }
@@ -335,6 +371,8 @@ export function recordHandOffTrace(
 
 export type SwarmTelemetrySnapshot = {
   generatedAt: string;
+  workspaceId: string;
+  sessionId: string;
   agents: SwarmAgentSnapshot[];
   totals: {
     tokensConsumed: number;
@@ -350,81 +388,90 @@ export type SwarmTelemetrySnapshot = {
   source: "live" | "live+memory";
 };
 
-function filterByTenant<T extends { workspaceId?: string | null; sessionId?: string | null }>(
-  items: T[],
-  workspaceId?: string | null,
-  sessionId?: string | null
-): T[] {
-  return items.filter((item) => {
-    if (workspaceId && item.workspaceId && item.workspaceId !== workspaceId) {
-      return false;
-    }
-    if (sessionId && item.sessionId && item.sessionId !== sessionId) {
-      return false;
-    }
-    return true;
-  });
+/**
+ * Strict enterprise filter — both workspaceId and sessionId must match.
+ * Unscoped (null) events never leak into a tenant query.
+ */
+function filterByTenantStrict<
+  T extends { workspaceId?: string | null; sessionId?: string | null },
+>(items: T[], workspaceId: string, sessionId: string): T[] {
+  return items.filter(
+    (item) =>
+      item.workspaceId === workspaceId && item.sessionId === sessionId
+  );
 }
 
 /**
  * Build a live swarm telemetry snapshot for the HUD / API.
+ * Requires workspaceId + sessionId — prevents cross-tenant data leaks.
  */
-export async function getSwarmTelemetry(options?: {
-  workspaceId?: string | null;
-  sessionId?: string | null;
+export async function getSwarmTelemetry(options: {
+  workspaceId: string;
+  sessionId: string;
   limit?: number;
 }): Promise<SwarmTelemetrySnapshot> {
-  const limit = Math.min(50, Math.max(1, options?.limit ?? 20));
-  const agents = [...agentState().values()];
+  const workspaceId = options.workspaceId?.trim();
+  const sessionId = options.sessionId?.trim();
+  if (!workspaceId || !sessionId) {
+    throw new Error(
+      "getSwarmTelemetry requires workspaceId and sessionId for multi-tenant isolation."
+    );
+  }
 
-  let handOffTraces = filterByTenant(
+  const limit = Math.min(50, Math.max(1, options.limit ?? 20));
+  const agents = [...agentState(workspaceId, sessionId).values()];
+
+  let handOffTraces = filterByTenantStrict(
     [...traces()].reverse(),
-    options?.workspaceId,
-    options?.sessionId
+    workspaceId,
+    sessionId
   ).slice(0, limit);
 
-  let recentTokenEvents = filterByTenant(
+  let recentTokenEvents = filterByTenantStrict(
     [...tokenEvents()].reverse(),
-    options?.workspaceId,
-    options?.sessionId
+    workspaceId,
+    sessionId
   ).slice(0, limit);
 
   let source: SwarmTelemetrySnapshot["source"] = "live";
 
-  // Enrich with recent memory hand-offs when the live ring is thin.
-  if (handOffTraces.length < 5 && options?.workspaceId) {
+  if (handOffTraces.length < 5) {
     try {
       const recalled = await recallAgentMemory({
-        workspaceId: options.workspaceId,
-        sessionId: options.sessionId ?? undefined,
-        kinds: ["execution_step", "auto_patch"],
-        tags: ["hand-off", "swarm", "execute-patch"],
+        workspaceId,
+        sessionId,
+        kinds: ["execution_step", "auto_patch", "preemptive_tune"],
+        tags: ["hand-off", "swarm", "execute-patch", "preemptive_tune"],
         limit: 10,
-        strictTenant: Boolean(options.sessionId),
+        strictTenant: true,
       });
 
-      const fromMemory: SwarmHandOffTrace[] = recalled.entries.map((e) => {
-        const payload = e.payload as Record<string, unknown>;
-        return {
-          id: `mem_${e.id}`,
-          traceId: e.traceId ?? e.id,
-          fromAgentId:
-            typeof payload.fromAgentId === "string"
-              ? payload.fromAgentId
-              : "agent-a",
-          toAgentId: e.agentId,
-          sentryErrorId: e.sentryIssueId ?? null,
-          summary: e.summary.slice(0, 240),
-          status: "completed" as const,
-          latencyMs:
-            typeof payload.durationMs === "number" ? payload.durationMs : 0,
-          tokensUsed:
-            typeof payload.tokensUsed === "number" ? payload.tokensUsed : 0,
-          workspaceId: e.workspaceId,
-          sessionId: e.sessionId,
-          createdAt: e.createdAt,
-        };
-      });
+      const fromMemory: SwarmHandOffTrace[] = recalled.entries
+        .filter(
+          (e) => e.workspaceId === workspaceId && e.sessionId === sessionId
+        )
+        .map((e) => {
+          const payload = e.payload as Record<string, unknown>;
+          return {
+            id: `mem_${e.id}`,
+            traceId: e.traceId ?? e.id,
+            fromAgentId:
+              typeof payload.fromAgentId === "string"
+                ? payload.fromAgentId
+                : "agent-a",
+            toAgentId: e.agentId,
+            sentryErrorId: e.sentryIssueId ?? null,
+            summary: e.summary.slice(0, 240),
+            status: "completed" as const,
+            latencyMs:
+              typeof payload.durationMs === "number" ? payload.durationMs : 0,
+            tokensUsed:
+              typeof payload.tokensUsed === "number" ? payload.tokensUsed : 0,
+            workspaceId: e.workspaceId,
+            sessionId: e.sessionId,
+            createdAt: e.createdAt,
+          };
+        });
 
       const seen = new Set(handOffTraces.map((t) => t.id));
       for (const t of fromMemory) {
@@ -464,6 +511,8 @@ export async function getSwarmTelemetry(options?: {
 
   return {
     generatedAt: new Date().toISOString(),
+    workspaceId,
+    sessionId,
     agents,
     totals: {
       tokensConsumed,
