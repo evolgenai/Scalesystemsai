@@ -101,9 +101,12 @@ export {
 
 export {
   parseSpatialCommand,
+  buildGridPath,
+  KNOWN_SPATIAL_NODES,
   CommandParserRequestSchema,
   type ParsedSpatialCommand,
   type CommandParserRequest,
+  type SpatialWaypoint,
 } from "@/lib/spatial/commandParser";
 
 export {
@@ -148,14 +151,6 @@ export {
 export { playSpatialCue } from "@/lib/spatial/spatialAudio";
 
 export {
-  parseSpatialCommand,
-  buildGridPath,
-  KNOWN_SPATIAL_NODES,
-  type ParsedSpatialCommand,
-  type SpatialWaypoint,
-} from "@/lib/spatial/commandParser";
-
-export {
   SWARM_LASER_EVENT,
   SWARM_TELEMETRY_TOGGLE_EVENT,
   SKILL_LIBRARY_OPEN_EVENT,
@@ -174,7 +169,10 @@ export {
 
 export {
   buildPredictiveTune,
+} from "@/lib/spatial/predictiveTune";
+
+export {
   formatPredictiveRisk,
   type PredictiveTuneSnapshot,
   type PredictiveDispatchTarget,
-} from "@/lib/spatial/predictiveTune";
+} from "@/lib/spatial/predictiveFormat";

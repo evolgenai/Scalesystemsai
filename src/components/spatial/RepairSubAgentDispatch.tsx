@@ -5,7 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
-import type { PredictiveDispatchTarget } from "@/lib/spatial/predictiveTune";
+import type { PredictiveDispatchTarget } from "@/lib/spatial/predictiveFormat";
 import { useWorkspaceScope } from "@/components/navigation/WorkspaceScopeContext";
 import { getClientAuthHeaders } from "@/lib/auth/clientHeaders";
 import { emitSwarmLaser } from "@/lib/spatial/swarmEvents";

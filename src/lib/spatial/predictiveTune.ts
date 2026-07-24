@@ -1,6 +1,6 @@
 /**
  * Predictive Self-Tuning Engine — drift analysis + preemptive auto-patches.
- * Also exports HUD helpers (buildPredictiveTune / formatPredictiveRisk) for Agent B.
+ * Server-only (Prisma/memory). Client HUD helpers live in predictiveFormat.ts.
  */
 
 import { createHash } from "node:crypto";
@@ -24,6 +24,16 @@ import {
   recordHandOffTrace,
   recordSwarmAgentStatus,
 } from "@/lib/telemetry/swarmTelemetry";
+import type {
+  PredictiveDispatchTarget,
+  PredictiveTuneSnapshot,
+} from "@/lib/spatial/predictiveFormat";
+
+export type {
+  PredictiveDispatchTarget,
+  PredictiveTuneSnapshot,
+} from "@/lib/spatial/predictiveFormat";
+export { formatPredictiveRisk } from "@/lib/spatial/predictiveFormat";
 
 export const FAILURE_RISK_THRESHOLD = 0.8 as const;
 
@@ -498,30 +508,6 @@ export const PredictiveTuneQuerySchema = z.object({
 });
 export type PredictiveTuneQuery = z.infer<typeof PredictiveTuneQuerySchema>;
 
-export type PredictiveDispatchTarget = {
-  nodeId: string;
-  label: string;
-  riskPct: number;
-  state: "warning" | "critical";
-  position: [number, number, number];
-  reason: string;
-  etaMs: number;
-  agentId: string;
-};
-
-export type PredictiveTuneSnapshot = {
-  fetchedAt: string;
-  workspaceId: string | null;
-  horizonMin: number;
-  targets: PredictiveDispatchTarget[];
-  summary: {
-    atRisk: number;
-    dispatchQueued: number;
-    avgRiskPct: number;
-  };
-  source: "health+forecast";
-};
-
 function riskFromReport(n: NodeHealthReport): number {
   const base = Math.max(0, Math.min(100, 100 - n.score));
   const bump = n.state === "critical" ? 18 : n.state === "warning" ? 8 : 0;
@@ -577,27 +563,5 @@ export async function buildPredictiveTune(
       avgRiskPct,
     },
     source: "health+forecast",
-  };
-}
-
-export function formatPredictiveRisk(riskPct: number): {
-  label: string;
-  tone: "optimal" | "elevated" | "critical";
-} {
-  if (riskPct < 20) {
-    return {
-      label: `Predictive Risk: ${riskPct}% — Optimal`,
-      tone: "optimal",
-    };
-  }
-  if (riskPct < 55) {
-    return {
-      label: `Predictive Risk: ${riskPct}% — Elevated`,
-      tone: "elevated",
-    };
-  }
-  return {
-    label: `Predictive Risk: ${riskPct}% — Critical`,
-    tone: "critical",
   };
 }

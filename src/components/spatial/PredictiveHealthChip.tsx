@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPredictiveRisk } from "@/lib/spatial/predictiveTune";
+import { formatPredictiveRisk } from "@/lib/spatial/predictiveFormat";
 
 type PredictiveHealthChipProps = {
   riskPct: number;

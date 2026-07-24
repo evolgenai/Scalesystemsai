@@ -8,10 +8,20 @@ import { requestCameraFocus } from "@/lib/spatial/touchInput";
 type CommandParserResponse = {
   success?: boolean;
   command?: ParsedSpatialCommand;
+  /** Sprint 56 compat alias */
+  parsed?: ParsedSpatialCommand;
   error?: string;
 };
 
 const FOCUS_ALIASES = /\b(sentry|meta[-_]?sre|metasre)\b/i;
+
+const NAV_INTENTS = new Set([
+  "navigate",
+  "inspect",
+  "interact",
+  "mount",
+  "unlock",
+]);
 
 /**
  * Shared NL / voice command dispatch for Spatial Command Bar.
@@ -65,18 +75,23 @@ export function useSpatialVoiceDispatch({
           signal: ac.signal,
         });
         const json = (await res.json()) as CommandParserResponse;
-        if (!res.ok || !json.command) {
+        const cmd = json.command ?? json.parsed;
+        if (!res.ok || !cmd) {
           throw new Error(json.error ?? "Command parse failed");
         }
-        const cmd = json.command;
         focusIfKnown(cmd);
-        if (cmd.intent === "navigate" && cmd.path.length > 0) {
+        if (cmd.path.length > 0 && NAV_INTENTS.has(cmd.intent)) {
           playSpatialCue("navigate");
           onNavigate(cmd);
           return { ok: true, status: cmd.utterance };
         }
-        playSpatialCue("error");
-        return { ok: false, status: cmd.utterance || "No navigable path" };
+        if (cmd.intent === "unknown") {
+          playSpatialCue("error");
+          return { ok: false, status: cmd.utterance || "Unknown command" };
+        }
+        playSpatialCue("navigate");
+        onNavigate(cmd);
+        return { ok: true, status: cmd.utterance };
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") {
           return { ok: false, status: "" };
