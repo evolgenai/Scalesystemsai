@@ -1,15 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2, Mic, MicOff, Navigation, Send } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Mic, MicOff, Navigation, Send } from "lucide-react";
 import type { ParsedSpatialCommand } from "@/lib/spatial/commandParser";
-import { playSpatialCue } from "@/lib/spatial/spatialAudio";
-
-type CommandParserResponse = {
-  success?: boolean;
-  command?: ParsedSpatialCommand;
-  error?: string;
-};
+import { useSpatialVoiceDispatch } from "@/components/spatial/SpatialVoiceDispatch";
 
 type SpatialCommandBarProps = {
   sessionId: string;
@@ -31,6 +25,7 @@ type SpeechRecognitionLike = {
 
 /**
  * Bio-metallic NL / voice command bar for Spatial Universe pathfinding.
+ * Collapses on mobile (<768px); clears parse errors on re-type.
  */
 export default function SpatialCommandBar({
   sessionId,
@@ -42,8 +37,28 @@ export default function SpatialCommandBar({
   const [busy, setBusy] = useState(false);
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { dispatch } = useSpatialVoiceDispatch({
+    sessionId,
+    from,
+    onNavigate,
+  });
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => {
+      const mobile = mq.matches;
+      setIsMobile(mobile);
+      setCollapsed(mobile);
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -55,44 +70,38 @@ export default function SpatialCommandBar({
     };
   }, []);
 
+  const onQueryChange = useCallback((value: string) => {
+    setQuery(value);
+    // Clear stale parse / voice errors as soon as the user re-types
+    if (isError || status) {
+      setIsError(false);
+      setStatus(null);
+    }
+  }, [isError, status]);
+
   const submit = useCallback(
     async (raw: string) => {
       const text = raw.trim();
       if (!text || busy || disabled) return;
       setBusy(true);
+      setIsError(false);
       setStatus("parsing…");
-      try {
-        const pos = from();
-        const res = await fetch("/api/spatial/command-parser", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            query: text,
-            sessionId,
-            from: { x: pos.x, y: pos.y, z: pos.z },
-          }),
-        });
-        const json = (await res.json()) as CommandParserResponse;
-        if (!res.ok || !json.command) {
-          throw new Error(json.error ?? "Command parse failed");
-        }
-        const cmd = json.command;
-        setStatus(cmd.utterance);
-        if (cmd.intent === "navigate" && cmd.path.length > 0) {
-          playSpatialCue("navigate");
-          onNavigate(cmd);
-          setQuery("");
-        } else {
-          playSpatialCue("error");
-        }
-      } catch (err) {
-        setStatus(err instanceof Error ? err.message : "Command failed");
-        playSpatialCue("error");
-      } finally {
-        setBusy(false);
+      const result = await dispatch(text);
+      if (result.ok) {
+        setStatus(result.status);
+        setIsError(false);
+        setQuery("");
+        if (isMobile) setCollapsed(true);
+      } else if (result.status) {
+        setStatus(result.status);
+        setIsError(true);
+      } else {
+        setStatus(null);
+        setIsError(false);
       }
+      setBusy(false);
     },
-    [busy, disabled, from, onNavigate, sessionId]
+    [busy, disabled, dispatch, isMobile]
   );
 
   const toggleVoice = useCallback(() => {
@@ -104,6 +113,7 @@ export default function SpatialCommandBar({
     const Ctor = W.SpeechRecognition || W.webkitSpeechRecognition;
     if (!Ctor) {
       setStatus("Speech recognition unavailable in this browser");
+      setIsError(true);
       return;
     }
     if (listening && recognitionRef.current) {
@@ -120,22 +130,44 @@ export default function SpatialCommandBar({
       const transcript = ev.results[0]?.[0]?.transcript?.trim();
       if (transcript) {
         setQuery(transcript);
+        setIsError(false);
+        setStatus(null);
         void submit(transcript);
       }
     };
     rec.onerror = () => {
       setListening(false);
       setStatus("Voice input error");
+      setIsError(true);
     };
     rec.onend = () => setListening(false);
     try {
       rec.start();
       setListening(true);
+      setIsError(false);
       setStatus("listening…");
     } catch {
       setStatus("Could not start microphone");
+      setIsError(true);
     }
   }, [busy, disabled, listening, submit]);
+
+  if (isMobile && collapsed) {
+    return (
+      <div className="pointer-events-auto absolute inset-x-0 bottom-3 z-30 flex justify-center px-3">
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className="inline-flex items-center gap-2 rounded-2xl border border-[#00ffaa]/30 bg-[#0b120f]/95 px-4 py-2.5 font-mono text-[11px] font-semibold text-[#00ffaa] shadow-[0_12px_28px_-12px_rgba(0,0,0,0.85)] backdrop-blur-xl"
+          aria-expanded={false}
+        >
+          <Navigation className="h-3.5 w-3.5" aria-hidden />
+          Command
+          <ChevronUp className="h-3.5 w-3.5 opacity-70" aria-hidden />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-3 z-30 flex justify-center px-3">
@@ -146,23 +178,38 @@ export default function SpatialCommandBar({
           void submit(query);
         }}
       >
-        <span className="ml-1.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#00ffaa]/20 bg-[#00ffaa]/10 text-[#00ffaa]">
-          <Navigation className="h-3.5 w-3.5" aria-hidden />
-        </span>
+        {isMobile ? (
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            className="ml-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 text-slate-muted"
+            aria-label="Collapse command bar"
+          >
+            <ChevronDown className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        ) : (
+          <span className="ml-1.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#00ffaa]/20 bg-[#00ffaa]/10 text-[#00ffaa]">
+            <Navigation className="h-3.5 w-3.5" aria-hidden />
+          </span>
+        )}
         <div className="min-w-0 flex-1">
           <input
             ref={inputRef}
             type="text"
             value={query}
             disabled={disabled || busy}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => onQueryChange(e.target.value)}
             placeholder='Command · “go to sentry” · “goto 12, -4”'
             className="w-full bg-transparent font-mono text-[11px] text-white outline-none placeholder:text-slate-dim disabled:opacity-50"
             aria-label="Spatial navigation command"
             autoComplete="off"
           />
           {status ? (
-            <p className="truncate font-mono text-[9px] text-[#00ffaa]/70">
+            <p
+              className={`truncate font-mono text-[9px] ${
+                isError ? "text-red-400" : "text-[#00ffaa]/70"
+              }`}
+            >
               {status}
             </p>
           ) : null}

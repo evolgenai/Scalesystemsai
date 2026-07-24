@@ -89,6 +89,17 @@ export function SwarmTelemetryDrawer() {
   const [error, setError] = useState<string | null>(null);
   const [swarm, setSwarm] = useState<SwarmTelemetrySnapshot | null>(null);
 
+  // Auto-collapse drawer on mobile widths
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => {
+      if (mq.matches) setOpen(false);
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
   const load = useCallback(async () => {
     setBusy(true);
     setError(null);
@@ -163,9 +174,9 @@ export function SwarmTelemetryDrawer() {
   return (
     <>
       <div
-        className={`fixed inset-y-0 right-0 z-[70] flex w-full max-w-md transform flex-col border-l border-[#00ffaa]/20 bg-gradient-to-b from-[#0b120f] to-[#050807] shadow-[-20px_0_48px_-20px_rgba(0,0,0,0.9)] transition-transform duration-300 ease-out ${
+        className={`fixed inset-y-0 right-0 z-[70] flex w-full max-w-md transform flex-col border-l border-[#00ffaa]/20 bg-gradient-to-b from-[#0b120f] to-[#050807] shadow-[-20px_0_48px_-20px_rgba(0,0,0,0.9)] transition-transform duration-300 ease-out md:max-w-md ${
           open ? "translate-x-0" : "translate-x-full"
-        }`}
+        } max-md:max-w-full`}
         aria-hidden={!open}
       >
         <div className="flex items-start justify-between gap-3 border-b border-white/5 px-4 py-3">
@@ -378,12 +389,13 @@ export function SwarmTelemetryTrigger() {
           })
         )
       }
-      className="hidden items-center gap-1.5 rounded-xl border border-[#00ffaa]/25 bg-gradient-to-b from-[#0b120f] to-[#121e18] px-2.5 py-1.5 font-mono text-[10px] font-semibold text-[#00ffaa] transition hover:border-[#00ffaa]/45 sm:inline-flex"
+      className="inline-flex items-center gap-1.5 rounded-xl border border-[#00ffaa]/25 bg-gradient-to-b from-[#0b120f] to-[#121e18] px-2.5 py-1.5 font-mono text-[10px] font-semibold text-[#00ffaa] transition hover:border-[#00ffaa]/45"
       title="Swarm telemetry (T)"
       aria-label="Open swarm telemetry"
     >
       <Zap className="h-3 w-3" aria-hidden />
-      Swarm
+      <span className="hidden sm:inline">Swarm</span>
+      <span className="sm:hidden">SW</span>
     </button>
   );
 }

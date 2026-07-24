@@ -4,6 +4,11 @@ import { useEffect, useRef, type MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Group, Mesh } from "three";
+import {
+  consumeCameraFocus,
+  consumeTouchLook,
+  getTouchAxes,
+} from "@/lib/spatial/touchInput";
 
 const BIO_GLOW = "#00ffaa";
 const EMERALD = "#10B981";
@@ -363,6 +368,30 @@ export default function RobotAvatar({
       mountSnapRef.current = null;
     }
 
+    // Mobile swipe look + command-driven camera focus
+    if (locked) {
+      const touchLook = consumeTouchLook();
+      look.current.yaw += touchLook.yaw;
+      look.current.pitch += touchLook.pitch;
+      const minPitch = MIN_POLAR - Math.PI / 2;
+      const maxPitch = MAX_POLAR - Math.PI / 2;
+      look.current.pitch = THREE.MathUtils.clamp(
+        look.current.pitch,
+        minPitch,
+        maxPitch
+      );
+
+      const focus = consumeCameraFocus();
+      if (focus) {
+        const dx = focus.x - root.current.position.x;
+        const dz = focus.z - root.current.position.z;
+        if (dx * dx + dz * dz > 0.01) {
+          // Match camera-forward convention: (-sin(yaw), -cos(yaw))
+          look.current.yaw = Math.atan2(-dx, -dz);
+        }
+      }
+    }
+
     if (meshVisible.current) {
       meshVisible.current.visible = !driving;
     }
@@ -404,6 +433,15 @@ export default function RobotAvatar({
       wish.current.add(right.current);
     if (keys.current.KeyA || keys.current.ArrowLeft)
       wish.current.sub(right.current);
+
+    // Virtual d-pad / touch axes (mobile HUD)
+    if (locked) {
+      const touch = getTouchAxes();
+      if (Math.abs(touch.forward) > 0.02 || Math.abs(touch.strafe) > 0.02) {
+        wish.current.addScaledVector(forward.current, touch.forward);
+        wish.current.addScaledVector(right.current, touch.strafe);
+      }
+    }
 
     // Manual input cancels automated pathfinding
     const manualWish = wish.current.lengthSq() > 1e-6;

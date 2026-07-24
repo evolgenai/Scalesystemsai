@@ -49,6 +49,7 @@ import PinKeypadModal, {
 import NodeToolOverlay from "@/components/spatial/NodeToolOverlay";
 import MetaSreTerminalModal from "@/components/spatial/MetaSreTerminalModal";
 import SpatialCommandBar from "@/components/spatial/SpatialCommandBar";
+import MobileTouchHud from "@/components/spatial/MobileTouchHud";
 import SwarmAgentTopology from "@/components/spatial/SwarmAgentTopology";
 import CelestialAgentMesh from "@/components/spatial/CelestialAgentMesh";
 import DesertPlanetEnvironment from "@/components/spatial/DesertPlanetEnvironment";
@@ -61,6 +62,7 @@ import PredictiveHealthChip from "@/components/spatial/PredictiveHealthChip";
 import { useStreamEngine } from "@/components/spatial/StreamEngineContext";
 import { playSpatialCue } from "@/lib/spatial/spatialAudio";
 import type { ParsedSpatialCommand } from "@/lib/spatial/commandParser";
+import { requestCameraFocus } from "@/lib/spatial/touchInput";
 import ObjectMorpher, {
   type CompositeSuite,
   type MorphNode,
@@ -441,7 +443,7 @@ function probeWebGL(): WebGLProbeResult {
     const canvas = document.createElement("canvas");
     canvas.width = 8;
     canvas.height = 8;
-    const attrs: WebGLContextAttributes = {
+    const softAttrs: WebGLContextAttributes = {
       alpha: false,
       antialias: false,
       depth: true,
@@ -456,18 +458,30 @@ function probeWebGL(): WebGLProbeResult {
       "experimental-webgl",
     ];
     for (const id of candidates) {
-      const gl =
-        canvas.getContext(id, attrs) ||
-        canvas.getContext(id, {
-          ...attrs,
-          failIfMajorPerformanceCaveat: false,
-        });
-      if (gl && typeof (gl as WebGLRenderingContext).getParameter === "function") {
-        const ext = (gl as WebGLRenderingContext).getExtension?.(
-          "WEBGL_lose_context"
-        );
-        ext?.loseContext();
-        return { ok: true, backend: id };
+      // Soft pass: attrs → attrs-only caveat false → bare context
+      const tries: Array<WebGLContextAttributes | undefined> = [
+        softAttrs,
+        { failIfMajorPerformanceCaveat: false },
+        undefined,
+      ];
+      for (const attrs of tries) {
+        const gl = attrs
+          ? canvas.getContext(id, attrs)
+          : canvas.getContext(id);
+        if (
+          gl &&
+          typeof (gl as WebGLRenderingContext).getParameter === "function"
+        ) {
+          try {
+            const ext = (gl as WebGLRenderingContext).getExtension?.(
+              "WEBGL_lose_context"
+            );
+            ext?.loseContext();
+          } catch {
+            /* ignore lose */
+          }
+          return { ok: true, backend: id };
+        }
       }
     }
     return { ok: false, backend: null };
@@ -1926,8 +1940,45 @@ function ProximityChip({
   onDismiss: () => void;
   riskPct?: number;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const apply = () => {
+      const mobile = mq.matches;
+      setIsMobile(mobile);
+      setCollapsed(mobile);
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, [tower.id]);
+
+  if (isMobile && collapsed) {
+    return (
+      <div className="pointer-events-auto absolute bottom-[4.5rem] left-3 z-20 md:hidden">
+        <button
+          type="button"
+          onClick={() => setCollapsed(false)}
+          className="inline-flex max-w-[14rem] items-center gap-2 rounded-xl border border-emerald-500/35 bg-[#040907]/92 px-3 py-2 shadow-[0_0_24px_rgba(16,185,129,0.2)] backdrop-blur-xl"
+        >
+          <span className="truncate font-mono text-[10px] text-emerald-300">
+            near · {tower.name}
+          </span>
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="pointer-events-auto absolute bottom-4 left-4 right-4 z-20 sm:left-auto sm:right-4 sm:w-[min(20rem,calc(100%-2rem))]">
+    <div
+      className={`pointer-events-auto absolute z-20 ${
+        isMobile
+          ? "bottom-[4.5rem] left-3 right-3"
+          : "bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[min(20rem,calc(100%-2rem))]"
+      }`}
+    >
       <div className="overflow-hidden rounded-xl border border-emerald-500/30 bg-[#040907]/90 shadow-[0_0_40px_rgba(16,185,129,0.2)] backdrop-blur-xl">
         <div className="flex items-start justify-between gap-3 px-3.5 py-2.5">
           <div className="min-w-0">
@@ -1938,7 +1989,7 @@ function ProximityChip({
               {tower.name}
             </h3>
             <p className="mt-0.5 font-mono text-[11px] text-emerald-300/90">
-              [E] Interact / Open Script
+              {isMobile ? "Tap Connect" : "[E] Interact / Open Script"}
             </p>
             <div className="mt-2">
               <PredictiveHealthChip riskPct={riskPct} compact />
@@ -1946,9 +1997,12 @@ function ProximityChip({
           </div>
           <button
             type="button"
-            onClick={onDismiss}
+            onClick={() => {
+              if (isMobile) setCollapsed(true);
+              else onDismiss();
+            }}
             className="rounded-md p-1 text-slate-500 transition hover:bg-white/5 hover:text-white"
-            aria-label="Dismiss"
+            aria-label={isMobile ? "Collapse" : "Dismiss"}
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -2034,6 +2088,7 @@ export default function SpatialUniverse({
   const { mode: streamMode } = useStreamEngine();
   const [webgl, setWebgl] = useState(true);
   const [forceWebgl, setForceWebgl] = useState(false);
+  const [canvasEpoch, setCanvasEpoch] = useState(0);
   const [locked, setLocked] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [nearest, setNearest] = useState<TowerDef | null>(null);
@@ -2083,6 +2138,8 @@ export default function SpatialUniverse({
     writeForceWebglFlag(true);
     setForceWebgl(true);
     setWebgl(true);
+    // Force Three.js Canvas remount so it re-acquires a GPU context
+    setCanvasEpoch((n) => n + 1);
   }, []);
 
   const showCanvas = webgl || forceWebgl;
@@ -2270,6 +2327,10 @@ export default function SpatialUniverse({
     pathQueueRef.current = pts;
     setNavStatus(cmd.utterance);
     setLocked(true);
+    const dest = pts[pts.length - 1] ?? null;
+    if (dest) {
+      requestCameraFocus(dest.x, dest.y, dest.z);
+    }
   }, []);
 
   const commandFrom = useCallback(
@@ -2377,15 +2438,20 @@ export default function SpatialUniverse({
           <Spatial2DGridFallback onForceLoad={forceLoadCanvas} />
         ) : (
           <WebGLErrorBoundary
+            key={`spatial-gl-${canvasEpoch}`}
             label="spatial-universe"
             onError={() => {
-              writeForceWebglFlag(false);
-              setForceWebgl(false);
-              setWebgl(false);
+              // Under Force Load, stay on the Canvas remount path (error boundary
+              // Retry) instead of snapping back to the 2D grid fallback.
+              if (!readForceWebglFlag()) {
+                setForceWebgl(false);
+                setWebgl(false);
+              }
             }}
           >
             <Suspense fallback={null}>
               <Canvas
+                key={`canvas-${canvasEpoch}`}
                 shadows={!forceWebgl}
                 dpr={forceWebgl ? [1, 1] : [1, 1.5]}
                 frameloop="always"
@@ -2462,6 +2528,8 @@ export default function SpatialUniverse({
         ) : null}
 
         <SpeedometerHud speedRef={speedRef} visible={driving && locked} />
+
+        <MobileTouchHud enabled={showCanvas && !overlayOpen} locked={locked} />
 
         {torProxyIp ? (
           <div className="pointer-events-none absolute right-4 top-4 z-20 rounded-lg border border-[#00ffaa]/30 bg-[#080b0c]/9 px-3 py-2 font-mono text-[11px] text-[#00ffaa] shadow-[0_0_24px_rgba(0,255,170,0.2)] backdrop-blur-md">
